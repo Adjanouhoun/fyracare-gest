@@ -1,0 +1,10 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Nouveau RDV | Velzon{% endblock %}
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Nouveau rendez-vous</h4>
+  <p class="text-muted mb-0">Saisissez le client, la prestation et la date</p>
+{% endblock %}
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+  {% include 'rdv/_form.html.twig' with {form: form} %}
+{% endblock %}

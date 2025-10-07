@@ -1,0 +1,84 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Paiements du jour | Velzon{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Paiements du jour — {{ today|date('d/m/Y') }}</h4>
+      <p class="text-muted mb-0">Liste paginée + recherche</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('app_payment_all') }}" class="btn btn-primary">
+        <i class="ri-list-check-2"></i> Tous les paiements
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" action="{{ path('app_payment_index') }}" class="row g-2">
+        <div class="col-md-6">
+          <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Rechercher client / prestation / reçu…">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" name="method">
+            <option value="">Toutes méthodes</option>
+            <option value="ESPECES" {{ method == 'ESPECES' ? 'selected' }}>Espèces</option>
+            <option value="MOBILE"  {{ method == 'MOBILE'  ? 'selected' }}>Mobile</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-grid">
+          <button class="btn btn-secondary"><i class="ri-search-line"></i> Rechercher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive table-card">
+        <table class="table align-middle table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Reçu</th>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Prestation</th>
+              <th class="text-end">Montant (MRU)</th>
+              <th>Méthode</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in pagination %}
+            <tr>
+              <td>{{ p.id }}</td>
+              <td><span class="badge bg-primary-subtle text-primary">{{ p.receiptNumber }}</span></td>
+              <td>{{ p.paidAt ? p.paidAt|date('d/m/Y H:i') : '' }}</td>
+              <td>{{ p.rdv.client.nometprenom }}</td>
+              <td>{{ p.rdv.prestation.libelle }}</td>
+              <td class="text-end">{{ p.amount|number_format(0, ',', ' ') }}</td>
+              <td>{{ p.methode }}</td>
+              <td class="d-flex gap-2">
+                <a href="{{ path('app_payment_show', {id: p.id}) }}" class="btn btn-sm btn-soft-secondary">Voir</a>
+                <a href="{{ path('app_payment_receipt', {id: p.id}) }}" target="_blank" class="btn btn-sm btn-soft-primary">Reçu</a>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8" class="text-center text-muted">Aucun paiement aujourd’hui.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-3">
+        {{ knp_pagination_render(pagination) }}
+      </div>
+    </div>
+  </div>
+{% endblock %}

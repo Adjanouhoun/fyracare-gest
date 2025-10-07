@@ -1,0 +1,115 @@
+{# templates/rdv/_form.html.twig
+   Fragment de formulaire RDV — aucune déclaration de block/extends/parent() #}
+
+{{ form_start(form, {attr: {class: 'row g-3'}}) }}
+
+  {# Client en autocomplete #}
+  <div class="col-md-6">
+    {{ form_label(form.client, 'Client', {label_attr: {class: 'form-label'}}) }}
+    {{ form_widget(form.client, {
+      attr: {
+        class: 'form-select js-ajax-select',
+        'data-url': path('api_autocomplete_clients'),
+        'data-placeholder': 'Rechercher un client…'
+      }
+    }) }}
+    {{ form_errors(form.client) }}
+  </div>
+
+  {# Prestation en autocomplete #}
+  <div class="col-md-6">
+    {{ form_label(form.prestation, 'Prestation', {label_attr: {class: 'form-label'}}) }}
+    {{ form_widget(form.prestation, {
+      attr: {
+        class: 'form-select js-ajax-select',
+        'data-url': path('api_autocomplete_prestations'),
+        'data-placeholder': 'Rechercher une prestation…'
+      }
+    }) }}
+    {{ form_errors(form.prestation) }}
+  </div>
+
+  {# Début du rendez-vous #}
+  <div class="col-md-6">
+    {{ form_label(form.startAt, 'Début', {label_attr: {class: 'form-label'}}) }}
+    {{ form_widget(form.startAt, {attr: {class: 'form-control'}}) }}
+    {{ form_errors(form.startAt) }}
+  </div>
+
+  {# Fin (si le champ existe dans le FormType). Elle est calculée côté entité. #}
+  {% if form.endAt is defined %}
+    <div class="col-md-6">
+      {{ form_label(form.endAt, 'Fin', {label_attr: {class: 'form-label'}}) }}
+      {{ form_widget(form.endAt, {attr: {class: 'form-control', readonly: true}}) }}
+      {{ form_errors(form.endAt) }}
+    </div>
+  {% endif %}
+
+  {# Statut (si présent dans le FormType) #}
+  {% if form.status is defined %}
+    <div class="col-md-6">
+      {{ form_label(form.status, 'Statut', {label_attr: {class: 'form-label'}}) }}
+      {{ form_widget(form.status, {attr: {class: 'form-select'}}) }}
+      {{ form_errors(form.status) }}
+    </div>
+  {% endif %}
+
+  <div class="col-12">
+    {{ form_label(form.notes, 'Notes', {label_attr: {class: 'form-label'}}) }}
+    {{ form_widget(form.notes, {attr: {class: 'form-control', rows: 3}}) }}
+    {{ form_errors(form.notes) }}
+  </div>
+
+  <div class="col-12 d-flex gap-2">
+    <button class="btn btn-primary">
+      {{ button_label|default('Enregistrer') }}
+    </button>
+    <a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">Annuler</a>
+  </div>
+
+{{ form_end(form) }}
+
+{# === Dépendances Select2 (CDN). 
+   -> Si votre layout charge déjà jQuery/Select2, vous pouvez retirer ces lignes. #}
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+
+{# === Initialisation Select2 en AJAX === #}
+<script>
+  (function () {
+    function initAjaxSelect(el) {
+      var $el = window.jQuery(el);
+      var url = el.dataset.url;
+      var placeholder = el.dataset.placeholder || '';
+
+      $el.select2({
+        width: '100%',
+        placeholder: placeholder,
+        allowClear: true,
+        ajax: {
+          url: url,
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return { q: params.term || '' };
+          },
+          processResults: function (data) {
+            // data attendu: { results: [ {id, text}, ... ] }
+            return data;
+          },
+          cache: true
+        },
+        minimumInputLength: 1
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!window.jQuery) {
+        console.error('jQuery manquant — Select2 ne peut pas s’initialiser.');
+        return;
+      }
+      document.querySelectorAll('.js-ajax-select').forEach(initAjaxSelect);
+    });
+  })();
+</script>

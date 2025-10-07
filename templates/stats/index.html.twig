@@ -1,0 +1,90 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Statistiques{% endblock %}
+
+{% block page_header %}
+<div class="d-flex align-items-center justify-content-between">
+  <div>
+    <h4 class="fs-16 mb-1">Statistiques</h4>
+    <p class="text-muted mb-0">Analyses détaillées avec filtres.</p>
+  </div> 
+</div>
+{% endblock %}
+
+{% block body %}
+<form method="get" class="card mb-3">
+  <div class="card-body row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Du</label>
+      <input type="date" class="form-control" name="from" value="{{ from|date('Y-m-d') }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Au</label>
+      <input type="date" class="form-control" name="to" value="{{ to|date('Y-m-d') }}">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100"><i class="ri-filter-3-line"></i> Filtrer</button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-6 col-xl-2"><div class="card card-animate"><div class="card-body">
+    <div class="text-muted">RDV</div><div class="fs-22 fw-semibold">{{ kpis.rdv }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-2"><div class="card card-animate"><div class="card-body">
+    <div class="text-muted">Honorés</div><div class="fs-22 fw-semibold">{{ kpis.honores }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-2"><div class="card card-animate"><div class="card-body">
+    <div class="text-muted">Annulés</div><div class="fs-22 fw-semibold">{{ kpis.annules }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-2"><div class="card card-animate"><div class="card-body">
+    <div class="text-muted">No-show</div><div class="fs-22 fw-semibold">{{ kpis.absents }}</div>
+  </div></div></div>
+  <div class="col-6 col-xl-4"><div class="card card-animate"><div class="card-body">
+    <div class="text-muted">Chiffre d’affaires</div>
+    <div class="fs-22 fw-semibold">{{ kpis.ca|number_format(0,',',' ') }} MRU</div>
+  </div></div></div>
+
+  <div class="col-xl-7">
+    <div class="card"><div class="card-body">
+      <h5 class="card-title mb-2">CA par jour</h5>
+      <div id="chart-ca-jour" style="height:260px"></div>
+    </div></div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="card"><div class="card-body">
+      <h5 class="card-title mb-2">Top prestations</h5>
+      <ol class="list-group list-group-numbered">
+        {% for row in topPrestations %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ row.libelle }}</span>
+            <span class="badge bg-secondary-subtle text-secondary">{{ row.n|number_format(0,',',' ') }}</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted">Aucune donnée.</li>
+        {% endfor %}
+      </ol>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    const labelsRev = {{ labelsRev|json_encode|raw }};
+    const valuesRev = {{ valuesRev|json_encode|raw }};
+
+    new ApexCharts(document.querySelector('#chart-ca-jour'), {
+      chart: { type: 'area', height: 260, toolbar: { show:false } },
+      series: [{ name: 'CA', data: valuesRev }],
+      xaxis: { categories: labelsRev },
+      dataLabels: { enabled: false },
+      stroke: { width: 2, curve: 'smooth' },
+      fill:   { opacity: 0.15 },
+      yaxis: { labels: { formatter: v => Intl.NumberFormat('fr-FR').format(v) } },
+      tooltip: { y: { formatter: v => Intl.NumberFormat('fr-FR').format(v) + ' MRU' } }
+    }).render();
+  </script>
+{% endblock %}

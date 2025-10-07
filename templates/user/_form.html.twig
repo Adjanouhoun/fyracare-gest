@@ -1,0 +1,60 @@
+{# Réutilisable pour NEW & EDIT #}
+<div class="card">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nom complet</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="ri-user-3-line"></i></span>
+          {{ form_widget(form.fullname, {'attr': {'class':'form-control'}}) }}
+        </div>
+        {{ form_errors(form.fullname) }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Fonction</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="ri-briefcase-2-line"></i></span>
+          {{ form_widget(form.fonction, {'attr': {'class':'form-control'}}) }}
+        </div>
+        {{ form_errors(form.fonction) }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="ri-mail-line"></i></span>
+          {{ form_widget(form.email, {'attr': {'class':'form-control','placeholder':'user@exemple.com'}}) }}
+        </div>
+        <div class="form-text">Identifiant de connexion.</div>
+        {{ form_errors(form.email) }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Rôles</label>
+        {{ form_widget(form.roles, {'attr': {'class':'form-select'}}) }}
+        <div class="form-text">Ex: ROLE_ADMIN, ROLE_USER…</div>
+        {{ form_errors(form.roles) }}
+      </div>
+
+      {# Mot de passe présent uniquement sur NEW (ou si votre FormType le met aussi sur edit) #}
+      {% if form.password is defined %}
+        <div class="col-md-6">
+          <label class="form-label">Mot de passe</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="ri-lock-2-line"></i></span>
+            {{ form_widget(form.password, {'attr': {'class':'form-control'}}) }}
+          </div>
+          {{ form_errors(form.password) }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary">
+        <i class="ri-check-line align-middle me-1"></i> Enregistrer
+      </button>
+      <a href="{{ path('app_user_index') }}" class="btn btn-ghost-secondary">Annuler</a>
+    </div>
+  </div>
+</div>

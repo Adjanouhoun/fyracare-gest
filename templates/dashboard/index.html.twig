@@ -1,0 +1,107 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Tableau de bord</h4>
+      <p class="text-muted mb-0">Vue rapide — activités et chiffres clés</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('app_rdv_new') }}" class="btn btn-primary">
+        <i class="ri-add-circle-line align-middle me-1"></i> Nouveau RDV
+      </a>
+      <a href="{{ path('agenda') }}" class="btn btn-soft-secondary">
+        <i class="ri-calendar-line align-middle me-1"></i> Agenda
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  {# KPIs #}
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card card-animate">
+        <div class="card-body">
+          <p class="text-muted mb-1">CA du jour</p>
+          <h4 class="mb-0">{{ kpis.caToday|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <div class="card card-animate">
+        <div class="card-body">
+          <div id="chart-revenue-30"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Statuts RDV (semaine)</h5></div>
+        <div class="card-body">
+          <div id="chart-status-week"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Top prestations (CA – mois)</h5></div>
+        <div class="card-body">
+          <div id="chart-top-prestations"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {# ApexCharts CDN #}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    // Données injectées
+    const labels30   = {{ labels30|json_encode|raw }};
+    const values30   = {{ values30|json_encode|raw }};
+    const statusWeek = {{ statusWeek|json_encode|raw }};
+    const topLabels  = {{ topLabels|json_encode|raw }};
+    const topValues  = {{ topValues|json_encode|raw }};
+
+    // 1) CA 30 jours (Line)
+    new ApexCharts(document.querySelector("#chart-revenue-30"), {
+      chart: { type: 'line', height: 260, toolbar: { show:false } },
+      series: [{ name: 'CA', data: values30 }],
+      xaxis: { categories: labels30 },
+      stroke: { width: 3 },
+      markers: { size: 0 },
+      yaxis: { labels: { formatter: (v)=>Intl.NumberFormat('fr-FR').format(v) } },
+      tooltip: { y: { formatter: (v)=>Intl.NumberFormat('fr-FR').format(v)+' MRU' } }
+    }).render();
+
+    // 2) Statuts semaine (Donut)
+    const statutLabels = ['PLANIFIE','CONFIRME','HONORE','ANNULE','ABSENT'];
+    const statutValues = statutLabels.map(s => statusWeek[s] ?? 0);
+    new ApexCharts(document.querySelector("#chart-status-week"), {
+      chart: { type: 'donut', height: 280 },
+      labels: statutLabels,
+      series: statutValues,
+      legend: { position: 'bottom' },
+      tooltip: { y: { formatter: (v)=>Intl.NumberFormat('fr-FR').format(v) } }
+    }).render();
+
+    // 3) Top prestations (Bar)
+    new ApexCharts(document.querySelector("#chart-top-prestations"), {
+      chart: { type: 'bar', height: 280, toolbar: { show:false } },
+      series: [{ name: 'CA', data: topValues }],
+      xaxis: { categories: topLabels },
+      plotOptions: { bar: { borderRadius: 6, horizontal: false, columnWidth: '45%' } },
+      dataLabels: { enabled: false },
+      yaxis: { labels: { formatter: (v)=>Intl.NumberFormat('fr-FR').format(v) } },
+      tooltip: { y: { formatter: (v)=>Intl.NumberFormat('fr-FR').format(v)+' MRU' } }
+    }).render();
+  </script>
+{% endblock %}

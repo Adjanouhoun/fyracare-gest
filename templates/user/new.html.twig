@@ -1,0 +1,21 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Nouvel utilisateur{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Créer un utilisateur</h4>
+      <p class="text-muted mb-0">Renseignez les informations ci-dessous.</p>
+    </div>
+    <a href="{{ path('app_user_index') }}" class="btn btn-soft-secondary">
+      <i class="ri-arrow-left-line align-middle me-1"></i> Retour
+    </a>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+  {{ form_start(form, {attr:{novalidate:'novalidate'}}) }}
+    {% include 'user/_form.html.twig' with {form: form} %}
+  {{ form_end(form) }}
+{% endblock %}

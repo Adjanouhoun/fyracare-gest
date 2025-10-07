@@ -1,0 +1,36 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Paiement #{{ payment.id }} | Velzon{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Détail du paiement</h4>
+      <p class="text-muted mb-0">Reçu : {{ payment.receiptNumber }}</p>
+    </div>
+    <div>
+      <a href="{{ path('app_payment_receipt', {id: payment.id}) }}" target="_blank" class="btn btn-primary">
+        <i class="ri-printer-line"></i> Reçu
+      </a>
+      <a href="{{ path('app_payment_index') }}" class="btn btn-ghost-secondary">Retour</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4"><strong>Date :</strong> {{ payment.paidAt|date('d/m/Y H:i') }}</div>
+        <div class="col-md-4"><strong>Méthode :</strong> {{ payment.methode }}</div>
+        <div class="col-md-4"><strong>Montant :</strong> {{ payment.amount|number_format(0, ',', ' ') }} MRU</div>
+        <div class="col-md-4"><strong>Client :</strong> {{ rdv.client.nometprenom }} ({{ rdv.client.telephone }})</div>
+        <div class="col-md-4"><strong>Prestation :</strong> {{ rdv.prestation.libelle }}</div>
+        <div class="col-md-4"><strong>Début :</strong> {{ rdv.startAt|date('d/m/Y H:i') }}</div>
+        <div class="col-md-4"><strong>Fin :</strong> {{ rdv.endAt|date('d/m/Y H:i') }}</div>
+        {% if payment.notes %}
+          <div class="col-12"><strong>Notes :</strong><br>{{ payment.notes }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

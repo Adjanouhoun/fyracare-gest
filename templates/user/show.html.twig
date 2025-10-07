@@ -1,0 +1,33 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Voir utilisateur{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">{{ user.fullname }}</h4>
+      <p class="text-muted mb-0">{{ user.email }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-soft-info" href="{{ path('app_user_edit', {id: user.id}) }}">
+        <i class="ri-pencil-line align-middle me-1"></i> Modifier
+      </a>
+      <a class="btn btn-soft-secondary" href="{{ path('app_user_index') }}">Retour</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  <div class="card"><div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ user.fullname }}</dd>
+      <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ user.email }}</dd>
+      <dt class="col-sm-3">Fonction</dt><dd class="col-sm-9">{{ user.fonction ?: '—' }}</dd>
+      <dt class="col-sm-3">Rôles</dt>
+      <dd class="col-sm-9">
+        {% for r in user.roles %}
+          <span class="badge bg-secondary-subtle text-secondary">{{ r }}</span>
+        {% endfor %}
+      </dd>
+    </dl>
+  </div></div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Modifier RDV | Velzon{% endblock %}
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Modifier le rendez-vous</h4>
+  <p class="text-muted mb-0">Mettez à jour les informations</p>
+{% endblock %}
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+  {% include 'rdv/_form.html.twig' with {form: form} %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{# Affiche toutes les flashes Symfony avec le style Velzon/Bootstrap #}
+{% set type_map = {
+  'success':'success',
+  'info':'info',
+  'warning':'warning',
+  'error':'danger',
+  'danger':'danger'
+} %}
+
+<div class="flashes position-relative">
+  {% for label, messages in app.flashes %}
+    {% set bs = type_map[label]|default('secondary') %}
+    {% for message in messages %}
+      <div class="alert alert-{{ bs }} alert-dismissible fade show material-shadow" role="alert">
+        {{ message|raw }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endfor %}
+</div>

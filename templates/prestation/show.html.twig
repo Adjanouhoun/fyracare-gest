@@ -1,0 +1,75 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Détail prestation | Velzon{% endblock %}
+
+{% block page_header %}
+<div class="row mb-3 pb-1">
+  <div class="col-12 d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">{{ prestation.libelle }}</h4>
+      <p class="text-muted mb-0">Détails de la prestation</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('app_prestation_edit', {id: prestation.id}) }}" class="btn btn-soft-secondary">
+        <i class="ri-pencil-line me-1"></i> Modifier
+      </a>
+      <a href="{{ path('app_prestation_index') }}" class="btn btn-soft-dark">
+        <i class="ri-arrow-left-line me-1"></i> Retour
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block body %}
+<div class="row">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        {% include 'partials/flashes.html.twig' %}
+
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Libellé</dt>
+          <dd class="col-sm-9">{{ prestation.libelle }}</dd>
+
+          <dt class="col-sm-3">Durée</dt>
+          <dd class="col-sm-9">{{ prestation.dureeMin }} min</dd>
+
+          <dt class="col-sm-3">Prix</dt>
+          <dd class="col-sm-9">{{ prestation.prix|number_format(0, ',', ' ') }} MRU</dd>
+
+          <dt class="col-sm-3">Statut</dt>
+          <dd class="col-sm-9">
+            {% if prestation.isActive %}
+              <span class="badge bg-success-subtle text-success">Actif</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger">Inactif</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3">Description</dt>
+          <dd class="col-sm-9">{{ prestation.description|nl2br }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body d-flex gap-2 justify-content-end">
+       
+
+        <a href="{{ path('app_prestation_edit', {id: prestation.id}) }}" class="btn btn-secondary">
+          <i class="ri-pencil-line me-1"></i> Modifier
+        </a>
+        <form method="post" action="{{ path('app_prestation_delete', {id: prestation.id}) }}"
+              onsubmit="return confirm('Supprimer cette prestation ?');">
+          <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ prestation.id) }}">
+          <button class="btn btn-danger">
+            <i class="ri-delete-bin-line me-1"></i> Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

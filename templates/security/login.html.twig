@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — FyraCare</title>
+  <link rel="stylesheet" href="{{ asset('velzon/css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('velzon/css/icons.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('velzon/css/app.min.css') }}">
+  <link rel="stylesheet" href="{{ asset('velzon/css/custom.min.css') }}">
+</head>
+<body class="auth-page">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <div class="card">
+          <div class="card-body p-4">
+            <h4 class="mb-3">Connexion</h4>
+            {% if error %}
+              <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData,'security') }}</div>
+            {% endif %}
+            <form method="post" action="{{ path('app_login') }}">
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input class="form-control" type="email" name="email" required value="{{ last_username }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Mot de passe</label>
+                <input class="form-control" type="password" name="password" required>
+              </div>
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+              <button class="btn btn-primary w-100" type="submit">Se connecter</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="{{ asset('velzon/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ asset('velzon/js/app.js') }}"></script>
+</body>
+</html>

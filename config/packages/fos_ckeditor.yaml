@@ -1,0 +1,10 @@
+fos_ck_editor:
+  default_config: basic
+  configs:
+    basic:
+      toolbar:
+        - ['Bold','Italic','Underline','RemoveFormat']
+        - ['NumberedList','BulletedList','Blockquote']
+        - ['Link','Unlink']
+        - ['Undo','Redo']
+      height: 160

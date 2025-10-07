@@ -1,0 +1,45 @@
+{{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+<div class="row g-3">
+  <div class="col-md-6">
+    {{ form_label(form.libelle, 'Libellé', {'label_attr': {'class': 'form-label'}}) }}
+    {{ form_widget(form.libelle, {'attr': {'class': 'form-control'}}) }}
+    {{ form_errors(form.libelle) }}
+  </div>
+  <div class="col-md-3">
+    {{ form_label(form.dureeMin, 'Durée (min)', {'label_attr': {'class': 'form-label'}}) }}
+    {{ form_widget(form.dureeMin, {'attr': {'class': 'form-control'}}) }}
+    {{ form_errors(form.dureeMin) }}
+  </div>
+  <div class="col-md-3">
+    {{ form_label(form.prix, 'Prix (MRU)', {'label_attr': {'class': 'form-label'}}) }}
+    {{ form_widget(form.prix, {'attr': {'class': 'form-control'}}) }}
+    {{ form_errors(form.prix) }}
+  </div>
+  <div class="col-md-12">
+    <div class="form-check form-switch">
+      {{ form_widget(form.isActive, {'attr': {'class': 'form-check-input'}}) }}
+      {{ form_label(form.isActive, 'Active', {'label_attr': {'class': 'form-check-label'}}) }}
+    </div>
+    {{ form_errors(form.isActive) }}
+  </div>
+  <div class="col-12">
+    {{ form_label(form.description, 'Description', {'label_attr': {'class': 'form-label'}}) }}
+    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 4}}) }}
+    {{ form_errors(form.description) }}
+  </div>
+
+  {# Si un champ supplémentaire est ajouté côté FormType, il sera rendu ici #}
+  {% for child in form %}
+    {% if child.vars.name not in ['libelle','dureeMin','prix','isActive','description','_token'] %}
+      <div class="col-md-6">
+        {{ form_row(child) }}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="col-12 d-flex gap-2 justify-content-end mt-3">
+    <a href="{{ path('app_prestation_index') }}" class="btn btn-soft-dark">Annuler</a>
+    <button class="btn btn-primary">{{ button_label|default('Enregistrer') }}</button>
+  </div>
+</div>
+{{ form_end(form) }}

@@ -1,0 +1,26 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Modifier utilisateur{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Modifier l’utilisateur</h4>
+      <p class="text-muted mb-0">{{ user.fullname }} — {{ user.email }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('app_user_password', {id: user.id}) }}" class="btn btn-soft-warning">
+        <i class="ri-key-2-line align-middle me-1"></i> Changer le mot de passe
+      </a>
+      <a href="{{ path('app_user_show', {id: user.id}) }}" class="btn btn-soft-secondary">
+        <i class="ri-eye-line align-middle me-1"></i> Voir
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+  {{ form_start(form, {attr:{novalidate:'novalidate'}}) }}
+    {% include 'user/_form.html.twig' with {form: form} %}
+  {{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,67 @@
+<div class="app-menu navbar-menu">
+  <div class="navbar-brand-box">
+    <a href="{{ path('admin_dashboard') }}" class="logo logo-dark">
+      <span class="logo-sm"><img src="{{ asset('velzon/images/logo-sm.png') }}" height="22" alt=""></span>
+      <span class="logo-lg"><img src="{{ asset('velzon/images/logo-dark.png') }}" alt=""></span>
+    </a>
+    <a href="{{ path('admin_dashboard') }}" class="logo logo-light">
+      <span class="logo-sm"><img src="{{ asset('velzon/images/logo-sm.png') }}" height="22" alt=""></span>
+      <span class="logo-lg"><img src="{{ asset('velzon/images/logo-light.png') }}" height="17" alt=""></span>
+    </a>
+    <button type="button" class="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover" id="vertical-hover">
+      <i class="ri-record-circle-line"></i>
+    </button>
+  </div>
+
+  <div id="scrollbar">
+    <div class="container-fluid">
+      <ul class="navbar-nav" id="navbar-nav">
+        <li class="menu-title"><span>Accueil</span></li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('admin_dashboard') }}"><i class="ri-dashboard-2-line"></i> <span>Dashboard</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('stats_index') }}"><i class="ri-bar-chart-2-line"></i> <span>Statistiques</span></a>
+        </li>   
+      </ul>
+    </div>
+    <div class="container-fluid">
+      <ul class="navbar-nav" id="navbar-nav">
+        <li class="menu-title"><span>Gestion</span></li>
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_client_index') }}"><i class="ri-team-line"></i> <span>Clients</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_prestation_index') }}"><i class="ri-stethoscope-line"></i> <span>Prestations</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_rdv_index') }}"><i class="ri-calendar-2-line"></i> <span>Rendez-vous</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_payment_index') }}"><i class="ri-cash-line"></i> <span>Paiements</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('agenda') }}"><i class="ri-calendar-event-line"></i> <span>Agenda</span></a>
+        </li>
+      </ul>
+    </div>
+    <div class="container-fluid">
+      <ul class="navbar-nav" id="navbar-nav">
+        <li class="menu-title"><span>Application</span></li>
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_user_index') }}"><i class="ri-user-line"></i> <span>Utilisateur</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('app_prestation_index') }}"><i class="ri-settings-line"></i> <span>Paramettres</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="sidebar-background"></div>
+</div>

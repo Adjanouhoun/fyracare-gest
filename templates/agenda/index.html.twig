@@ -1,0 +1,164 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Agenda{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Agenda</h4>
+      <p class="text-muted mb-0">Vue calendrier + indicateurs Jour / Semaine / Mois.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('app_rdv_new') }}" class="btn btn-primary">
+        <i class="ri-add-circle-line align-middle me-1"></i> Créer un rendez-vous
+      </a>
+      <a href="{{ path('app_rdv_all') }}" class="btn btn-soft-secondary">
+        <i class="ri-list-check-2 align-middle me-1"></i> Tous les rendez-vous
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  <div class="row g-3">
+    {# Colonne gauche : Compteurs + raccourcis de vue #}
+    <div class="col-xl-4">
+      <div class="row g-3">
+
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <p class="text-uppercase fw-medium text-muted mb-2">RDV du jour</p>
+              <div class="d-flex align-items-center justify-content-between">
+                <h3 class="mb-0">{{ countDay }}</h3>
+                <a href="{{ path('agenda', {view: 'day'}) }}" class="btn btn-sm btn-soft-info">
+                  <i class="ri-time-line me-1"></i> Voir la journée
+                </a>
+              </div>
+              <div class="progress mt-3" style="height:6px;">
+                <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="card mini-stats-wid">
+            <div class="card-body">
+              <p class="text-uppercase fw-medium text-muted mb-2">Semaine</p>
+              <div class="d-flex align-items-center justify-content-between">
+                <h4 class="mb-0">{{ countWeek }}</h4>
+                <a href="{{ path('agenda', {view: 'week'}) }}" class="btn btn-sm btn-soft-primary">
+                  <i class="ri-calendar-2-line"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="card mini-stats-wid">
+            <div class="card-body">
+              <p class="text-uppercase fw-medium text-muted mb-2">Mois</p>
+              <div class="d-flex align-items-center justify-content-between">
+                <h4 class="mb-0">{{ countMonth }}</h4>
+                <a href="{{ path('agenda', {view: 'month'}) }}" class="btn btn-sm btn-soft-secondary">
+                  <i class="ri-calendar-event-line"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="card mini-stats-wid">
+            <div class="card-body d-flex align-items-center">
+              <div class="flex-grow-1">
+                <p class="text-uppercase fw-medium text-muted mb-2">RDV Total (toutes périodes)</p>
+                <h4 class="mb-0">{{ total }}</h4>
+              </div>
+              <div class="flex-shrink-0 avatar-sm">
+                <span class="avatar-title bg-primary-subtle text-primary rounded fs-3">
+                  <i class="ri-calendar-2-line"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    {# Colonne droite : Calendrier #}
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">Calendrier</h5>
+          <div class="text-muted small">
+            <span class="badge bg-success-subtle text-success">Honoré</span>
+            <span class="badge bg-primary-subtle text-primary">Confirmé</span>
+            <span class="badge bg-info-subtle text-info">Planifié</span>
+            <span class="badge bg-warning-subtle text-warning">Absent</span>
+            <span class="badge bg-danger-subtle text-danger">Annulé</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="calendar"></div>
+          <div class="d-flex justify-content-end mt-3 gap-2">
+            <button class="btn btn-ghost-secondary btn-sm" data-fc="today"><i class="ri-timer-flash-line me-1"></i>Aujourd'hui</button>
+            <button class="btn btn-soft-secondary btn-sm" data-fc="day">Jour</button>
+            <button class="btn btn-soft-primary btn-sm" data-fc="week">Semaine</button>
+            <button class="btn btn-soft-info btn-sm" data-fc="month">Mois</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block styles %}
+  {{ parent() }}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css">
+{% endblock %}
+
+{% block scripts %}
+  {{ parent() }}
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+  <script>
+    (function () {
+      const el = document.getElementById('calendar');
+      if (!el) return;
+
+      const initialView = {{ initialView|json_encode|raw }};
+      const cal = new FullCalendar.Calendar(el, {
+        initialView: initialView,
+        nowIndicator: true,
+        locale: 'fr',
+        slotMinTime: '07:00:00',
+        slotMaxTime: '22:00:00',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        events: '{{ path('api_calendar_events') }}',
+        eventClick: function(info) {
+          if (info.event.url) {
+            info.jsEvent.preventDefault();
+            window.location.href = info.event.url;
+          }
+        },
+        eventDidMount: ({el, event}) => {
+          const st = event.extendedProps?.status || '';
+          if (st === 'ANNULE') { el.style.opacity = .6; el.style.textDecoration = 'line-through'; }
+        }
+      });
+      cal.render();
+
+      // Petits boutons sous le calendrier
+      document.querySelector('[data-fc="today"]')?.addEventListener('click', () => cal.today());
+      document.querySelector('[data-fc="day"]')?.addEventListener('click', () => cal.changeView('timeGridDay'));
+      document.querySelector('[data-fc="week"]')?.addEventListener('click', () => cal.changeView('timeGridWeek'));
+      document.querySelector('[data-fc="month"]')?.addEventListener('click', () => cal.changeView('dayGridMonth'));
+    })();
+  </script>
+{% endblock %}
