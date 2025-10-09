@@ -1,0 +1,48 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Clôture de caisse{% endblock %}
+
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Clôture de la journée</h4>
+  <p class="text-muted mb-0">Récapitulatif des mouvements du jour.</p>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="row g-3">
+    <div class="col-xl-4">
+      <div class="card card-animate"><div class="card-body">
+        <div class="text-muted">Période</div>
+        <div>{{ from|date('d/m/Y H:i') }} → {{ to|date('d/m/Y H:i') }}</div>
+      </div></div>
+      <div class="card card-animate"><div class="card-body">
+        <div class="text-muted">Entrées</div>
+        <div class="fs-22 fw-semibold">{{ totalIn|number_format(0,',',' ') }} MRU</div>
+      </div></div>
+      <div class="card card-animate"><div class="card-body">
+        <div class="text-muted">Sorties</div>
+        <div class="fs-22 fw-semibold">{{ totalOut|number_format(0,',',' ') }} MRU</div>
+      </div></div>
+      <div class="card card-animate"><div class="card-body">
+        <div class="text-muted">Solde</div>
+        <div class="fs-22 fw-semibold">{{ balance|number_format(0,',',' ') }} MRU</div>
+      </div></div>
+    </div>
+
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">Valider la clôture</h5>
+          {{ form_start(form) }}
+            <label class="form-label">Notes (facultatif)</label>
+            {{ form_widget(form.notes, {attr:{class:'form-control', rows:3}}) }}
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-soft-primary"><i class="ri-checkbox-circle-line"></i> Enregistrer</button>
+              <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">Annuler</a>
+            </div>
+          {{ form_end(form) }}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

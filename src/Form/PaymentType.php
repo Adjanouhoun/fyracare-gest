@@ -41,7 +41,7 @@ class PaymentType extends AbstractType
             // Notes (facultatif)
             ->add('notes', CKEditorType::class, [
                 'label' => 'Notes',
-                'required' => false,
+                'required' => true,
                 // 'config_name' => 'basic',   // (facultatif, utilise default_config sinon)
             ])
             // Date paiement (on met la valeur maintenant; champ masqué en Twig)

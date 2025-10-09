@@ -63,7 +63,7 @@ class AutocompleteController extends AbstractController
             return [
                 'id'   => $p->getId(),
                 'text' => sprintf(
-                    '%s — %d min — %s FCFA',
+                    '%s — %d min — %s MRU',
                     (string)$p->getLibelle(),
                     (int)$p->getDureeMin(),
                     number_format((int)$p->getPrix(), 0, ',', ' ')

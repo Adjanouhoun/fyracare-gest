@@ -1,0 +1,37 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Nouvelle sortie{% endblock %}
+
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Nouvelle sortie de caisse</h4>
+  <p class="text-muted mb-0">Enregistrer une dépense (sortie).</p>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card"><div class="card-body">
+        {{ form_start(form) }}
+          <div class="mb-3">
+            <label class="form-label">Montant (MRU)</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="ri-money-cfa-circle-line"></i></span>
+              {{ form_widget(form.amount, {attr: {class:'form-control', min: 1}}) }}
+            </div>
+            {{ form_errors(form.amount) }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Motif / Notes</label>
+            {{ form_widget(form.notes, {attr: {class:'form-control', rows:4}}) }}
+            {{ form_errors(form.notes) }}
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-danger"><i class="ri-check-line"></i> Enregistrer la sortie</button>
+            <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">Annuler</a>
+          </div>
+        {{ form_end(form) }}
+      </div></div>
+    </div>
+  </div>
+{% endblock %}

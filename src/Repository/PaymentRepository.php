@@ -144,4 +144,15 @@ class PaymentRepository extends ServiceEntityRepository
             ->getQuery()->getArrayResult();
     }
 
+    public function findBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.paidAt BETWEEN :from AND :to')
+            ->setParameter('from', $from)->setParameter('to', $to)
+            ->leftJoin('p.rdv','r')->addSelect('r')
+            ->leftJoin('r.client','c')->addSelect('c')
+            ->leftJoin('r.prestation','pr')->addSelect('pr')
+            ->orderBy('p.paidAt','ASC')
+            ->getQuery()->getResult();
+    }
+
 }

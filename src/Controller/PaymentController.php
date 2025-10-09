@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Payment;
 use App\Entity\Rdv;
 use App\Form\PaymentType;
+use App\Entity\CashMovement;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
@@ -118,7 +119,7 @@ class PaymentController extends AbstractController
             $rdv->setStatus(Rdv::S_HONORE);
 
             // 1) Premier flush pour obtenir l'ID
-            $em->flush();
+            //$em->flush();
 
             // 2) Générer le numéro de reçu = date du jour + ID
             //    Format exemple: 20251006-123
@@ -126,6 +127,14 @@ class PaymentController extends AbstractController
             $payment->setReceiptNumber(sprintf('%s-%d', $todayStr, $payment->getId()));
 
             // 3) Second flush pour enregistrer le reçu
+            //$em->flush();
+
+        $mv = new CashMovement();
+        $mv->setType(CashMovement::IN)
+        ->setAmount($payment->getAmount())
+        ->setSource(CashMovement::SRC_PAYMENT)
+        ->setNotes('Paiement RDV #'.$rdv->getId().' – '.$rdv->getPrestation()->getLibelle());
+        $em->persist($mv);
             $em->flush();
 
             $this->addFlash('success', 'Paiement enregistré avec succès.');

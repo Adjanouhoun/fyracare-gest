@@ -188,7 +188,7 @@ class RdvController extends AbstractController
         $results = array_map(function($p) {
             return [
                 'id'      => $p->getId(),
-                'text'    => $p->getLibelle().' — '.$p->getPrix().' FCFA',
+                'text'    => $p->getLibelle().' — '.$p->getPrix().' MRU',
                 'duree'   => $p->getDureeMin(),
                 'prix'    => $p->getPrix(),
             ];

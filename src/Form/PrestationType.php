@@ -25,7 +25,7 @@ class PrestationType extends AbstractType
                 'attr'  => ['min' => 0]
             ])
             ->add('prix', IntegerType::class, [
-                'label' => 'Prix (FCFA)',
+                'label' => 'Prix (MRU)',
                 'attr'  => ['min' => 0]
             ])
             ->add('isActive', CheckboxType::class, [

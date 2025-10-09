@@ -1,0 +1,43 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Clôtures de caisse{% endblock %}
+
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Historique des clôtures</h4>
+{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive table-card">
+        <table class="table align-middle table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th class="text-end">Entrées</th>
+              <th class="text-end">Sorties</th>
+              <th class="text-end">Solde</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in items %}
+            <tr>
+              <td>{{ c.closedAt|date('d/m/Y H:i') }}</td>
+              <td class="text-end">{{ c.totalIn|number_format(0,',',' ') }}</td>
+              <td class="text-end">{{ c.totalOut|number_format(0,',',' ') }}</td>
+              <td class="text-end">{{ c.balance|number_format(0,',',' ') }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-soft-secondary" href="{{ path('cash_closure_show', {id: c.id}) }}">
+                  Voir
+                </a>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="text-center text-muted">Aucune clôture.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

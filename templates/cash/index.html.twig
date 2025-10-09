@@ -1,0 +1,205 @@
+{# templates/cash/index.html.twig #}
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Caisse{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Caisse — vue journalière</h4>
+      <p class="text-muted mb-0">
+        Aujourd’hui : {{ "now"|date('d/m/Y') }}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('cash_expense_new') }}" class="btn btn-primary">
+        <i class="ri-subtract-fill align-middle me-1"></i> Nouvelle dépense
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  {# ——— KPIs ——— #}
+  <div class="row g-3">
+    <div class="col-12 col-md-3">
+      <div class="card card-animate">
+        <div class="card-body">
+          <p class="text-muted mb-1">Entrées (aujourd’hui)</p>
+          <h4 class="mb-0">{{ totalIn|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card card-animate">
+        <div class="card-body">
+          <p class="text-muted mb-1">Sorties (aujourd’hui)</p>
+          <h4 class="mb-0">{{ totalOut|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card card-animate">
+        <div class="card-body">
+          <p class="text-muted mb-1">Solde du jour</p>
+          <h4 class="mb-0">
+            {{ balance|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small>
+          </h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card card-animate">
+        <div class="card-body">
+          <p class="text-muted mb-1">Solde générale</p>
+          <h4 class="mb-0">
+            {{ currentCash|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small>
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    {# ——— ENTRÉES DU JOUR ——— #}
+    <div class="col-xl-6">
+      <div class="card card-animate">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="card-title mb-0">Entrées (Paiements) — aujourd’hui</h5>
+            <small class="text-muted">Liste imprimable des mouvements d’entrée du jour</small>
+          </div>
+          <div class="d-flex gap-2">
+            {# Boutons Mois / Année pour ENTRÉES #}
+            <a class="btn btn-soft-info btn-sm"
+               href="{{ path('cash_entries_month', { m: month, y: year }) }}">
+              <i class="ri-calendar-event-line align-middle me-1"></i> Mois
+            </a>
+            <a class="btn btn-soft-info btn-sm"
+               href="{{ path('cash_entries_year') }}">
+              <i class="ri-calendar-2-line align-middle me-1"></i> Année
+            </a>
+            <a class="btn btn-soft-primary btn-sm" href="#" onclick="window.print()">
+              <i class="ri-printer-line align-middle me-1"></i> Imprimer
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-responsive table-card">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:120px">Heure</th>
+                  <th style="width:130px">Source</th>
+                  <th>Notes</th>
+                  <th class="text-end" style="width:160px">Montant (MRU)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in entriesToday %}
+                  <tr>
+                    <td>{{ e.createdAt ? e.createdAt|date('H:i') : '—' }}</td>
+                    <td>
+                      {% set src = e.source ?? '' %}
+                      {% set badge = 'bg-secondary-subtle text-secondary' %}
+                      {% if src == 'PAYMENT' %}
+                        {% set badge = 'bg-success-subtle text-success' %}
+                      {% elseif src == 'CLOSURE' %}
+                        {% set badge = 'bg-info-subtle text-info' %}
+                      {% endif %}
+                      <span class="badge {{ badge }}">
+                        {{ src == 'PAYMENT' ? 'Paiement' : (src == 'CLOSURE' ? 'Clôture' : (src ?: '—')) }}
+                      </span>
+                    </td>
+                    <td>
+                      {{ e.notes ?: '—' }}
+                    </td>
+                    <td class="text-end fw-semibold">{{ e.amount|number_format(0, ',', ' ') }}</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted">Aucune entrée aujourd’hui.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <th colspan="3" class="text-end">Total</th>
+                  <th class="text-end">{{ totalIn|number_format(0, ',', ' ') }}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ——— SORTIES DU JOUR ——— #}
+    <div class="col-xl-6">
+      <div class="card card-animate">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="card-title mb-0">Sorties — aujourd’hui</h5>
+            <small class="text-muted">Liste imprimable des dépenses du jour</small>
+          </div>
+          <div class="d-flex gap-2">
+            {# Boutons Mois / Année pour DÉPENSES #}
+            <a class="btn btn-soft-warning btn-sm"
+               href="{{ path('cash_expenses_month') }}">
+              <i class="ri-calendar-event-line align-middle me-1"></i> Mois
+            </a>
+            <a class="btn btn-soft-warning btn-sm"
+               href="{{ path('cash_expenses_year') }}">
+              <i class="ri-calendar-2-line align-middle me-1"></i> Année
+            </a>
+            <a class="btn btn-soft-primary btn-sm" href="#" onclick="window.print()">
+              <i class="ri-printer-line align-middle me-1"></i> Imprimer
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-responsive table-card">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:120px">Heure</th>
+                  <th>Motif / Notes</th>
+                  <th class="text-end" style="width:160px">Montant (MRU)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in expensesToday %}
+                  <tr>
+                    <td>{{ s.createdAt ? s.createdAt|date('H:i') : '—' }}</td>
+                    <td>
+                      {% if s.notes %}
+                        {{ s.notes }}
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end fw-semibold">{{ s.amount|number_format(0, ',', ' ') }}</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="3" class="text-center text-muted">Aucune dépense aujourd’hui.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <th colspan="2" class="text-end">Total</th>
+                  <th class="text-end">{{ totalOut|number_format(0, ',', ' ') }}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+{% endblock %}

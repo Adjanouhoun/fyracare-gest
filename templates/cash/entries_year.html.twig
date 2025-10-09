@@ -1,0 +1,143 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Entrées de l’année{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <h4 class="fs-16 mb-1">Entrées (Paiements) — Année {{ from|date('Y') }}</h4>
+      <p class="text-muted mb-0">
+        Période : {{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }} — Total :
+        <strong>{{ total|number_format(0, ',', ' ') }} MRU</strong>
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">
+        <i class="ri-arrow-left-line"></i> Retour caisse
+      </a>
+      <a class="btn btn-soft-primary" href="#" onclick="window.print()">
+        <i class="ri-printer-line"></i> Imprimer
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card card-animate">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Évolution des entrées — année</h5>
+        </div>
+        <div class="card-body">
+          <div id="chart-entries-year"
+               data-labels='{{ labels|json_encode|e('html_attr') }}'
+               data-values='{{ values|json_encode|e('html_attr') }}'
+               style="height:300px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card card-animate">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">Synthèse</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Total année</span>
+              <strong>{{ total|number_format(0, ',', ' ') }} MRU</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Mois avec entrée</span>
+              <strong>{{ values|filter(v => v > 0)|length }}/12</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Moyenne / mois</span>
+              {% set avg = total / 12 %}
+              <strong>{{ avg|round(0, 'floor')|number_format(0, ',', ' ') }} MRU</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Détails des paiements de l’année</h5></div>
+        <div class="card-body">
+          <div class="table-responsive table-card">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Client</th>
+                  <th>Prestation</th>
+                  <th>Méthode</th>
+                  <th>Reçu</th>
+                  <th class="text-end">Montant (MRU)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in pagination %}
+                  <tr>
+                    <td>{{ p.paidAt ? p.paidAt|date('d/m/Y H:i') : '—' }}</td>
+                    <td>{{ p.rdv.client ?? '—' }}</td>
+                    <td>{{ p.rdv.prestation ?? '—' }}</td>
+                    <td>{{ p.methode }}</td>
+                    <td>
+                      {% if p.receiptNumber %}
+                        <span class="badge bg-primary-subtle text-primary">{{ p.receiptNumber }}</span>
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">{{ p.amount|number_format(0, ',', ' ') }}</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted">Aucun paiement pour cette année.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <th colspan="5" class="text-end">Total</th>
+                  <th class="text-end">{{ total|number_format(0, ',', ' ') }}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="mt-3 d-flex justify-content-between align-items-center">
+            <div class="text-muted">Année : {{ from|date('Y') }}</div>
+            {{ knp_pagination_render(pagination) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    (function(){
+      const el = document.getElementById('chart-entries-year');
+      const labels = JSON.parse(el.dataset.labels || '[]');
+      const values = JSON.parse(el.dataset.values || '[]');
+
+      new ApexCharts(el, {
+        chart: { type: 'bar', height: 300, toolbar: { show:false } },
+        series: [{ name: 'Entrées', data: values }],
+        xaxis: { categories: labels },
+        plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
+        dataLabels: { enabled: false },
+        yaxis: { labels: { formatter: v => Intl.NumberFormat('fr-FR').format(v) } },
+        tooltip: { y: { formatter: v => Intl.NumberFormat('fr-FR').format(v) + ' MRU' } }
+      }).render();
+    })();
+  </script>
+{% endblock %}
