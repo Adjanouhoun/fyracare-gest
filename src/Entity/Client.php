@@ -31,7 +31,7 @@ class Client
     /**
      * @var Collection<int, Rdv>
      */
-    #[ORM\OneToMany(targetEntity: Rdv::class, mappedBy: 'client')]
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Rdv::class, orphanRemoval: true, cascade: ['remove'])]
     private Collection $rdvs;
 
     #[ORM\Column]

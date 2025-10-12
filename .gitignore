@@ -20,3 +20,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###

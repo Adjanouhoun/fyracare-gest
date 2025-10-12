@@ -22,45 +22,109 @@ class CashController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(
         Request $request,
-        CashMovementRepository $mvRepo,
+        CashMovementRepository $movRepo,
         PaginatorInterface $paginator
     ): Response {
-        $tz = new \DateTimeZone(\date_default_timezone_get());
+        $tz  = new \DateTimeZone(\date_default_timezone_get());
+        $day = $request->query->get('d')
+            ? new \DateTimeImmutable($request->query->get('d'), $tz)
+            : new \DateTimeImmutable('today', $tz);
 
-        $entriesToday  = $mvRepo->findTodayEntries($tz);   // tableau
-        $expensesToday = $mvRepo->findTodayExpenses($tz);  // tableau
+        $start = $day->setTime(0, 0, 0);
+        $end   = $day->setTime(23, 59, 59);
 
-        $totalIn  = $mvRepo->sumInToday($tz);
-        $totalOut = $mvRepo->sumOutToday($tz);
-        $balance  = $totalIn - $totalOut;
-        $currentCash = $mvRepo->currentCash();
+        // --- ENTRÉES (PAIEMENTS) ---
+        $paymentsQb = $movRepo->createQueryBuilder('m')
+            ->andWhere('m.type = :in')
+            ->andWhere('m.source = :srcPay')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('in', CashMovement::IN)
+            ->setParameter('srcPay', CashMovement::SRC_PAYMENT)
+            ->setParameter('from', $start)
+            ->setParameter('to', $end)
+            ->orderBy('m.createdAt', 'ASC');
 
-        $year  = (int) (new \DateTimeImmutable('now', $tz))->format('Y');
-        $month = (int) (new \DateTimeImmutable('now', $tz))->format('m');
+        // --- SORTIES (DÉPENSES) ---
+        $expensesQb = $movRepo->createQueryBuilder('m')
+            ->andWhere('m.type = :out')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('out', CashMovement::OUT)
+            ->setParameter('from', $start)
+            ->setParameter('to', $end)
+            ->orderBy('m.createdAt', 'ASC');
 
-        // Pagination (même si c'est un tableau, KNP le gère)
-        $entriesPagination = $paginator->paginate(
-            $entriesToday,
-            $request->query->getInt('page_in', 1),
+        // --- ENTRÉES (INJECTIONS) ---
+
+        $injectionsQb = $movRepo->createQueryBuilder('m')
+            ->andWhere('m.type = :in')
+            ->andWhere('m.source != :srcPayment')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('in', CashMovement::IN)
+            ->setParameter('srcPayment', CashMovement::SRC_PAYMENT)
+            ->setParameter('from', $start)
+            ->setParameter('to', $end)
+            ->orderBy('m.createdAt', 'ASC');
+
+        // Si tu utilises le soft delete, décommente :
+        // foreach ([$paymentsQb, $expensesQb, $injectionsQb] as $qb) {
+        //     $qb->andWhere('m.deletedAt IS NULL');
+        // }
+
+        // --- PAGINATION (10 lignes par tableau) ---
+        $paymentsPage   = $paginator->paginate(
+            $paymentsQb,
+            $request->query->getInt('page_pay', 1),
             10,
-            ['pageParameterName' => 'page_in']
+            ['pageParameterName' => 'page_pay']
         );
-        $expensesPagination = $paginator->paginate(
-            $expensesToday,
+        $expensesPage   = $paginator->paginate(
+            $expensesQb,
             $request->query->getInt('page_out', 1),
             10,
             ['pageParameterName' => 'page_out']
         );
+        $injectionsPage = $paginator->paginate(
+            $injectionsQb,
+            $request->query->getInt('page_inj', 1),
+            10,
+            ['pageParameterName' => 'page_inj']
+        );
+
+        // --- Totaux du jour (sur les pages courantes) ---
+        $sumAmounts = static fn($iter) => array_sum(array_map(fn($m) => $m->getAmount(), iterator_to_array($iter)));
+        $totalInPayments = $sumAmounts($paymentsPage);
+        $totalOutExpenses = $sumAmounts($expensesPage);
+        $totalInInjections = $sumAmounts($injectionsPage);
+
+        $balance = ($totalInPayments + $totalInInjections) - $totalOutExpenses;
+        $totalCaisse = $movRepo->currentCash();
+
+        // Solde général (adapte selon tes méthodes de repo)
+        // Idées: sumAllIn() - sumAllOut() ou repo->sumByType(...)
+        $currentCash = method_exists($movRepo, 'sumCurrentCash')
+            ? $movRepo->sumCurrentCash()
+            : (
+                (method_exists($movRepo, 'sumAllIn') ? $movRepo->sumAllIn() : 0)
+                -
+                (method_exists($movRepo, 'sumAllOut') ? $movRepo->sumAllOut() : 0)
+            );
+
+        $month = (int) $day->format('n');
+        $year  = (int) $day->format('Y');
 
         return $this->render('cash/index.html.twig', [
-            'entriesToday'        => $entriesPagination, // 👈 paginé
-            'expensesToday'       => $expensesPagination, // 👈 paginé
-            'totalIn'             => $totalIn,
-            'totalOut'            => $totalOut,
-            'balance'             => $balance,
-            'year'                => $year,
-            'month'               => $month,
-            'currentCash'         => $currentCash,
+            'day'             => $day,
+            'month'           => $month,
+            'year'            => $year,
+            'paymentsPage'    => $paymentsPage,
+            'expensesPage'    => $expensesPage,
+            'injectionsPage'  => $injectionsPage,
+            'totalInPayments' => $totalInPayments,
+            'totalOutExpenses'=> $totalOutExpenses,
+            'totalInInjections'=> $totalInInjections,
+            'balance'         => $balance,
+            'currentCash'     => $currentCash,
+            'totalCaisse'     => $totalCaisse,
         ]);
     }
 
@@ -71,7 +135,7 @@ class CashController extends AbstractController
         CashMovementRepository $mvRepo
     ): Response {
         $tz = new \DateTimeZone(\date_default_timezone_get());
-        $availableToday = $mvRepo->sumInToday($tz) - $mvRepo->sumOutToday($tz);
+        $availableToday = $mvRepo->currentCash();
 
         $mv = new CashMovement();
         $mv->setType(CashMovement::OUT)
@@ -160,71 +224,83 @@ class CashController extends AbstractController
 
     #[Route('/expenses/month', name: 'expenses_month', methods: ['GET'])]
     public function expensesMonth(
-        Request $request,
-        CashMovementRepository $cashRepo,
-        PaginatorInterface $paginator
+    Request $request,
+    CashMovementRepository $cashRepo,
+    EntityManagerInterface $em,
+    PaginatorInterface $paginator
     ): Response {
-        $tz  = new \DateTimeZone(\date_default_timezone_get());
+        $tz  = new \DateTimeZone(date_default_timezone_get());
         $now = new \DateTimeImmutable('now', $tz);
 
         $m = (int) $request->query->get('m', (int) $now->format('n'));
         $y = (int) $request->query->get('y', (int) $now->format('Y'));
-        if ($m < 1 || $m > 12) { $m = (int) $now->format('n'); }
-        if ($y < 2000 || $y > 2100) { $y = (int) $now->format('Y'); }
+        $categoryId = $request->query->get('category');
 
         $from = (new \DateTimeImmutable(sprintf('%04d-%02d-01', $y, $m), $tz))->setTime(0, 0, 0);
         $to   = $from->modify('last day of this month')->setTime(23, 59, 59);
 
         $qb = $cashRepo->createQueryBuilder('c')
+            ->leftJoin('c.category', 'cat')->addSelect('cat')
             ->andWhere('c.type = :out')
             ->andWhere('c.createdAt BETWEEN :from AND :to')
-            ->setParameter('out', CashMovement::OUT)
+            ->setParameter('out', \App\Entity\CashMovement::OUT)
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->orderBy('c.createdAt', 'ASC');
 
-        // Pagination de la liste
-        $pagination = $paginator->paginate(
-            $qb,
-            $request->query->getInt('page', 1),
-            10
-        );
+        if ($categoryId) {
+            $qb->andWhere('cat.id = :catId')->setParameter('catId', $categoryId);
+        }
 
-        // Pour le graphe : on récupère tous les résultats (sans pagination) pour agréger
-        $expensesAll = (clone $qb)->getQuery()->getResult();
+        $pagination = $paginator->paginate($qb, $request->query->getInt('page', 1), 10);
 
+        // 🔹 Graphique linéaire journalier
         $daysInMonth = (int) $from->format('t');
         $daily = array_fill(1, $daysInMonth, 0);
-        foreach ($expensesAll as $cm) {
-            $d = (int) $cm->getCreatedAt()->setTimezone($tz)->format('j');
-            $daily[$d] += (int) $cm->getAmount();
+        foreach ((clone $qb)->getQuery()->getResult() as $exp) {
+            $d = (int) $exp->getCreatedAt()->setTimezone($tz)->format('j');
+            $daily[$d] += (int) $exp->getAmount();
         }
-        $labels = [];
-        $values = [];
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            $labels[] = str_pad((string) $d, 2, '0', STR_PAD_LEFT);
-            $values[] = $daily[$d];
-        }
+        $labels = range(1, $daysInMonth);
+        $values = array_values($daily);
         $totalMonth = array_sum($values);
+
+        // 🔹 Catégories pour filtre + graphique camembert
+        $allCategories = $cashRepo->getEntityManager()
+            ->createQuery('SELECT c.id, c.name FROM App\Entity\ExpenseCategory c ORDER BY c.name ASC')
+            ->getArrayResult();
+
+        $categoryTotals = $cashRepo->sumByCategory($from, $to);
+
+        // Préparer des tableaux simples (labels / values) pour Twig (et ApexCharts)
+        $catLabels = array_map(fn($r) => $r['name'] ?? 'Non catégorisée', $categoryTotals);
+        $catValues = array_map(fn($r) => (float) ($r['total'] ?? 0), $categoryTotals);
+
+        
 
         $months = [
             1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',
             7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'
         ];
         $yearNow = (int) $now->format('Y');
-        $years   = range($yearNow - 5, $yearNow + 1);
-
+        $years = range($yearNow - 5, $yearNow + 1);
+//dump($categoryTotals);
         return $this->render('cash/expenses_month.html.twig', [
-            'from'       => $from,
-            'to'         => $to,
-            'labels'     => $labels,
-            'values'     => $values,
-            'total'      => $totalMonth,
-            'pagination' => $pagination, 
-            'm'          => $m,
-            'y'          => $y,
-            'months'     => $months,
-            'years'      => $years,
+            'from' => $from,
+            'to' => $to,
+            'pagination' => $pagination,
+            'm' => $m,
+            'y' => $y,
+            'months' => $months,
+            'years' => $years,
+            'allCategories' => $allCategories,
+            'selectedCategory' => $categoryId,
+            'labels' => $labels,
+            'values' => $values,
+            'total' => $totalMonth,
+            'categoryTotals' => $categoryTotals,
+            'catLabels'      => $catLabels,
+            'catValues'      => $catValues,
         ]);
     }
 
@@ -240,6 +316,9 @@ class CashController extends AbstractController
         $from = new \DateTimeImmutable("$year-01-01 00:00:00", $tz);
         $to   = new \DateTimeImmutable("$year-12-31 23:59:59", $tz);
 
+        $currentYear = (int) (new \DateTimeImmutable('now', $tz))->format('Y');
+        $years = range($currentYear, $currentYear - 5);
+
         $qb = $movRepo->createQueryBuilder('m')
             ->andWhere('m.type = :t')
             ->andWhere('m.createdAt BETWEEN :from AND :to')
@@ -251,9 +330,12 @@ class CashController extends AbstractController
         $pagination = $paginator->paginate($qb, $request->query->getInt('page', 1), 10);
 
         $allExpenses = (clone $qb)->getQuery()->getResult();
+        $categoryTotals = $movRepo->sumByCategory($from, $to);
 
         $labels = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
         $values = array_fill(0, 12, 0);
+        $yearCatLabels = array_map(fn($r) => $r['name'] ?? 'Non catégorisée', $categoryTotals);
+        $yearCatValues = array_map(fn($r) => (float) ($r['total'] ?? 0), $categoryTotals);
 
         foreach ($allExpenses as $e) {
             $dt = $e->getCreatedAt();
@@ -264,13 +346,18 @@ class CashController extends AbstractController
         $total = array_sum($values);
 
         return $this->render('cash/expenses_year.html.twig', [
-            'from'       => $from,
-            'to'         => $to,
-            'labels'     => $labels,
-            'values'     => $values,
-            'total'      => $total,
-            'year'       => $year,
-            'pagination' => $pagination,
+            'from'            => $from,
+            'to'              => $to,
+            'labels'          => $labels,
+            'values'          => $values,
+            'total'           => $total,
+            'year'            => $year,   // <- déjà présent
+            'y'               => $year,   // <- alias pour le Twig existant
+            'years'           => $years,  // <- pour le <select> année
+            'pagination'      => $pagination,
+            'categoryTotals'  => $categoryTotals,
+            'yearCatLabels'   => $yearCatLabels,
+            'yearCatValues'   => $yearCatValues,
         ]);
     }
 
@@ -389,6 +476,141 @@ class CashController extends AbstractController
             'total'      => $totalYear,
             'pagination' => $pagination, 
             'year'       => $year,
+        ]);
+    }
+
+    #[Route('/cash/expense/{id}', name: 'expense_show', methods: ['GET'])]
+    public function expenseShow(CashMovement $expense): Response
+    {
+        return $this->render('cash/expense_show.html.twig', [
+            'expense' => $expense,
+        ]);
+    }
+
+    #[Route('/cash/expense/{id}/edit', name: 'expense_edit', methods: ['GET','POST'])]
+    public function expenseEdit(Request $request, CashMovement $expense, EntityManagerInterface $em, CashMovementRepository $mvRepo): Response
+    {
+        // (Optionnel) Recontrôle du plafond journalier si tu veux
+        $form = $this->createForm(CashExpenseType::class, $expense);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em->flush();
+            $this->addFlash('success', 'Dépense mise à jour.');
+            return $this->redirectToRoute('cash_index');
+        }
+
+        return $this->render('cash/expense_edit.html.twig', [
+            'form'    => $form,
+            'expense' => $expense,
+        ]);
+    }
+
+    #[Route('/cash/expense/{id}/delete', name: 'expense_delete', methods: ['POST'])]
+    public function expenseDelete(Request $request, CashMovement $expense, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('delete_expense_'.$expense->getId(), $request->request->get('_token'))) {
+            $em->remove($expense);
+            $em->flush();
+            $this->addFlash('success', 'Dépense supprimée.');
+        }
+        return $this->redirectToRoute('cash_index');
+    }
+
+     #[Route('/injections/month', name: 'injections_month', methods: ['GET'])]
+    public function injectionsMonth(
+        Request $request,
+        CashMovementRepository $movRepo,
+        PaginatorInterface $paginator
+    ): Response {
+        $tz = new \DateTimeZone(\date_default_timezone_get());
+
+        $y = (int) $request->query->get('y', (int) (new \DateTimeImmutable('now', $tz))->format('Y'));
+        $m = (int) $request->query->get('m', (int) (new \DateTimeImmutable('now', $tz))->format('n'));
+
+        $from = new \DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $y, $m), $tz);
+        $to   = $from->modify('last day of this month')->setTime(23,59,59);
+
+        // Injection = IN et source ≠ PAYMENT
+        $qb = $movRepo->createQueryBuilder('m')
+            ->andWhere('m.type = :in')
+            ->andWhere('m.source != :srcPayment')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('in', CashMovement::IN)
+            ->setParameter('srcPayment', CashMovement::SRC_PAYMENT)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('m.createdAt', 'ASC');
+
+        $pagination = $paginator->paginate($qb, $request->query->getInt('page', 1), 10);
+
+        // Totaux par jour pour petite courbe (optionnel)
+        $labels = [];
+        $values = [];
+        $daysInMonth = (int) $to->format('j');
+        for ($i=1; $i <= $daysInMonth; $i++) {
+            $labels[] = sprintf('%02d', $i);
+            $values[] = 0;
+        }
+        foreach ($pagination as $inj) {
+            $d = (int) $inj->getCreatedAt()->format('j'); // 1..31
+            $values[$d-1] += (int) $inj->getAmount();
+        }
+        $total = array_sum($values);
+
+        // données pour filtre
+        $months = [1=>'Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+        $years  = range((int) date('Y'), (int) date('Y')-5);
+
+        return $this->render('cash/injections_month.html.twig', [
+            'm' => $m, 'y' => $y,
+            'from' => $from, 'to' => $to,
+            'months' => $months, 'years' => $years,
+            'labels' => $labels, 'values' => $values, 'total' => $total,
+            'pagination' => $pagination,
+        ]);
+    }
+
+    #[Route('/injections/year', name: 'injections_year', methods: ['GET'])]
+    public function injectionsYear(
+        Request $request,
+        CashMovementRepository $movRepo,
+        PaginatorInterface $paginator
+    ): Response {
+        $tz   = new \DateTimeZone(\date_default_timezone_get());
+        $year = (int) $request->query->get('year', (int) (new \DateTimeImmutable('now', $tz))->format('Y'));
+
+        $from = new \DateTimeImmutable("$year-01-01 00:00:00", $tz);
+        $to   = new \DateTimeImmutable("$year-12-31 23:59:59", $tz);
+
+        $qb = $movRepo->createQueryBuilder('m')
+            ->andWhere('m.type = :in')
+            ->andWhere('m.source != :srcPayment')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('in', CashMovement::IN)
+            ->setParameter('srcPayment', CashMovement::SRC_PAYMENT)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('m.createdAt', 'ASC');
+
+        $pagination = $paginator->paginate($qb, $request->query->getInt('page', 1), 10);
+
+        // Totaux par mois
+        $labels = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+        $values = array_fill(0, 12, 0);
+        foreach ($pagination as $inj) {
+            $n = (int) $inj->getCreatedAt()->format('n'); // 1..12
+            $values[$n-1] += (int) $inj->getAmount();
+        }
+        $total = array_sum($values);
+        $years = range((int) date('Y'), (int) date('Y')-5);
+
+        return $this->render('cash/injections_year.html.twig', [
+            'year' => $year, 'y' => $year,
+            'from' => $from, 'to' => $to,
+            'labels' => $labels, 'values' => $values, 'total' => $total,
+            'years' => $years,
+            'pagination' => $pagination,
         ]);
     }
 }

@@ -58,20 +58,22 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link menu-link" href="{{ path('app_prestation_index') }}"><i class="ri-settings-line"></i> <span>Paramettres</span></a>
+          <a class="nav-link menu-link" href="{{ path('app_settings_edit') }}"><i class="ri-settings-line"></i> <span>Paramettres</span></a>
         </li>
       </ul>
     </div>
     <div class="container-fluid">
       <ul class="navbar-nav" id="navbar-nav">
-        <li class="menu-title"><span>Caisse</span></li>
+        <li class="menu-title"><span>Comptabilité</span></li>
         <li class="nav-item">
           <a class="nav-link menu-link" href="{{ path('cash_index') }}"><i class="ri-money-dollar-circle-line"></i> <span>Caisse</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link menu-link" href="{{ path('app_prestation_index') }}"><i class="ri-settings-line"></i> <span>Paramettres</span></a>
-        </li>
+        <a class="nav-link" href="{{ path('cash_category_index') }}">
+          <i class="ri-price-tag-3-line align-middle me-1"></i> Catégories de dépenses
+        </a> 
+      </li>
       </ul>
     </div>
   </div>

@@ -62,100 +62,94 @@
 
     {# --------- COL DROITE : Formulaire paiement --------- #}
     <div class="col-lg-5">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="mb-3">Enregistrer le paiement</h5>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="mb-3">Enregistrer le paiement</h5>
 
-          {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+      {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
 
-          {# --- Montant (affichage verrouillé + vrai champ masqué) --- #}
-          <div class="mb-3">
-            <label class="form-label">Montant à payer</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="ri-cash-line"></i></span>
-              <input type="text"
-                     class="form-control"
-                     value="{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU"
-                     readonly>
-            </div>
-            {# on rend le vrai champ amount en caché pour que la valeur soit bien envoyée #}
-            {% if form.amount is defined %}
-              <div class="d-none">
-                {{ form_row(form.amount) }}
-              </div>
-            {% endif %}
-          </div>
-
-          {# --- Méthode (UI boutons → pilote les radios réelles) --- #}
-          <div class="mb-3">
-            <label class="form-label">Méthode de paiement</label>
-
-            {% if form.methode is defined %}
-              {# on rend une seule fois le champ (radios) en caché pour éviter le double rendu #}
-              <div class="d-none">
-                {{ form_row(form.methode) }}
-              </div>
-
-              <div class="row g-2">
-                <div class="col-6">
-                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-especes" checked>
-                  <label class="btn btn-outline-dark w-100" for="m-especes"
-                         onclick="
-                           (function(){
-                             var r0 = document.getElementById('{{ form.methode.vars.id }}_0');
-                             if (r0) { r0.checked = true; r0.dispatchEvent(new Event('change', {bubbles:true})); }
-                           })();
-                         ">
-                    <i class="ri-wallet-3-line me-1"></i> Espèces
-                  </label>
-                </div>
-                <div class="col-6">
-                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-mobile">
-                  <label class="btn btn-outline-dark w-100" for="m-mobile"
-                         onclick="
-                           (function(){
-                             var r1 = document.getElementById('{{ form.methode.vars.id }}_1');
-                             if (r1) { r1.checked = true; r1.dispatchEvent(new Event('change', {bubbles:true})); }
-                           })();
-                         ">
-                    <i class="ri-smartphone-line me-1"></i> Mobile
-                  </label>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          {# --- Notes --- #}
-          <div class="mb-3">
-            <label class="form-label">Notes (facultatif)</label>
-            {% if form.notes is defined %}
-              {{ form_widget(form.notes, {'attr': {'rows': 3, 'placeholder': 'Notes internes…'}}) }}
-              {{ form_errors(form.notes) }}
-            {% else %}
-              <textarea class="form-control" rows="3" placeholder="Notes internes…"></textarea>
-            {% endif %}
-          </div>
-
-          {# --- paidAt caché --- #}
-          <div class="d-none">
-            {% if form.paidAt is defined %}
-              {{ form_row(form.paidAt) }}
-            {% endif %}
-          </div>
-
-          {# --- Autres champs restants (CSRF…) --- #}
-          {{ form_rest(form) }}
-
-          <div class="mt-3 d-flex gap-2">
-            <button class="btn btn-success">
-              <i class="ri-check-line"></i> Valider et voir le reçu
-            </button>
-            <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-ghost-secondary">Annuler</a>
-          </div>
-
-          {{ form_end(form) }}
+      {# --- Montant (affichage verrouillé + vrai champ masqué) --- #}
+      <div class="mb-3">
+        <label class="form-label">Montant à payer</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="ri-cash-line"></i></span>
+          <input type="text"
+                 class="form-control"
+                 value="{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU"
+                 readonly>
         </div>
+        {% if form.amount is defined %}
+          <div class="d-none">
+            {{ form_row(form.amount) }}
+          </div>
+        {% endif %}
       </div>
+
+      {# --- Méthode (UI boutons → pilote les radios réelles) --- #}
+      <div class="mb-3">
+        <label class="form-label">Méthode de paiement</label>
+
+        {% if form.methode is defined %}
+          <div class="d-none">
+            {{ form_row(form.methode) }}
+          </div>
+
+          <div class="row g-2">
+            <div class="col-6">
+              <input class="btn-check" type="radio" name="payment_methode_fake" id="m-especes" checked>
+              <label class="btn btn-outline-dark w-100" for="m-especes"
+                     onclick="(function(){var r0=document.getElementById('{{ form.methode.vars.id }}_0'); if(r0){r0.checked=true;r0.dispatchEvent(new Event('change',{bubbles:true}));}})();">
+                <i class="ri-wallet-3-line me-1"></i> Espèces
+              </label>
+            </div>
+            <div class="col-6">
+              <input class="btn-check" type="radio" name="payment_methode_fake" id="m-mobile">
+              <label class="btn btn-outline-dark w-100" for="m-mobile"
+                     onclick="(function(){var r1=document.getElementById('{{ form.methode.vars.id }}_1'); if(r1){r1.checked=true;r1.dispatchEvent(new Event('change',{bubbles:true}));}})();">
+                <i class="ri-smartphone-line me-1"></i> Mobile
+              </label>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      {# --- Notes (OBLIGATOIRE) --- #}
+      <div class="mb-3">
+        <label class="form-label">Notes <span class="text-danger">*</span></label>
+        {% if form.notes is defined %}
+          {{ form_widget(form.notes, {
+            attr: {
+              rows: 3,
+              placeholder: 'Notes internes…',
+              required: true
+            }
+          }) }}
+          {{ form_errors(form.notes) }}
+        {% else %}
+          <textarea class="form-control" rows="3" placeholder="Notes internes…" required></textarea>
+        {% endif %}
+      </div>
+
+      {# --- paidAt caché --- #}
+      <div class="d-none">
+        {% if form.paidAt is defined %}
+          {{ form_row(form.paidAt) }}
+        {% endif %}
+      </div>
+
+      {# --- Autres champs restants (CSRF…) --- #}
+      {{ form_rest(form) }}
+
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-success">
+          <i class="ri-check-line"></i> Valider et voir le reçu
+        </button>
+        <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-ghost-secondary">Annuler</a>
+      </div>
+
+      {{ form_end(form) }}
     </div>
+  </div>
+</div>
   </div>
 {% endblock %}

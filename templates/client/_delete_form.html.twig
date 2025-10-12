@@ -1,4 +1,4 @@
-<form method="post" action="{{ path('app_client_delete', {'id': client.id}) }}" onsubmit="return confirm('Supprimer ce client ?');" class="d-inline">
+<form method="post" action="{{ path('app_client_delete', {'id': client.id}) }}" onsubmit="return confirm('Attention : cette suppression est définitive (client, rendez-vous et paiements). Voulez-vous continuer ?');" class="d-inline">
   <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
   <button class="btn btn-soft-danger"><i class="ri-delete-bin-6-line"></i> Supprimer</button>
 </form>

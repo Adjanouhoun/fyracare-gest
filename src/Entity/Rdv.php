@@ -20,6 +20,7 @@ class Rdv
     #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column] private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'rdvs')] #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'rdvs')] #[ORM\JoinColumn(nullable: false)]

@@ -2,8 +2,6 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Client;
-use App\Entity\Prestation;
 use App\Repository\ClientRepository;
 use App\Repository\PrestationRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,60 +15,70 @@ class AutocompleteController extends AbstractController
     #[Route('/clients', name: 'clients', methods: ['GET'])]
     public function clients(Request $request, ClientRepository $repo): JsonResponse
     {
-        $q = trim((string)$request->query->get('q', ''));
-
-        $qb = $repo->createQueryBuilder('c');
-        if ($q !== '') {
-            $qb->andWhere('LOWER(c.nometprenom) LIKE :q OR c.telephone LIKE :q OR LOWER(c.email) LIKE :q')
-               ->setParameter('q', '%'.mb_strtolower($q).'%');
+        // Préremplissage par id (édition)
+        if ($id = $request->query->get('id')) {
+            $c = $repo->find($id);
+            if (!$c) {
+                return $this->json(['results' => []]);
+            }
+            return $this->json(['results' => [[
+                'id'   => $c->getId(),
+                'text' => trim($c->getNometprenom() . ($c->getTelephone() ? ' — '.$c->getTelephone() : '')),
+            ]]]);
         }
 
-        $clients = $qb->orderBy('c.nometprenom', 'ASC')
-                      ->setMaxResults(20)
-                      ->getQuery()->getResult();
+        $q = trim((string) $request->query->get('q', ''));
+        $qb = $repo->createQueryBuilder('c')
+            ->setMaxResults(20)
+            ->orderBy('c.nometprenom', 'ASC');
 
-        $data = array_map(static function (Client $c) {
-            return [
-                'id'   => $c->getId(),
-                'text' => sprintf(
-                    '%s — %s%s',
-                    $c->getNometprenom(),
-                    $c->getTelephone(),
-                    $c->getEmail() ? ' — '.$c->getEmail() : ''
-                ),
-            ];
-        }, $clients);
+        if ($q !== '') {
+            $qb->andWhere('c.nometprenom LIKE :q OR c.telephone LIKE :q OR c.email LIKE :q')
+               ->setParameter('q', '%'.$q.'%');
+        }
 
-        return $this->json(['results' => $data]);
+        $items = $qb->getQuery()->getResult();
+
+        $results = array_map(fn($c) => [
+            'id'   => $c->getId(),
+            'text' => trim($c->getNometprenom() . ($c->getTelephone() ? ' — '.$c->getTelephone() : '')),
+        ], $items);
+
+        return $this->json(['results' => $results]);
     }
 
     #[Route('/prestations', name: 'prestations', methods: ['GET'])]
     public function prestations(Request $request, PrestationRepository $repo): JsonResponse
     {
-        $q = trim((string)$request->query->get('q', ''));
-
-        $qb = $repo->createQueryBuilder('p');
-        if ($q !== '') {
-            $qb->andWhere('LOWER(p.libelle) LIKE :q OR LOWER(COALESCE(p.description, \'\')) LIKE :q')
-               ->setParameter('q', '%'.mb_strtolower($q).'%');
+        // Préremplissage par id (édition)
+        if ($id = $request->query->get('id')) {
+            $p = $repo->find($id);
+            if (!$p) {
+                return $this->json(['results' => []]);
+            }
+            return $this->json(['results' => [[
+                'id'   => $p->getId(),
+                'text' => $p->getLibelle() . ($p->getPrix() ? ' — '.$p->getPrix().' MRU' : ''),
+            ]]]);
         }
 
-        $prestations = $qb->orderBy('p.libelle', 'ASC')
-                          ->setMaxResults(20)
-                          ->getQuery()->getResult();
+        $q = trim((string) $request->query->get('q', ''));
+        $qb = $repo->createQueryBuilder('p')
+            ->setMaxResults(20)
+            ->orderBy('p.libelle', 'ASC');
 
-        $data = array_map(static function (Prestation $p) {
-            return [
-                'id'   => $p->getId(),
-                'text' => sprintf(
-                    '%s — %d min — %s MRU',
-                    (string)$p->getLibelle(),
-                    (int)$p->getDureeMin(),
-                    number_format((int)$p->getPrix(), 0, ',', ' ')
-                ),
-            ];
-        }, $prestations);
+        if ($q !== '') {
+            $qb->andWhere('p.libelle LIKE :q')
+               ->setParameter('q', '%'.$q.'%');
+        }
 
-        return $this->json(['results' => $data]);
+        $items = $qb->getQuery()->getResult();
+
+        $results = array_map(fn($p) => [
+            'id'   => $p->getId(),
+            'text' => $p->getLibelle() . ($p->getPrix() ? ' — '.$p->getPrix().' MRU' : ''),
+        ], $items);
+
+        return $this->json(['results' => $results]);
     }
 }

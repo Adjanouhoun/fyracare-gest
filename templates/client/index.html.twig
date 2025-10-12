@@ -1,5 +1,5 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Clients | Velzon{% endblock %}
+{% block title %}Clients | Fyracare{% endblock %}
 
 {% block page_header %}
 <div class="row mb-3 pb-1">
@@ -66,12 +66,6 @@
               <a href="{{ path('app_client_edit', {id: c.id}) }}" class="btn btn-sm btn-soft-secondary">
                 <i class="ri-pencil-line"></i> Modifier
               </a>
-              <form method="post" action="{{ path('app_client_delete', {id: c.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer ce client ?');">
-                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ c.id) }}">
-                <button class="btn btn-sm btn-soft-danger">
-                  <i class="ri-delete-bin-line"></i> Supprimer
-                </button>
-              </form>
             </td>
           </tr>
         {% else %}

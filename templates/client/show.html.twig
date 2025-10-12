@@ -1,17 +1,35 @@
+{# templates/client/show.html.twig #}
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Fiche client | Velzon{% endblock %}
+{% block title %}Fiche client | Fyracare{% endblock %}
 
 {% block page_header %}
 <div class="row mb-3 pb-1">
   <div class="col-12 d-flex align-items-center justify-content-between">
-    <div>
-      <h4 class="fs-16 mb-1">Fiche client</h4>
-      <p class="text-muted mb-0">{{ client }}</p>
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar-sm">
+        <span class="avatar-title bg-info-subtle text-info rounded fs-18">
+          <i class="ri-user-3-line"></i>
+        </span>
+      </div>
+      <div>
+        <h4 class="fs-16 mb-1">{{ client }}</h4>
+        <div class="text-muted d-flex flex-wrap gap-3">
+          <span><i class="ri-phone-line me-1"></i>{{ client.telephone ?? '—' }}</span>
+          <span><i class="ri-mail-line me-1"></i>{{ client.email ?? '—' }}</span>
+          <span><i class="ri-time-line me-1"></i>Créé le {{ client.createdAt ? client.createdAt|date('d/m/Y H:i') : '—' }}</span>
+        </div>
+      </div>
     </div>
     <div class="d-flex gap-2">
+      <a href="{{ path('app_rdv_new', { client: client.id }) }}" class="btn btn-primary">
+        <i class="ri-calendar-2-line align-middle me-1"></i> Nouveau RDV
+      </a>
       <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn btn-soft-secondary">
         <i class="ri-pencil-line align-middle me-1"></i> Modifier
       </a>
+      <div onclick="return confirm('Supprimer ce client ? Tous ses rendez-vous et paiements seront aussi supprimés. Êtes-vous sûr ?');">
+          {{ include('client/_delete_form.html.twig') }}
+        </div>
       <a href="{{ path('app_client_index') }}" class="btn btn-soft-dark">
         <i class="ri-arrow-left-line align-middle me-1"></i> Retour
       </a>
@@ -21,44 +39,86 @@
 {% endblock %}
 
 {% block body %}
+{% set rdvs = (client.rdvs is defined) ? client.rdvs : [] %}
+{% set totalRdvs = rdvs|length %}
+{% set totalPayments = (payments is defined) ? payments|length : (
+  rdvs is iterable ? rdvs|reduce((carry, r) => carry + ((r.payments is defined) ? r.payments|length : 0), 0) : 0
+) %}
+{% set sumPayments = (payments is defined)
+  ? payments|reduce((carry, p) => carry + (p.amount ?? 0), 0)
+  : (rdvs is iterable
+      ? rdvs|reduce((carry, r) =>
+          carry + ((r.payments is defined)
+            ? r.payments|reduce((c2, pay) => c2 + (pay.amount ?? 0), 0)
+            : 0
+          )
+        , 0)
+      : 0)
+%}
+
 <div class="row">
   <div class="col-xl-8">
-    <div class="card">
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="text-muted d-block mb-1">Nom complet</label>
-            <div class="fw-semibold">{{ client }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="text-muted d-block mb-1">Téléphone</label>
-            <div class="fw-semibold">{{ client.telephone ?? '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="text-muted d-block mb-1">Email</label>
-            <div class="fw-semibold">{{ client.email ?? '—' }}</div>
-          </div>
-          <div class="col-md-6">
-            <label class="text-muted d-block mb-1">Créé le</label>
-            <div class="fw-semibold">{{ client.createdAt ? client.createdAt|date('d/m/Y H:i') : '—' }}</div>
-          </div>
-          {% if client.address is defined %}
-            <div class="col-12">
-              <label class="text-muted d-block mb-1">Adresse</label>
-              <div class="fw-semibold">{{ client.address ?? '—' }}</div>
+    {# KPIs #}
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card card-animate">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-grow-1">
+                <p class="text-uppercase fw-medium text-muted mb-0">Rendez-vous</p>
+                <h4 class="fs-22 fw-semibold mb-0">{{ totalRdvs }}</h4>
+              </div>
+              <div class="avatar-sm flex-shrink-0">
+                <span class="avatar-title bg-primary-subtle text-primary rounded fs-20">
+                  <i class="ri-calendar-line"></i>
+                </span>
+              </div>
             </div>
-          {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-animate">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-grow-1">
+                <p class="text-uppercase fw-medium text-muted mb-0">Paiements</p>
+                <h4 class="fs-22 fw-semibold mb-0">{{ totalPayments }}</h4>
+              </div>
+              <div class="avatar-sm flex-shrink-0">
+                <span class="avatar-title bg-success-subtle text-success rounded fs-20">
+                  <i class="ri-bank-card-line"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-animate">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="flex-grow-1">
+                <p class="text-uppercase fw-medium text-muted mb-0">Total encaissé</p>
+                <h4 class="fs-22 fw-semibold mb-0">{{ sumPayments|number_format(0, ',', ' ') }} <span class="fs-12 text-muted">MRU</span></h4>
+              </div>
+              <div class="avatar-sm flex-shrink-0">
+                <span class="avatar-title bg-info-subtle text-info rounded fs-20">
+                  <i class="ri-cash-line"></i>
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    {# Historique RDV du client (optionnel si relation disponible) #}
-    {% if client.rdvs is defined %}
+    {# Rendez-vous #}
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-between">
         <h5 class="card-title mb-0">Rendez-vous</h5>
-        <a class="btn btn-sm btn-primary" href="{{ path('app_rdv_new', { clientId: client.id }) }}">
-          <i class="ri-calendar-2-line me-1"></i> Prendre un rendez-vous
+        <a class="btn btn-sm btn-primary" href="{{ path('app_rdv_new', { client: client.id }) }}">
+          <i class="ri-add-line me-1"></i> Nouveau RDV
         </a>
       </div>
       <div class="card-body">
@@ -73,49 +133,155 @@
               </tr>
             </thead>
             <tbody>
-            {% for rdv in client.rdvs %}
-              <tr>
-                <td>{{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}</td>
-                <td>{{ rdv.prestation ?? '—' }}</td>
-                <td>
-                  <span class="badge
-                    {% if rdv.status == 'PLANIFIE' %} bg-info-subtle text-info
-                    {% elseif rdv.status == 'HONORE' %} bg-success-subtle text-success
-                    {% elseif rdv.status == 'ANNULE' %} bg-danger-subtle text-danger
-                    {% else %} bg-secondary-subtle text-secondary {% endif %}">
-                    {{ rdv.status ?? '—' }}
-                  </span>
-                </td>
-                <td class="text-end">
-                  <a href="{{ path('app_rdv_show',{id: rdv.id}) }}" class="btn btn-sm btn-soft-info"><i class="ri-eye-line"></i> Détails</a>
-                </td>
-              </tr>
+            {% if rdvs|length > 0 %}
+              {% for rdv in rdvs %}
+                <tr>
+                  <td>{{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}</td>
+                  <td>{{ rdv.prestation ? rdv.prestation.libelle : '—' }}</td>
+                  <td>
+                    <span class="badge
+                      {% if rdv.status == 'PLANIFIE' %} bg-info-subtle text-info
+                      {% elseif rdv.status == 'CONFIRME' %} bg-primary-subtle text-primary
+                      {% elseif rdv.status == 'HONORE' %} bg-success-subtle text-success
+                      {% elseif rdv.status == 'ANNULE' %} bg-danger-subtle text-danger
+                      {% elseif rdv.status == 'ABSENT' %} bg-warning-subtle text-warning
+                      {% else %} bg-secondary-subtle text-secondary {% endif %}">
+                      {{ rdv.status ?? '—' }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-sm btn-soft-info">
+                      <i class="ri-eye-line"></i> Détails
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
             {% else %}
               <tr><td colspan="4" class="text-center text-muted">Aucun rendez-vous.</td></tr>
-            {% endfor %}
+            {% endif %}
             </tbody>
           </table>
         </div>
       </div>
     </div>
-    {% else %}
-      <div class="d-flex justify-content-end mb-3">
-        <a class="btn btn-primary" href="{{ path('app_rdv_new', { clientId: client.id }) }}">
-          <i class="ri-calendar-2-line me-1"></i> Prendre un rendez-vous
-        </a>
+
+    {# Paiements #}
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0">Paiements</h5>
+        {% if payments is defined %}<span class="text-muted small">{{ payments|length }} enregistrement(s)</span>{% endif %}
       </div>
-    {% endif %}
+      <div class="card-body">
+        <div class="table-responsive table-card">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>RDV</th>
+                <th>Méthode</th>
+                <th class="text-end">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% if payments is defined %}
+              {% if payments|length > 0 %}
+                {% for pay in payments %}
+                  <tr>
+                    <td>{{ pay.paidAt ? pay.paidAt|date('d/m/Y H:i') : '—' }}</td>
+                    <td>
+                      {% if pay.rdv %}
+                        <a href="{{ path('app_rdv_show', {id: pay.rdv.id}) }}">
+                          {{ pay.rdv.startAt ? pay.rdv.startAt|date('d/m/Y H:i') : 'RDV' }}
+                          {% if pay.rdv.prestation %} — {{ pay.rdv.prestation.libelle }}{% endif %}
+                        </a>
+                      {% else %} — {% endif %}
+                    </td>
+                    <td>{{ pay.methode ?? '—' }}</td>
+                    <td class="text-end">{{ (pay.amount ?? 0)|number_format(0, ',', ' ') }} MRU</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="4" class="text-center text-muted">Aucun paiement.</td></tr>
+              {% endif %}
+            {% else %}
+              {# Fallback si le contrôleur n’a pas fourni "payments" #}
+              {% set hasAny = false %}
+              {% for rdv in rdvs %}
+                {% if rdv.payments is defined %}
+                  {% for pay in rdv.payments %}
+                    {% set hasAny = true %}
+                    <tr>
+                      <td>{{ pay.createdAt ? pay.createdAt|date('d/m/Y H:i') : '—' }}</td>
+                      <td>
+                        <a href="{{ path('app_rdv_show', {id: rdv.id}) }}">
+                          {{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : 'RDV' }}
+                          {% if rdv.prestation %} — {{ rdv.prestation.libelle }}{% endif %}
+                        </a>
+                      </td>
+                      <td>{{ pay.methode ?? '—' }}</td>
+                      <td class="text-end">{{ (pay.amount ?? 0)|number_format(0, ',', ' ') }} MRU</td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+              {% if not hasAny %}
+                <tr><td colspan="4" class="text-center text-muted">Aucun paiement.</td></tr>
+              {% endif %}
+            {% endif %}
+            </tbody>
+            {% if sumPayments > 0 %}
+            <tfoot>
+              <tr>
+                <th colspan="3" class="text-end">Total encaissé</th>
+                <th class="text-end">{{ sumPayments|number_format(0, ',', ' ') }} MRU</th>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
+  {# Sidebar #}
   <div class="col-xl-4">
     <div class="card">
-      <div class="card-header"><h5 class="card-title mb-0">Actions</h5></div>
-      <div class="card-body d-grid gap-2">
-        <a href="{{ path('app_rdv_new', { clientId: client.id }) }}" class="btn btn-primary">
-          <i class="ri-add-line me-1"></i> Nouveau RDV
-        </a>
+      <div class="card-header"><h5 class="card-title mb-0">Profil</h5></div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="avatar-lg">
+            <span class="avatar-title bg-secondary-subtle text-secondary rounded-circle fs-22">
+              {{ (client ~ '')|slice(0,1)|upper }}
+            </span>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ client }}</div>
+            <div class="text-muted small">Client depuis {{ client.createdAt ? client.createdAt|date('d/m/Y') : '—' }}</div>
+          </div>
+        </div>
+        <div class="d-grid gap-2">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="text-muted">Téléphone</span>
+            <span class="fw-semibold">{{ client.telephone ?? '—' }}</span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="text-muted">Email</span>
+            <span class="fw-semibold">{{ client.email ?? '—' }}</span>
+          </div>
+          {% if client.address is defined %}
+          <div>
+            <div class="text-muted mb-1">Adresse</div>
+            <div class="fw-semibold">{{ client.address ?? '—' }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
 
-        {{ include('client/_delete_form.html.twig') }}
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Notes</h5></div>
+      <div class="card-body d-grid gap-2">
+         {{ client.notes }}
       </div>
     </div>
   </div>

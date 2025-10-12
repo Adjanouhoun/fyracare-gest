@@ -13,6 +13,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Service\SettingsProvider;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 #[Route('/payment', name: 'app_payment_')]
 class PaymentController extends AbstractController
@@ -172,5 +175,45 @@ class PaymentController extends AbstractController
             $em->flush();
         }
         return $this->redirectToRoute('app_payment_index');
+    }
+
+     
+    #[Route('/{id<\d+>}/receipt.pdf', name: 'receipt_pdf', methods: ['GET'])]
+    public function receiptPdf(Payment $payment, SettingsProvider $settings): Response
+    {
+        $s = $settings->get();
+
+        // --- construit un Data URI pour le logo (fiable avec Dompdf)
+        $logoDataUri = null;
+        if ($s->getLogoPath()) {
+            $abs = $this->getParameter('kernel.project_dir').'/public/'.$s->getLogoPath();
+            if (is_file($abs)) {
+                $mime = @mime_content_type($abs) ?: 'image/png';
+                $b64  = base64_encode(file_get_contents($abs));
+                $logoDataUri = 'data:'.$mime.';base64,'.$b64;
+            }
+        }
+
+        $opts = new Options();
+        $opts->set('defaultFont', 'DejaVu Sans');
+        $opts->set('isRemoteEnabled', true);      // si jamais tu gardes des URLs absolues
+        $opts->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new Dompdf($opts);
+
+        $html = $this->renderView('payment/receipt_pdf.html.twig', [
+            'payment'     => $payment,
+            'settings'    => $s,
+            'logoDataUri' => $logoDataUri, // <<< passe la Data URI
+        ]);
+
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A5', 'portrait'); 
+        $dompdf->render();
+
+        return new Response($dompdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="recu-'.$payment->getReceiptNumber().'.pdf"',
+        ]);
     }
 }

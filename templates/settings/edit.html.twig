@@ -1,0 +1,83 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Paramètres — Entreprise{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="fs-16 mb-1">Paramètres de l’entreprise</h4>
+      <p class="text-muted mb-0">Téléphone, e-mail, adresse et logo</p>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body">
+          {{ form_start(form, { attr: { enctype: 'multipart/form-data' } }) }}
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form_label(form.phone, 'Téléphone', {label_attr:{class:'form-label'}}) }}
+              {{ form_widget(form.phone, {attr:{class:'form-control'}}) }}
+              {{ form_errors(form.phone) }}
+            </div>
+            <div class="col-md-6">
+              {{ form_label(form.email, 'E-mail', {label_attr:{class:'form-label'}}) }}
+              {{ form_widget(form.email, {attr:{class:'form-control'}}) }}
+              {{ form_errors(form.email) }}
+            </div>
+            <div class="col-12">
+              {{ form_label(form.address, 'Adresse', {label_attr:{class:'form-label'}}) }}
+              {{ form_widget(form.address, {attr:{class:'form-control', rows:3}}) }}
+              {{ form_errors(form.address) }}
+            </div>
+            <div class="col-12">
+              {{ form_label(form.logoFile, 'Logo (PNG/JPG)', {label_attr:{class:'form-label'}}) }}
+              {{ form_widget(form.logoFile, {attr:{class:'form-control'}}) }}
+              {{ form_errors(form.logoFile) }}
+            </div>
+          </div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-primary"><i class="ri-save-2-line me-1"></i> Enregistrer</button>
+            <a href="#" class="btn btn-ghost-secondary">Annuler</a>
+          </div>
+          {{ form_end(form) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Aperçu</h5></div>
+        <div class="card-body">
+          <div class="mb-3 text-center">
+            {% if settings.logoPath %}
+              <img src="{{ asset(settings.logoPath) }}" alt="Logo" style="max-height:80px">
+            {% else %}
+              <div class="text-muted">Aucun logo</div>
+            {% endif %}
+          </div>
+          <div class="d-grid gap-2">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Téléphone</span>
+              <span class="fw-semibold">{{ settings.phone ?: '—' }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">E-mail</span>
+              <span class="fw-semibold">{{ settings.email ?: '—' }}</span>
+            </div>
+            <div>
+              <div class="text-muted mb-1">Adresse</div>
+              <div class="fw-semibold">{{ settings.address ?: '—' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

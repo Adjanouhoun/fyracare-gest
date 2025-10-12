@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Knp\Component\Pager\PaginatorInterface;
+use App\Repository\PaymentRepository;
 
 #[Route('/client')]
 final class ClientController extends AbstractController
@@ -56,10 +57,20 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_client_show', methods: ['GET'])]
-    public function show(Client $client): Response
+    public function show(Client $client, PaymentRepository $paymentRepo,): Response
     {
+         // Tous les paiements dont le RDV appartient à ce client
+        $payments = $paymentRepo->createQueryBuilder('pay')
+        ->leftJoin('pay.rdv', 'r')->addSelect('r')
+        ->leftJoin('r.prestation', 'pr')->addSelect('pr')
+        ->andWhere('r.client = :client')
+        ->setParameter('client', $client)
+        ->orderBy('pay.paidAt', 'DESC')
+        ->getQuery()->getResult();
+
         return $this->render('client/show.html.twig', [
             'client' => $client,
+            'payments' => $payments,
         ]);
     }
 

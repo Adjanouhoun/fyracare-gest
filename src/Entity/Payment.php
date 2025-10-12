@@ -17,8 +17,9 @@ class Payment
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'payments')]
-    #[ORM\JoinColumn(nullable: false)]
+
+    #[ORM\ManyToOne(targetEntity: Rdv::class, inversedBy: 'payments')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Rdv $rdv = null;
 
     #[ORM\Column]
@@ -36,7 +37,7 @@ class Payment
     #[ORM\Column]
     private ?bool $isDeposit = false;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
 
     public function getId(): ?int

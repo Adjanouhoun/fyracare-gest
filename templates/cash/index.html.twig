@@ -1,87 +1,105 @@
-{# templates/cash/index.html.twig #}
 {% extends 'layouts/main.html.twig' %}
 {% block title %}Caisse{% endblock %}
 
 {% block page_header %}
-  <div class="d-flex align-items-center justify-content-between">
-    <div>
-      <h4 class="fs-16 mb-1">Caisse — vue journalière</h4>
+  <div class="d-flex align-items-rigth justify-content-between flex-wrap gap-2">
+    <div class="min-w-0">
+      <h4 class="fs-16 mb-1 text-truncate">Caisse — vue journalière</h4>
       <p class="text-muted mb-0">
-        Aujourd’hui : {{ "now"|date('d/m/Y') }}
+        Jour sélectionné : <strong>{{ day|date('d/m/Y') }}</strong>
       </p>
     </div>
-    <div class="d-flex gap-2">
-      <a href="{{ path('cash_expense_new') }}" class="btn btn-primary">
-        <i class="ri-subtract-fill align-middle me-1"></i> Nouvelle dépense
+
+    {# --- Toolbar "à la Velzon": date + action --- #}
+    <form method="get" class="d-flex align-items-rigth flex-wrap gap-2">
+      <div class="input-group">
+        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+        <input type="date" name="d" class="form-control" value="{{ day|date('Y-m-d') }}">
+      </div>
+
+      <button class="btn btn-primary btn-sm">
+        <i class="ri-filter-3-line align-rigth me-1"></i> Filtrer
+      </button>
+
+      <a class="btn btn-ghost-secondary btn-sm" href="{{ path('cash_index') }}">
+        <i class="ri-sun-line align-rigth me-1"></i> Aujourd’hui
       </a>
-    </div>
+
+      <a class="btn btn-success btn-sm" href="{{ path('cash_deposit') }}">
+        <i class="ri-download-2-line align-rigth me-1"></i> Injecter des fonds
+      </a>
+    </form>
   </div>
 {% endblock %}
 
 {% block body %}
-  {% include 'partials/flashes.html.twig' %}
+  {% include 'partials/flashes.html.twig' ignore missing %}
 
-  {# ——— KPIs ——— #}
-  <div class="row g-3">
+  {# ——— KPIs réagencés (ordre: Total Caisse, Solde du jour, Entrées Paiements, Entrées Injections, Sorties) ——— #}
+  <div class="row g-3 mb-3">
     <div class="col-12 col-md-3">
-      <div class="card card-animate">
+      <div class="card card-animate h-100">
         <div class="card-body">
-          <p class="text-muted mb-1">Entrées (aujourd’hui)</p>
-          <h4 class="mb-0">{{ totalIn|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+          <p class="text-muted mb-1">Total caisse</p>
+          <h4 class="mb-0">
+            {{ (totalCaisse is defined ? totalCaisse : currentCash)|number_format(0, ',', ' ') }}
+            <small class="text-muted">MRU</small>
+          </h4>
         </div>
       </div>
     </div>
+
     <div class="col-12 col-md-3">
-      <div class="card card-animate">
-        <div class="card-body">
-          <p class="text-muted mb-1">Sorties (aujourd’hui)</p>
-          <h4 class="mb-0">{{ totalOut|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-3">
-      <div class="card card-animate">
+      <div class="card card-animate h-100">
         <div class="card-body">
           <p class="text-muted mb-1">Solde du jour</p>
-          <h4 class="mb-0">
-            {{ balance|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small>
-          </h4>
+          <h4 class="mb-0">{{ balance|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-3">
-      <div class="card card-animate">
+
+    <div class="col-12 col-md-2">
+      <div class="card card-animate h-100">
         <div class="card-body">
-          <p class="text-muted mb-1">Solde générale</p>
-          <h4 class="mb-0">
-            {{ currentCash|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small>
-          </h4>
+          <p class="text-muted mb-1">Entrées (Paiements)</p>
+          <h4 class="mb-0">{{ totalInPayments|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-2">
+      <div class="card card-animate h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Entrées (Injections)</p>
+          <h4 class="mb-0">{{ totalInInjections|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-2">
+      <div class="card card-animate h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Sorties (Dépenses)</p>
+          <h4 class="mb-0">{{ totalOutExpenses|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
         </div>
       </div>
     </div>
   </div>
 
   <div class="row g-3">
-    {# ——— ENTRÉES DU JOUR ——— #}
-    <div class="col-xl-6">
+    {# ——— ENTRÉES (PAIEMENTS) ——— #}
+    <div class="col-12 col-xl-6">
       <div class="card card-animate">
         <div class="card-header d-flex align-items-center justify-content-between">
           <div>
-            <h5 class="card-title mb-0">Entrées (Paiements) — aujourd’hui</h5>
-            <small class="text-muted">Liste imprimable des mouvements d’entrée du jour</small>
+            <h5 class="card-title mb-0">Entrées (Paiements) — {{ day|date('d/m/Y') }}</h5>
           </div>
           <div class="d-flex gap-2">
-            {# Boutons Mois / Année pour ENTRÉES #}
-            <a class="btn btn-soft-info btn-sm"
-               href="{{ path('cash_entries_month', { m: month, y: year }) }}">
-              <i class="ri-calendar-event-line align-middle me-1"></i> Mois
+            <a class="btn btn-soft-info btn-sm" href="{{ path('cash_entries_month', { m: month, y: year }) }}">
+              <i class="ri-calendar-event-line me-1"></i> Mois
             </a>
-            <a class="btn btn-soft-info btn-sm"
-               href="{{ path('cash_entries_year') }}">
-              <i class="ri-calendar-2-line align-middle me-1"></i> Année
-            </a>
-            <a class="btn btn-soft-primary btn-sm" href="#" onclick="window.print()">
-              <i class="ri-printer-line align-middle me-1"></i> Imprimer
+            <a class="btn btn-soft-info btn-sm" href="{{ path('cash_entries_year') }}">
+              <i class="ri-calendar-2-line me-1"></i> Année
             </a>
           </div>
         </div>
@@ -91,71 +109,53 @@
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th style="width:120px">Heure</th>
-                  <th style="width:130px">Source</th>
+                  <th>Heure</th>
+                  <th>Source</th>
                   <th>Notes</th>
-                  <th class="text-end" style="width:160px">Montant (MRU)</th>
+                  <th class="text-end">Montant (MRU)</th>
                 </tr>
               </thead>
               <tbody>
-                {% for e in entriesToday %}
+                {% for e in paymentsPage %}
                   <tr>
                     <td>{{ e.createdAt ? e.createdAt|date('H:i') : '—' }}</td>
-                    <td>
-                      {% set src = e.source ?? '' %}
-                      {% set badge = 'bg-secondary-subtle text-secondary' %}
-                      {% if src == 'PAYMENT' %}
-                        {% set badge = 'bg-success-subtle text-success' %}
-                      {% elseif src == 'CLOSURE' %}
-                        {% set badge = 'bg-info-subtle text-info' %}
-                      {% endif %}
-                      <span class="badge {{ badge }}">
-                        {{ src == 'PAYMENT' ? 'Paiement' : (src == 'CLOSURE' ? 'Clôture' : (src ?: '—')) }}
-                      </span>
-                    </td>
-                    <td>
-                      {{ e.notes ?: '—' }}
-                    </td>
+                    <td>{{ e.source ?: '—' }}</td>
+                    <td>{{ e.notes ?: '—' }}</td>
                     <td class="text-end fw-semibold">{{ e.amount|number_format(0, ',', ' ') }}</td>
                   </tr>
                 {% else %}
-                  <tr>
-                    <td colspan="4" class="text-center text-muted">Aucune entrée aujourd’hui.</td>
-                  </tr>
+                  <tr><td colspan="4" class="text-center text-muted">Aucune entrée (paiement).</td></tr>
                 {% endfor %}
               </tbody>
-              <tfoot class="table-light">
-                <tr>
-                  <th colspan="3" class="text-end">Total</th>
-                  <th class="text-end">{{ totalIn|number_format(0, ',', ' ') }}</th>
-                </tr>
-              </tfoot>
             </table>
+          </div>
+
+          <div class="mt-3">
+            {{ knp_pagination_render(paymentsPage) }}
           </div>
         </div>
       </div>
     </div>
 
-    {# ——— SORTIES DU JOUR ——— #}
-    <div class="col-xl-6">
+    {# ——— SORTIES (DÉPENSES) ——— #}
+    <div class="col-12 col-xl-6">
       <div class="card card-animate">
         <div class="card-header d-flex align-items-center justify-content-between">
           <div>
-            <h5 class="card-title mb-0">Sorties — aujourd’hui</h5>
-            <small class="text-muted">Liste imprimable des dépenses du jour</small>
+            <h5 class="card-title mb-0">Sorties — {{ day|date('d/m/Y') }}</h5>
           </div>
           <div class="d-flex gap-2">
-            {# Boutons Mois / Année pour DÉPENSES #}
-            <a class="btn btn-soft-warning btn-sm"
-               href="{{ path('cash_expenses_month') }}">
-              <i class="ri-calendar-event-line align-middle me-1"></i> Mois
+            <a class="btn btn-soft-warning btn-sm" href="{{ path('cash_expenses_month', { m: month, y: year }) }}">
+              <i class="ri-calendar-event-line me-1"></i> Mois
             </a>
-            <a class="btn btn-soft-warning btn-sm"
-               href="{{ path('cash_expenses_year') }}">
-              <i class="ri-calendar-2-line align-middle me-1"></i> Année
+            <a class="btn btn-soft-warning btn-sm" href="{{ path('cash_expenses_year', { year: year }) }}">
+              <i class="ri-calendar-2-line me-1"></i> Année
             </a>
-            <a class="btn btn-soft-primary btn-sm" href="#" onclick="window.print()">
-              <i class="ri-printer-line align-middle me-1"></i> Imprimer
+            <a class="btn btn-primary btn-sm" href="{{ path('cash_expense_new') }}">
+              <i class="ri-wallet-3-line me-1"></i> Nouvelle dépense
+            </a>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ path('cash_category_index') }}">
+              <i class="ri-list-settings-line me-1"></i> Catégories
             </a>
           </div>
         </div>
@@ -165,40 +165,99 @@
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th style="width:120px">Heure</th>
-                  <th>Motif / Notes</th>
-                  <th class="text-end" style="width:160px">Montant (MRU)</th>
+                  <th>Heure</th>
+                  <th>Catégorie</th>
+                  <th>Notes</th>
+                  <th class="text-end">Montant (MRU)</th>
+                  <th class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {% for s in expensesToday %}
+                {% for s in expensesPage %}
                   <tr>
                     <td>{{ s.createdAt ? s.createdAt|date('H:i') : '—' }}</td>
-                    <td>
-                      {% if s.notes %}
-                        {{ s.notes }}
-                      {% else %}
-                        <span class="text-muted">—</span>
-                      {% endif %}
-                    </td>
+                    <td>{{ s.category ? s.category.name : '—' }}</td>
+                    <td>{{ s.notes ?: '—' }}</td>
                     <td class="text-end fw-semibold">{{ s.amount|number_format(0, ',', ' ') }}</td>
+                    <td class="text-end">
+                      <a href="{{ path('cash_expense_show', {id: s.id}) }}" class="btn btn-sm btn-soft-secondary"><i class="ri-eye-line"></i></a>
+                      <a href="{{ path('cash_expense_edit', {id: s.id}) }}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                      <form method="post" action="{{ path('cash_expense_delete', {id: s.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_expense_' ~ s.id) }}">
+                        <button class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></button>
+                      </form>
+                    </td>
                   </tr>
                 {% else %}
-                  <tr>
-                    <td colspan="3" class="text-center text-muted">Aucune dépense aujourd’hui.</td>
-                  </tr>
+                  <tr><td colspan="5" class="text-center text-muted">Aucune dépense.</td></tr>
                 {% endfor %}
               </tbody>
-              <tfoot class="table-light">
-                <tr>
-                  <th colspan="2" class="text-end">Total</th>
-                  <th class="text-end">{{ totalOut|number_format(0, ',', ' ') }}</th>
-                </tr>
-              </tfoot>
             </table>
           </div>
-        </div>
 
+          <div class="mt-3">
+            {{ knp_pagination_render(expensesPage) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ——— ENTRÉES (INJECTIONS DE FONDS) ——— #}
+  <div class="card card-animate mt-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+  <div>
+    <h5 class="card-title mb-0">Entrées (Injections de fonds) — {{ day|date('d/m/Y') }}</h5>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-soft-success btn-sm" href="{{ path('cash_injections_month', { m: month, y: year }) }}">
+      <i class="ri-calendar-event-line me-1"></i> Mois
+    </a>
+    <a class="btn btn-soft-success btn-sm" href="{{ path('cash_injections_year', { year: year }) }}">
+      <i class="ri-calendar-2-line me-1"></i> Année
+    </a>
+    <a class="btn btn-success btn-sm" href="{{ path('cash_deposit') }}">
+      <i class="ri-download-2-line me-1"></i> Nouvelle injection
+    </a>
+  </div>
+</div>
+
+    <div class="card-body">
+      <div class="table-responsive table-card">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Heure</th>
+              <th>Source</th>
+              <th>Notes</th>
+              <th class="text-end">Montant (MRU)</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inj in injectionsPage %}
+              <tr>
+                <td>{{ inj.createdAt ? inj.createdAt|date('H:i') : '—' }}</td>
+                <td>{{ inj.source ?: '—' }}</td>
+                <td>{{ inj.notes ?: '—' }}</td>
+                <td class="text-end fw-semibold">{{ inj.amount|number_format(0, ',', ' ') }}</td>
+                <td class="text-end">
+                  <a href="{{ path('cash_deposit_edit', { id: inj.id }) }}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                  <form method="post" action="{{ path('cash_deposit_delete', { id: inj.id }) }}" style="display:inline" onsubmit="return confirm('Supprimer définitivement ce dépôt ?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete_deposit_' ~ inj.id) }}">
+                    <button class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted">Aucune injection de fonds.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-3">
+        {{ knp_pagination_render(injectionsPage) }}
       </div>
     </div>
   </div>

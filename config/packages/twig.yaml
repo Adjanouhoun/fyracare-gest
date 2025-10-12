@@ -1,4 +1,7 @@
 twig:
+    globals:
+        inactivity_timeout: '%app.inactivity_seconds%'
+        app_settings: '@App\Service\SettingsProvider'
     file_name_pattern: '*.twig'
     form_themes:
     - '@FOSCKEditor/Form/ckeditor_widget.html.twig'
