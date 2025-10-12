@@ -76,32 +76,86 @@ class RdvController extends AbstractController
     }
 
     #[Route('/new', name: 'app_rdv_new', methods: ['GET','POST'])]
-    public function new(Request $request, EntityManagerInterface $em, PrestationRepository $prestationRepo): Response {
+    public function new(
+    Request $request,
+    EntityManagerInterface $em,
+    ClientRepository $clientRepo,
+    PrestationRepository $prestRepo
+    ): Response {
         $rdv = new Rdv();
 
-        $form = $this->createForm(RdvType::class, $rdv, [
-            'attr' => ['data-autocomplete' => '1'],
-        ]);
+        // A) Client depuis la query: /rdv/new?client=123
+        $clientIdFromQuery = $request->query->getInt('client', 0);
+        if ($clientIdFromQuery > 0) {
+            $client = $clientRepo->find($clientIdFromQuery);
+            if (!$client) {
+                throw $this->createNotFoundException('Client introuvable.');
+            }
+            $rdv->setClient($client);
+        }
+
+        // B) Form (prestation, startAt, notes) – pas de champ "client" dans le form
+        $form = $this->createForm(\App\Form\RdvType::class, $rdv);
         $form->handleRequest($request);
 
-        // Sécurité serveur: recalcul de endAt d'après la prestation choisie
-        if ($form->isSubmitted() && $form->isValid()) {
-            if ($rdv->getPrestation() && $rdv->getStartAt()) {
-                $duree = $rdv->getPrestation()->getDureeMin();
-                $end = (clone $rdv->getStartAt())->modify("+{$duree} minutes");
-                $rdv->setEndAt($end);
+        $clientIdPosted = $form->has('client_id') ? $form->get('client_id')->getData() : null;
+        if ($clientIdPosted) {
+            if ($c = $clientRepo->find((int)$clientIdPosted)) {
+                $rdv->setClient($c);
+            } else {
+                $form->addError(new \Symfony\Component\Form\FormError('Client introuvable.'));
+            }
+        }
+
+        // C) POST sécurisé : relire le hidden rdv[client_id]
+        $payload = $request->request->all($form->getName()) ?? [];
+        if (!empty($payload['client_id'])) {
+            $c = $clientRepo->find((int)$payload['client_id']);
+            if ($c) {
+                $rdv->setClient($c);
+            } else {
+                $form->addError(new \Symfony\Component\Form\FormError('Client introuvable.'));
+            }
+        }
+
+        // D) Si prestation est mappée (EntityType), Symfony a déjà peuplé l’entité.
+        //    Rien à faire ici, on laisse EntityType gérer.
+
+        // E) Bloquer si pas de client
+        if ($form->isSubmitted() && !$rdv->getClient()) {
+            $form->addError(new \Symfony\Component\Form\FormError('Le client est obligatoire.'));
+        }
+
+        // F) endAt auto si startAt + prestation présents
+        if ($form->isSubmitted() && $rdv->getStartAt() instanceof \DateTimeInterface && $rdv->getPrestation()) {
+            $p = $rdv->getPrestation();
+            $minutes = null;
+
+            if (method_exists($p, 'getDureeMin')) {
+                $minutes = (int) $p->getDureeMin();
             }
 
+            if ($minutes && $minutes > 0 && method_exists($rdv, 'setEndAt')) {
+                $start = $rdv->getStartAt();
+                $end   = ($start instanceof \DateTimeImmutable ? $start : \DateTimeImmutable::createFromMutable(\DateTime::createFromInterface($start)))
+                        ->modify('+' . $minutes . ' minutes');
+
+                $rdv->setEndAt($end); // setters convertissent bien vers Immutable si besoin
+            }
+        }
+        
+        // G) Persister
+        if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($rdv);
             $em->flush();
 
             $this->addFlash('success', 'Rendez-vous créé.');
-            return $this->redirectToRoute('app_rdv_show', ['id' => $rdv->getId()]);
+            return $this->redirectToRoute('app_rdv_index');
         }
 
         return $this->render('rdv/new.html.twig', [
-            'rdv' => $rdv,
-            'form' => $form,
+            'form' => $form->createView(),
+            'rdv'  => $rdv,
         ]);
     }
 

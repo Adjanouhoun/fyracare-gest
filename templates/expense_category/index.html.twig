@@ -1,0 +1,49 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Catégories de dépenses{% endblock %}
+
+{% block page_header %}
+  <div class="d-flex justify-content-between align-items-center">
+    <h4 class="fs-16 mb-0">Catégories de dépenses</h4>
+    <a class="btn btn-primary" href="{{ path('expense_cat_new') }}">
+      <i class="ri-add-circle-line align-middle me-1"></i> Nouvelle catégorie
+    </a>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% include 'partials/flashes.html.twig' %}
+  <div class="card"><div class="card-body">
+    <div class="table-responsive table-card">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Nom</th>
+            <th>Couleur</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in pagination %}
+            <tr>
+              <td>{{ c.name }}</td>
+              <td><span class="badge" style="background:{{ c.color }}">&nbsp;&nbsp;</span> {{ c.color }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-soft-info" href="{{ path('expense_cat_edit', {id: c.id}) }}">
+                  <i class="ri-pencil-line"></i>
+                </a>
+                <form method="post" action="{{ path('expense_cat_delete', {id: c.id}) }}"
+                      style="display:inline-block" onsubmit="return confirm('Supprimer ?');">
+                  <input type="hidden" name="_token" value="{{ csrf_token('delete_cat_' ~ c.id) }}">
+                  <button class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Aucune catégorie.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-2">{{ knp_pagination_render(pagination) }}</div>
+  </div></div>
+{% endblock %}

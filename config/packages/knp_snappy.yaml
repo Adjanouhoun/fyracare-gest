@@ -1,0 +1,20 @@
+knp_snappy:
+  pdf:
+    enabled: true
+    # OPTION A (recommandée) : guillemets DANS la valeur pour gérer l’espace de "Program Files"
+    binary: '"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"'
+    # OPTION B (alternative) : chemin court 8.3 sans espace
+    # binary: 'C:\\Progra~1\\wkhtmltopdf\\bin\\wkhtmltopdf.exe'
+    options:
+      enable-local-file-access: true
+      print-media-type: true
+      dpi: 144
+      margin-top: '14mm'
+      margin-right: '14mm'
+      margin-bottom: '16mm'
+      margin-left: '14mm'
+      # Si tu veux l’A5 :
+      # page-size: A5
+      # orientation: Portrait
+  image:
+    enabled: false

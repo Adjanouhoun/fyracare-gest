@@ -7,8 +7,8 @@ use App\Entity\Rdv;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use FOS\CKEditorBundle\Form\Type\CKEditorType;
@@ -39,10 +39,10 @@ class PaymentType extends AbstractType
             ])
 
             // Notes (facultatif)
-            ->add('notes', CKEditorType::class, [
-                'label' => 'Notes',
+            ->add('notes',TextareaType::class, [
+                'label'    => 'Notes',
                 'required' => true,
-                // 'config_name' => 'basic',   // (facultatif, utilise default_config sinon)
+                'attr'     => ['rows' => 4]
             ])
             // Date paiement (on met la valeur maintenant; champ masqué en Twig)
             ->add('paidAt', DateTimeType::class, [

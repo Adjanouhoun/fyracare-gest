@@ -1,0 +1,46 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Catégories de dépenses{% endblock %}
+
+{% block body %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Catégories de dépenses</h4>
+    <a href="{{ path('cash_category_new') }}" class="btn btn-primary btn-sm">
+      <i class="ri-add-line"></i> Nouvelle catégorie
+    </a>
+  </div>
+
+  {% include 'partials/flashes.html.twig' %}
+
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Nom</th>
+            <th>Description</th>
+            <th>Active</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in categories %}
+            <tr>
+              <td>{{ c.name }}</td>
+              <td>{{ c.description ?: '—' }}</td>
+              <td>{{ c.active ? 'Oui' : 'Non' }}</td>
+              <td class="text-end">
+                <a href="{{ path('cash_category_edit', {id: c.id}) }}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
+                <form method="post" action="{{ path('cash_category_delete', {id: c.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette catégorie ?');">
+                  <input type="hidden" name="_token" value="{{ csrf_token('delete_cat_' ~ c.id) }}">
+                  <button class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="text-center text-muted">Aucune catégorie</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

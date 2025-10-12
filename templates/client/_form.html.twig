@@ -15,10 +15,14 @@
     {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
     {{ form_errors(form.email) }}
   </div>
-
+    <div class="col-md-6">
+    {{ form_label(form.notes, 'Notes', {'label_attr': {'class': 'form-label'}}) }}
+    {{ form_widget(form.notes, {'attr': {'class': 'form-control'}}) }}
+    {{ form_errors(form.notes) }}
+  </div>
   {# 🔧 Boucle corrigée: for + if séparés #}
   {% for child in form %}
-    {% if child.vars.name not in ['nometprenom','telephone','email','_token'] %}
+    {% if child.vars.name not in ['nometprenom','telephone','email','notes','_token'] %}
       <div class="col-md-6">
         {{ form_row(child) }}
       </div>

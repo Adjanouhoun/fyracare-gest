@@ -175,7 +175,7 @@ class CashMovementRepository extends ServiceEntityRepository
      * Tous les mouvements d’un type entre deux dates (inclus) triés par date.
      * @return CashMovement[]
      */
-    public function findByPeriodAndType(\DateTimeImmutable $from, \DateTimeImmutable $to, string|int $type): array
+    public function findByPeriodAndType(\DateTimeImmutable $from, \DateTimeImmutable $to, string $type): array
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.type = :t')->setParameter('t', $type)
@@ -198,5 +198,33 @@ class CashMovementRepository extends ServiceEntityRepository
         $in  = $this->sumAll(\App\Entity\CashMovement::IN);
         $out = $this->sumAll(\App\Entity\CashMovement::OUT);
         return $in - $out;
+    }
+
+    public function findAllCategories(): array
+    {
+        return $this->createQueryBuilder('m')
+            ->select('DISTINCT cat.id, cat.name')
+            ->leftJoin('m.category', 'cat')
+            ->where('m.category IS NOT NULL')
+            ->orderBy('cat.name', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+    }
+
+    public function sumByCategory(\DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        return $this->createQueryBuilder('m')
+            ->select('COALESCE(cat.name, :uncat) AS name')
+            ->addSelect('SUM(m.amount) AS total')
+            ->leftJoin('m.category', 'cat')
+            ->andWhere('m.type = :out')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->setParameter('out', CashMovement::OUT)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('uncat', 'Non catégorisée')
+            ->groupBy('cat.name')
+            ->getQuery()
+            ->getArrayResult();
     }
 }

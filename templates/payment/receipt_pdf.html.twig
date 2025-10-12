@@ -1,0 +1,461 @@
+{# templates/payment/receipt_pdf.html.twig — Style Invoma #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Reçu {{ payment.receiptNumber }}</title>
+  <style>
+    @page {
+      size: A5 portrait;
+      margin: 12mm;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'DejaVu Sans', Arial, sans-serif;
+      font-size: 9px;
+      color: #666;
+      line-height: 1.6em;
+    }
+    
+    .tm_container {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    
+    .tm_invoice {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+    }
+    
+    /* === Header === */
+    .tm_invoice_head {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .tm_invoice_head table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .tm_invoice_head td {
+      vertical-align: middle;
+      padding: 0;
+      border: 0;
+    }
+    
+    .tm_invoice_left {
+      width: 50%;
+    }
+    
+    .tm_invoice_right {
+      width: 50%;
+      text-align: right;
+    }
+    
+    .tm_logo img {
+      max-height: 50px;
+    }
+    
+    .tm_primary_color {
+      color: #111;
+    }
+    
+    .tm_f50 {
+      font-size: 50px;
+    }
+
+    .tm_f30 {
+      font-size: 30px;
+    }
+    
+    .tm_text_uppercase {
+      text-transform: uppercase;
+    }
+    
+    .tm_align_center {
+      vertical-align: middle;
+    }
+    
+    /* === Info Section === */
+    .tm_invoice_info {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .tm_invoice_info table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .tm_invoice_info td {
+      padding: 0;
+      border: 0;
+      vertical-align: middle;
+    }
+    
+    .tm_invoice_seperator {
+      min-height: 18px;
+      border-radius: 1.6em;
+      background: #f5f6fa;
+    }
+    
+    .tm_gray_bg {
+      background: #f5f6fa;
+    }
+    
+    .tm_invoice_info_list {
+      text-align: right;
+    }
+    
+    .tm_invoice_number,
+    .tm_invoice_date {
+      margin: 0;
+      line-height: 1.5em;
+    }
+    
+    .tm_m0 {
+      margin: 0;
+    }
+    
+    .tm_mb2 {
+      margin-bottom: 2px;
+    }
+    
+    .tm_mb10 {
+      margin-bottom: 10px;
+    }
+    
+    .tm_mb20 {
+      margin-bottom: 20px;
+    }
+    
+    .tm_mb30 {
+      margin-bottom: 30px;
+    }
+    
+    /* === Client Info === */
+    .tm_invoice_head_info {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    
+    .tm_invoice_head_info table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .tm_invoice_head_info td {
+      width: 50%;
+      vertical-align: top;
+      padding: 0;
+      border: 0;
+    }
+    
+    .tm_text_right {
+      text-align: right;
+    }
+    
+    /* === Table === */
+    .tm_table {
+      margin-bottom: 30px;
+    }
+    
+    .tm_round_border {
+      border: 1px solid #dbdfea;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .tm_table_responsive {
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th {
+      background: #f5f6fa;
+      color: #111;
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 15px;
+      border: 0;
+    }
+    
+    td {
+      padding: 10px 15px;
+      border-top: 1px solid #dbdfea;
+      vertical-align: top;
+    }
+    
+    .tm_width_3 {
+      width: 25%;
+    }
+    
+    .tm_width_4 {
+      width: 33.33%;
+    }
+    
+    .tm_width_2 {
+      width: 16.66%;
+    }
+    
+    .tm_width_1 {
+      width: 8.33%;
+    }
+    
+    .tm_width_6 {
+      width: 50%;
+    }
+    
+    .tm_semi_bold {
+      font-weight: 600;
+    }
+    
+    /* === Footer === */
+    .tm_invoice_footer {
+      width: 100%;
+    }
+    
+    .tm_invoice_footer table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .tm_invoice_footer td {
+      vertical-align: top;
+      padding: 0;
+      border: 0;
+    }
+    
+    .tm_left_footer {
+      width: 58%;
+      padding: 10px 15px;
+    }
+    
+    .tm_right_footer {
+      width: 42%;
+    }
+    
+    .tm_right_footer table {
+      margin-top: -1px;
+    }
+    
+    .tm_right_footer td {
+      padding: 10px 15px;
+      text-align: right;
+    }
+    
+    .tm_border_none {
+      border: none !important;
+    }
+    
+    .tm_border_top {
+      border-top: 1px solid #dbdfea !important;
+    }
+    
+    .tm_border_bottom {
+      border-bottom: 1px solid #dbdfea !important;
+    }
+    
+    .tm_pt0 {
+      padding-top: 0;
+    }
+    
+    .tm_bold {
+      font-weight: 700;
+    }
+    
+    .tm_f16 {
+      font-size: 16px;
+    }
+
+    .tm_f10 {
+      font-size: 12px;
+    }
+    
+    .tm_border_top_0 {
+      border-top: 0 !important;
+    }
+    
+    /* === Note === */
+    .tm_padd_15_20 {
+      padding: 15px 20px;
+    }
+    
+    .tm_round_border_box {
+      border: 1px solid #dbdfea;
+      border-radius: 4px;
+      padding: 0px 5px;
+    }
+    
+    .tm_mb5 {
+      margin-bottom: 0px;
+    }
+    
+    .tm_note_list {
+      margin: 0;
+      padding-left: 20px;
+      list-style: disc;
+    }
+    
+    .tm_note_list li:not(:last-child) {
+      margin-bottom: 5px;
+    }
+    
+    .tm_ternary_color {
+      color: #b5b5b5;
+    }
+  </style>
+</head>
+<body>
+  <div class="tm_container">
+    <div class="tm_invoice tm_style1">
+      <div class="tm_invoice_in">
+        
+        {# ===== HEADER ===== #}
+        <div class="tm_invoice_head tm_align_center tm_mb20">
+          <table>
+            <tr>
+              <td class="tm_invoice_left">
+                <div class="tm_logo">
+                  {% if logoDataUri %}
+                    <img src="{{ logoDataUri }}" alt="Logo">
+                  {% elseif settings.logoPath %}
+                    <img src="{{ absolute_url(asset(settings.logoPath)) }}" alt="Logo">
+                  {% endif %}
+                </div>
+              </td>
+              <td class="tm_invoice_right">
+                <div class="tm_primary_color tm_f30 tm_text_uppercase">Reçu</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        {# ===== INFO LINE ===== #}
+        <div class="tm_invoice_info tm_mb20">
+          <table>
+            <tr>
+              <td style="width: 60%;">
+                <div class="tm_invoice_seperator tm_gray_bg"></div>
+              </td>
+              <td style="width: 40%;">
+                <div class="tm_invoice_info_list">
+                  <p class="tm_invoice_number tm_m0">N° de reçu : <b class="tm_primary_color">#{{ payment.receiptNumber }}</b></p>
+                  <p class="tm_invoice_date tm_m0">Date : <b class="tm_primary_color">{{ payment.paidAt|date('d.m.Y') }}</b></p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        {# ===== CLIENT & EMETTEUR ===== #}
+        <div class="tm_invoice_head_info tm_mb10">
+          <table>
+            <tr>
+              <td>
+                <p class="tm_mb2"><b class="tm_primary_color">Facturé à :</b></p>
+                <p>
+                  {{ payment.rdv.client.nometprenom }}<br>
+                  {{ payment.rdv.client.telephone ?: '—' }}<br>
+                  {{ payment.rdv.client.email ?: '—' }}
+                </p>
+              </td>
+              <td class="tm_text_right">
+                <p class="tm_mb2"><b class="tm_primary_color">Émetteur :</b></p>
+                <p>
+                  {{ settings.companyName ?? 'Fyracare' }}<br>
+                  {{ settings.address ?: '—' }}<br>
+                  {{ settings.phone ?: '—' }}<br>
+                  {{ settings.email ?: '—' }}
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        {# ===== TABLE ===== #}
+        <div class="tm_table tm_style1 tm_mb30">
+          <div class="tm_round_border">
+            <div class="tm_table_responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="tm_width_4 tm_semi_bold tm_primary_color tm_gray_bg">Prestation</th>
+                    <th class="tm_width_6 tm_semi_bold tm_primary_color tm_gray_bg">Description</th>
+                    <th class="tm_width_2 tm_semi_bold tm_primary_color tm_gray_bg tm_text_right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="tm_width_4">{{ payment.rdv.prestation.libelle }}</td>
+                    <td class="tm_width_6">
+                      RDV du {{ payment.rdv.startAt|date('d/m/Y H:i') }} au {{ payment.rdv.endAt|date('H:i') }}
+                    </td>
+                    <td class="tm_width_2 tm_text_right">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {# ===== FOOTER WITH TOTALS ===== #}
+          <div class="tm_invoice_footer">
+            <table>
+              <tr>
+                <td class="tm_left_footer">
+                  <p class="tm_mb2"><b class="tm_primary_color">Info paiement :</b></p>
+                  <p class="tm_m0">
+                    Méthode : {{ payment.methode }}<br>
+                    Montant : {{ payment.amount|number_format(0, ',', ' ') }} MRU
+                  </p>
+                </td>
+                <td class="tm_right_footer">
+                  <table>
+                    <tbody>
+                      <tr>
+                        <td class="tm_width_3 tm_primary_color tm_border_none tm_bold">Sous-total</td>
+                        <td class="tm_width_3 tm_primary_color tm_text_right tm_border_none tm_bold">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+                      </tr>
+                      <tr>
+                        <td class="tm_width_3 tm_primary_color tm_border_none tm_pt0">Taxe <span class="tm_ternary_color">(0%)</span></td>
+                        <td class="tm_width_3 tm_primary_color tm_text_right tm_border_none tm_pt0">+0 MRU</td>
+                      </tr>
+                      <tr class="tm_border_top tm_border_bottom">
+                        <td class="tm_width_3 tm_border_top_0 tm_bold tm_f10 tm_primary_color">Total</td>
+                        <td class="tm_width_3 tm_border_top_0 tm_bold tm_f10 tm_primary_color tm_text_right">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        {# ===== NOTES ===== #}
+        {% if payment.notes %}
+          <div class="tm_round_border_box">
+            <p class="tm_mb5"><b class="tm_primary_color">Notes :</b></p>
+            <p class="tm_m0">{{ payment.notes }}</p>
+          </div>
+        {% endif %}
+
+        {# ===== FOOTER MESSAGE ===== #}
+        <div style="margin-top: 30px; text-align: center; color: #666; font-size: 9px; line-height: 1.6em;">
+          <p class="tm_m0">Merci pour votre confiance</p>
+          <p class="tm_m0">Reçu généré le {{ "now"|date('d/m/Y') }} à {{ "now"|date('H:i') }}</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

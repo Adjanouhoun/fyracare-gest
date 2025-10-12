@@ -1,10 +1,19 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Modifier RDV | Velzon{% endblock %}
+{% block title %}Modifier le rendez-vous{% endblock %}
+
 {% block page_header %}
-  <h4 class="fs-16 mb-1">Modifier le rendez-vous</h4>
-  <p class="text-muted mb-0">Mettez à jour les informations</p>
+  <div class="d-flex align-items-center justify-content-between">
+    <h4 class="fs-16 mb-0">Modifier le rendez-vous</h4>
+    <a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">
+      <i class="ri-arrow-left-line"></i> Retour
+    </a>
+  </div>
 {% endblock %}
+
 {% block body %}
-  {% include 'partials/flashes.html.twig' %}
-  {% include 'rdv/_form.html.twig' with {form: form} %}
+  <div class="card">
+    <div class="card-body">
+      {% include 'rdv/_form.html.twig' with { form: form, button_label: 'Enregistrer' } %}
+    </div>
+  </div>
 {% endblock %}

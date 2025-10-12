@@ -81,6 +81,32 @@
 <script src="{{ asset('https://code.jquery.com/jquery-3.6.4.min.js') }}"></script>
 
 
-{% block scripts %}{% endblock %}
+{% block scripts %}
+ 
+  
+{% endblock %}
+<script>
+(function () {
+  // timeout en millisecondes (venant de .env via twig global)
+  const TIMEOUT = ({{ inactivity_timeout|default(9000) }}) * 10000;
+  let timer;
+
+  const reset = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      // Redirection vers l’écran de verrouillage
+      window.location.href = "{{ path('app_lock_screen') }}";
+    }, TIMEOUT);
+  };
+
+  // Événements considérés comme activité utilisateur
+  ['click','keydown','mousemove','scroll','touchstart','touchmove'].forEach(ev => {
+    document.addEventListener(ev, reset, { passive: true });
+  });
+
+  // premier armement
+  reset();
+})();
+</script>
 </body>
 </html>
