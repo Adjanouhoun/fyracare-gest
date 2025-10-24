@@ -23,11 +23,20 @@ security:
         username_parameter: email
         password_parameter: password
         enable_csrf: true
-      logout: { path: app_logout }
+      logout: 
+        path: app_logout
+        target: app_login  # ✅ Ajout de la redirection après logout
 
   access_control:
     - { path: ^/login, roles: PUBLIC_ACCESS }
+    - { path: ^/lock, roles: PUBLIC_ACCESS }        # ✅ Ajout pour lock screen
+    - { path: ^/unlock, roles: PUBLIC_ACCESS }      # ✅ Ajout pour unlock
+    - { path: ^/test, roles: ROLE_USER }            # ✅ Ajout pour vos tests
+    - { path: ^/user, roles: ROLE_ADMIN }
+    - { path: ^/admin, roles: ROLE_ADMIN }
+    - { path: ^/prestation, roles: ROLE_ADMIN }
+    - { path: ^/cash/categories, roles: ROLE_ADMIN }
+    - { path: ^/deposit/delete, roles: ROLE_ADMIN }
     - { path: ^/dashboard, roles: ROLE_USER }
-    - { path: ^/user, roles: ROLE_ADMIN }      # gérer les users = admin
     - { path: ^/rdv, roles: ROLE_USER }
     - { path: ^/payment, roles: ROLE_USER }

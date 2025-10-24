@@ -5,6 +5,15 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app.inactivity_seconds: '%env(int:APP_INACTIVITY_SECONDS)%'
+    app.inactivity_warning: '%env(default::int:APP_INACTIVITY_WARNING)%'
+    app.inactivity_enabled: '%env(bool:APP_INACTIVITY_ENABLED)%'
+    app.inactivity_logout_mode: '%env(bool:APP_INACTIVITY_LOGOUT_MODE)%'
+    
+    # Timeouts par rôle (optionnel)
+    app.inactivity_by_role:
+        ROLE_ADMIN: 60     # 1 heure pour les admins
+        ROLE_USER: 60      # 30 minutes pour les users
+        ROLE_SUPER_ADMIN: 60 # 2 heures pour super admins
 
 services:
     App\Service\SettingsProvider: ~
@@ -25,5 +34,11 @@ services:
     App\EventSubscriber\InactivitySubscriber:
         arguments:
             $timeout: '%env(int:APP_INACTIVITY_SECONDS)%'
+            $warningTime: '%env(int:APP_INACTIVITY_WARNING)%'
+            $enabled: '%env(bool:APP_INACTIVITY_ENABLED)%'
+            $logoutMode: '%env(bool:APP_INACTIVITY_LOGOUT_MODE)%'
+            $timeoutByRole: []
+        tags:
+            - { name: 'kernel.event_subscriber' }
 
      

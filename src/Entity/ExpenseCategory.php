@@ -16,7 +16,7 @@ class ExpenseCategory
     #[ORM\Column(length: 100)]
     private string $name;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255)]
     private ?string $description = null;
 
     #[ORM\Column(type: 'boolean')]

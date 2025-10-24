@@ -1,57 +1,104 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Connexion — FyraCare</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Session Verrouillée – FyraCare</title>
   <link rel="stylesheet" href="{{ asset('velzon/css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ asset('velzon/css/icons.min.css') }}">
   <link rel="stylesheet" href="{{ asset('velzon/css/app.min.css') }}">
   <link rel="stylesheet" href="{{ asset('velzon/css/custom.min.css') }}">
 </head>
 <body class="auth-page">
-   <div class="auth-page-content">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-5">
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
-            <div class="text-center mb-3">
-              <div class="avatar-lg mx-auto mb-3">
-                <span class="avatar-title rounded-circle bg-primary-subtle text-primary fs-1">
-                  <i class="ri-lock-2-line"></i>
-                </span>
-              </div>
-              <h5 class="mb-1">Session verrouillée</h5>
-              <p class="text-muted">Saisissez votre mot de passe pour continuer.</p>
-            </div>
-
-            {% include 'partials/flashes.html.twig' %}
-
-            <form method="post" action="{{ path('app_lock_unlock') }}">
-              <div class="mb-3">
-                <label class="form-label">Mot de passe</label>
-                <div class="input-group">
-                  <span class="input-group-text"><i class="ri-shield-keyhole-line"></i></span>
-                  <input type="password" name="password" class="form-control" autocomplete="current-password" required>
+  <div class="auth-page-content">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-5">
+          <div class="card shadow-sm">
+            <div class="card-body p-4">
+              <div class="text-center mb-4">
+                <div class="avatar-lg mx-auto mb-3">
+                  <span class="avatar-title rounded-circle bg-primary-subtle text-primary fs-1">
+                    <i class="ri-lock-2-line"></i>
+                  </span>
                 </div>
+                <h5 class="mb-1">Session verrouillée</h5>
+                <p class="text-muted mb-0">Saisissez votre mot de passe pour continuer.</p>
               </div>
-              <div class="d-grid">
-                <button class="btn btn-primary"><i class="ri-unlock-line me-1"></i> Déverrouiller</button>
-              </div>
-              <div class="text-center mt-3">
-                <a href="{{ path('app_logout') }}" class="text-muted"><i class="ri-logout-box-r-line"></i> Se déconnecter</a>
-              </div>
-            </form>
 
+              {# Informations utilisateur #}
+              {% if app.user %}
+                <div class="alert alert-info border-0 mb-4" role="alert">
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-sm flex-shrink-0 me-3">
+                      <span class="avatar-title rounded-circle bg-info-subtle text-info fs-5">
+                        <i class="ri-user-line"></i>
+                      </span>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">
+                        {{ app.user.fullname ?: app.user.email }}
+                      </h6>
+                      <p class="text-muted mb-0 fs-12">
+                        <i class="ri-mail-line me-1"></i>{{ app.user.email }}
+                        {% if app.user.fonction %}
+                          <span class="mx-1">•</span>
+                          <i class="ri-briefcase-line me-1"></i>{{ app.user.fonction }}
+                        {% endif %}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% include 'partials/flashes.html.twig' %}
+
+              <form method="post" action="{{ path('app_lock_unlock') }}">
+                <div class="mb-3">
+                  <label class="form-label">Mot de passe</label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="ri-shield-keyhole-line"></i>
+                    </span>
+                    <input 
+                      type="password" 
+                      name="password" 
+                      class="form-control" 
+                      placeholder="Entrez votre mot de passe"
+                      autocomplete="current-password" 
+                      required 
+                      autofocus>
+                  </div>
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="ri-unlock-line me-1"></i> Déverrouiller
+                  </button>
+                </div>
+                
+                <div class="text-center mt-3">
+                  <a href="{{ path('app_logout') }}" class="text-muted">
+                    <i class="ri-logout-box-r-line me-1"></i> Se déconnecter
+                  </a>
+                </div>
+              </form>
+
+            </div>
+          </div>
+
+          {# Timer de verrouillage #}
+          <div class="text-center mt-3">
+            <p class="text-muted fs-13">
+              <i class="ri-time-line me-1"></i>
+              Session verrouillée pour inactivité
+            </p>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+
+  <script src="{{ asset('velzon/js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>
-
-
-
- 

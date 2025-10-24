@@ -1,63 +1,60 @@
 <?php
+// src/Controller/LockScreenController.php
 namespace App\Controller;
 
-use App\Entity\User; // ← ton entité
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class LockController extends AbstractController
+class LockController extends AbstractController
 {
-    #[Route('/lock', name: 'app_lock_screen', methods: ['GET'])]
-    public function screen(): Response
+    #[Route('/lock', name: 'app_lock_screen')]
+    public function lock(): Response
     {
-        return $this->render('security/lock.html.twig');
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        return $this->render('security/lock.html.twig', [
+            'user' => $user
+        ]);
     }
 
     #[Route('/lock/unlock', name: 'app_lock_unlock', methods: ['POST'])]
     public function unlock(
         Request $request,
-        Security $security,
-        UserPasswordHasherInterface $hasher
+        UserPasswordHasherInterface $passwordHasher
     ): Response {
-        $session = $request->getSession();
-
-        /** @var PasswordAuthenticatedUserInterface|User|null $user */
-        $user = $security->getUser();
-
-        // Si plus d’utilisateur (session sécurité expirée) → retour login
-        if (!$user instanceof PasswordAuthenticatedUserInterface) {
+        $user = $this->getUser();
+        
+        if (!$user) {
             return $this->redirectToRoute('app_login');
         }
 
-        $password = (string) $request->request->get('password', '');
-        if ($password === '') {
-            $this->addFlash('danger', 'Veuillez saisir votre mot de passe.');
+        $session = $request->getSession();
+        $password = $request->request->get('password');
+
+        // Vérifier le mot de passe
+        if (!$passwordHasher->isPasswordValid($user, $password)) {
+            $this->addFlash('error', 'Mot de passe incorrect');
             return $this->redirectToRoute('app_lock_screen');
         }
 
-        // Vérification du mot de passe
-        if (!$hasher->isPasswordValid($user, $password)) {
-            $this->addFlash('danger', 'Mot de passe incorrect.');
-            return $this->redirectToRoute('app_lock_screen');
-        }
-
-        // OK → déverrouiller et rediriger
-        $session->set('app_locked', false);
+        // Déverrouiller la session
+        $session->remove('app_locked');
         $session->set('app_last_activity', time());
 
-        $target = $session->get('app_lock_target') ?: 'admin_dashboard';
+        // Récupérer la page cible ou rediriger vers le dashboard
+        $targetPath = $session->get('app_lock_target', $this->generateUrl('admin_dashboard'));
         $session->remove('app_lock_target');
 
-        // Si $target est une URL absolue/relative, on redirige dessus, sinon sur la route dashboard
-        if (is_string($target) && str_starts_with($target, '/')) {
-            return $this->redirect($target);
-        }
-
-        return $this->redirectToRoute('admin_dashboard');
+        $this->addFlash('success', 'Session déverrouillée avec succès');
+        
+        return $this->redirect($targetPath);
     }
 }

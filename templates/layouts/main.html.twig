@@ -1,69 +1,91 @@
 <!doctype html>
-<html lang="en"
-      data-layout="vertical" data-topbar="light" data-sidebar="light"
-      data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable"
-      data-theme="default" data-theme-colors="default">
+<html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
+
 <head>
-  <meta charset="utf-8" />
-  <title>{% block title %}Dashboard | Velzon{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
-  <meta content="Themesbrand" name="author" />
 
-  <link rel="shortcut icon" href="{{ asset('velzon/images/favicon.ico') }}">
+    <meta charset="utf-8" />
+    <title>Fyracare | Gestion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
+    <meta content="Themesbrand" name="author" />
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="{{ asset('assets/images/favicon.ico') }}">
+    <link href="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.css') }}" rel="stylesheet" />
+    <link href="{{ asset('velzon/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" />
+    <!-- Layout config Js -->
+    <script src="{{ asset('velzon/js/layout.js') }}"></script>
+    <!-- Bootstrap Css -->
+    <link href="{{ asset('velzon/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
+    <!-- Icons Css -->
+    <link href="{{ asset('velzon/css/icons.min.css') }}" rel="stylesheet" type="text/css" />
+    <!-- App Css-->
+    <link href="{{ asset('velzon/css/app.min.css') }}" rel="stylesheet" type="text/css" />
+    <!-- custom Css-->
+    <link href="{{ asset('velzon/css/custom.min.css') }}" rel="stylesheet" type="text/css" />
 
-  {# libs css #}
-  <link href="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.css') }}" rel="stylesheet" />
-  <link href="{{ asset('velzon/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" />
-
-  <script src="{{ asset('velzon/js/layout.js') }}"></script>
-  <link href="{{ asset('velzon/css/bootstrap.min.css') }}" rel="stylesheet" />
-  <link href="{{ asset('velzon/css/icons.min.css') }}" rel="stylesheet" />
-  <link href="{{ asset('velzon/css/app.min.css') }}" rel="stylesheet" />
-  <link href="{{ asset('velzon/css/custom.min.css') }}" rel="stylesheet" />
-
-  {% block styles %}{% endblock %}
 </head>
+
 <body>
 
-<div id="layout-wrapper">
-  {# === Topbar (repris du template) === #}
-  {% include 'partials/topbar.html.twig' %}
+    <!-- Begin page -->
+    <div id="layout-wrapper">
+<!-- block topbar -->
+   
+{% include 'partials/topbar.html.twig' %}
+<!-- Fin topbar -->
+        <!-- ========== Sidebar ========== -->
+        
+		{% include 'partials/sidebar.html.twig' %}
+        <!--  Sidebar End -->
+        <!-- Vertical Overlay-->
+        <div class="vertical-overlay"></div>
 
-  {# === Sidebar (repris du template) === #}
-  {% include 'partials/sidebar.html.twig' %}
+        <!-- ============================================================== -->
+        <!-- Start right Content here -->
+        <!-- ============================================================== -->
+        <div class="main-content">
 
-  <div class="vertical-overlay"></div>
+            <div class="page-content">
+                <div class="container-fluid">
 
-  <div class="main-content">
-    <div class="page-content">
-      <div class="container-fluid">
-        {# HEADER PAGE OPTIONNEL #}
-        {% block page_header %}{% endblock %}
-        {% include 'partials/flashes.html.twig' %}
-        {# CONTENU DES PAGES #}
-        {% block body %}{% endblock %}
-      </div>
-    </div>
+                    <!-- start page title -->
+                    
+                    {% block page_header %}{% endblock %}
+                    <div class="row">
+                        <div class="col-12">
+                             {% include 'partials/flashes.html.twig' %}
+								
+								{% block body %}{% endblock %}
+                        </div>
+                    </div>
+                    <!-- end page title -->
 
-    <footer class="footer">
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-sm-6">
-            <script>document.write(new Date().getFullYear())</script> © FyraCare
-          </div>
-          <div class="col-sm-6">
-            <div class="text-sm-end d-none d-sm-block">
-              Design & Develop by A. Adjanouhoun
+                </div>
+                <!-- container-fluid -->
             </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-  </div><!-- end main content-->
-</div><!-- END layout-wrapper -->
+            <!-- End Page-content -->
 
-{# === JS === #}
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <script>document.write(new Date().getFullYear())</script> © Dantie-IT.
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-sm-end d-none d-sm-block">
+                                Design & Develop by Amadou Adjanouhoun
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        <!-- end main content-->
+
+    </div>
+    <!-- END layout-wrapper -->
+
+    <!-- JAVASCRIPT -->
 <script src="{{ asset('velzon/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('velzon/libs/simplebar/simplebar.min.js') }}"></script>
 <script src="{{ asset('velzon/libs/node-waves/waves.min.js') }}"></script>
@@ -79,34 +101,10 @@
 <script src="{{ asset('velzon/js/pages/dashboard-ecommerce.init.js') }}"></script>
 <script src="{{ asset('velzon/js/app.js') }}"></script>
 <script src="{{ asset('https://code.jquery.com/jquery-3.6.4.min.js') }}"></script>
-
-
-{% block scripts %}
+    {% block scripts %}
  
   
 {% endblock %}
-<script>
-(function () {
-  // timeout en millisecondes (venant de .env via twig global)
-  const TIMEOUT = ({{ inactivity_timeout|default(9000) }}) * 10000;
-  let timer;
-
-  const reset = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      // Redirection vers l’écran de verrouillage
-      window.location.href = "{{ path('app_lock_screen') }}";
-    }, TIMEOUT);
-  };
-
-  // Événements considérés comme activité utilisateur
-  ['click','keydown','mousemove','scroll','touchstart','touchmove'].forEach(ev => {
-    document.addEventListener(ev, reset, { passive: true });
-  });
-
-  // premier armement
-  reset();
-})();
-</script>
 </body>
+
 </html>

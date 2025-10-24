@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Knp\Component\Pager\PaginatorInterface;
 use App\Repository\PaymentRepository;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/client')]
 final class ClientController extends AbstractController
@@ -94,6 +95,11 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_client_delete', methods: ['POST'])]
+    #[IsGranted(
+        'ROLE_ADMIN',
+        message: "Vous devez être administrateur pour effectuer cette action.",
+        statusCode: 403
+    )]
     public function delete(Request $request, Client $client, EntityManagerInterface $entityManager): Response
     {
     if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->request->get('_token'))) {

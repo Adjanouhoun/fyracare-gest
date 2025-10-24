@@ -18,3 +18,21 @@
     {% endfor %}
   {% endfor %}
 </div>
+{# templates/partials/flashes.html.twig #}
+{% for label, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+            {% if label == 'success' %}
+                <i class="ri-check-line me-2"></i>
+            {% elseif label == 'error' or label == 'danger' %}
+                <i class="ri-error-warning-line me-2"></i>
+            {% elseif label == 'warning' %}
+                <i class="ri-alert-line me-2"></i>
+            {% else %}
+                <i class="ri-information-line me-2"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endfor %}

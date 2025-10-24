@@ -28,7 +28,7 @@ class Prestation
     #[ORM\Column]
     private ?bool $isActive = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
     /**

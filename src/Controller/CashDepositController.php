@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{Request, Response};
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/cash', name: 'cash_')]
 class CashDepositController extends AbstractController
@@ -53,6 +54,7 @@ class CashDepositController extends AbstractController
     }
 
     #[Route('/deposit/{id}/edit', name: 'deposit_edit', methods: ['GET','POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function edit(CashMovement $movement, Request $request, EntityManagerInterface $em): Response
     {
         if ($movement->getType() !== CashMovement::IN) {
@@ -101,6 +103,7 @@ class CashDepositController extends AbstractController
     }
 
     #[Route('/deposit/{id}/delete', name: 'deposit_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(CashMovement $movement, Request $request, EntityManagerInterface $em): Response
     {
         if ($movement->getType() !== CashMovement::IN) {

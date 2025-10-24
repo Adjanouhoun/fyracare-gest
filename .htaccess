@@ -1,0 +1,15 @@
+# .htaccess à la racine du projet
+
+# Bloquer l'accès direct à certains fichiers et dossiers sensibles
+<FilesMatch "(^composer\.json|^composer\.lock|^phpunit\.xml)">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+
+# Redirection vers le dossier public pour toutes les requêtes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>

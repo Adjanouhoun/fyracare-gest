@@ -12,10 +12,8 @@
   } %}
   <span class="badge {{ map[s] ?? 'bg-info-subtle text-info' }}">{{ s }}</span>
 {% endmacro %}
-
-{% block body %}
-<div class="page-content">
-  <div class="container-fluid">
+ 
+{% block body %} 
 
     <div class="row mb-3">
       <div class="col">
@@ -86,7 +84,5 @@
         {% endif %}
       </div>
     </div>
-
-  </div>
-</div>
+ 
 {% endblock %}

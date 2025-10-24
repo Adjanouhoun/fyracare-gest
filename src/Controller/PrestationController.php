@@ -112,7 +112,14 @@ class PrestationController extends AbstractController
     #[Route('/{id}', name: 'app_prestation_delete', methods: ['POST'])]
     public function delete(Request $request, Prestation $prestation, EntityManagerInterface $em): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$prestation->getId(), $request->request->get('_token'))) {
+        if ($prestation->getRdvs()->count() > 0) {
+        $this->addFlash('error', 
+            'Impossible de supprimer cette prestation : ' . 
+            $prestation->getRdvs()->count() . ' rendez-vous l\'utilisent.'
+        );
+        return $this->redirectToRoute('app_prestation_index');
+        }
+        elseif ($this->isCsrfTokenValid('delete'.$prestation->getId(), $request->request->get('_token'))) {
             $em->remove($prestation);
             $em->flush();
             $this->addFlash('danger', '🗑️ La prestation a bien été <strong>supprimée</strong>.');

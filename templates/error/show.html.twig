@@ -1,0 +1,83 @@
+{# templates/error/error_with_layout.html.twig #}
+{% extends 'layouts/main.html.twig' %}
+
+{% block title %}{{ error.title }} - {{ status_code }}{% endblock %}
+
+{% block page_header %}
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                <h4 class="mb-sm-0">Erreur {{ status_code }}</h4>
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+                        <li class="breadcrumb-item active">Erreur {{ status_code }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-xxl-6 col-lg-8">
+        <div class="card">
+            <div class="card-body p-5 text-center">
+                <!-- Icône -->
+                <div class="mb-4">
+                    <lord-icon
+                        src="https://cdn.lordicon.com/tdrtiskw.json"
+                        trigger="loop"
+                        colors="primary:#405189,secondary:#f06548"
+                        style="width:120px;height:120px">
+                    </lord-icon>
+                </div>
+                
+                <!-- Code et titre -->
+                <h1 class="display-2 text-{{ error.color }} fw-bold">{{ status_code }}</h1>
+                <h4 class="text-uppercase mb-3">{{ error.title }}</h4>
+                <p class="text-muted mb-4 fs-15">{{ error.message }}</p>
+                
+                <!-- Info utilisateur -->
+                {% if app.user %}
+                    <div class="alert alert-warning" role="alert">
+                        <strong>{{ app.user.email }}</strong> - 
+                        {% for role in app.user.roles %}
+                            <span class="badge bg-warning">{{ role }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Boutons -->
+                <div class="hstack gap-2 justify-content-center">
+                    {% if show_back_button %}
+                        <button onclick="window.history.back()" class="btn btn-secondary">
+                            <i class="ri-arrow-left-line me-1"></i> Retour
+                        </button>
+                    {% endif %}
+                    
+                    {% for suggestion in suggestions %}
+                        <a href="{{ path(suggestion.route) }}" class="btn {{ suggestion.class }}">
+                            <i class="{{ suggestion.icon }} me-1"></i> {{ suggestion.text }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        {# Debug en dev #}
+        {% if app.environment == 'dev' %}
+            <div class="card border-warning">
+                <div class="card-header bg-warning-subtle">
+                    <h5 class="mb-0"><i class="ri-bug-line"></i> Debug</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>URL:</strong> <code>{{ app.request.uri }}</code></p>
+                    <p><strong>Referer:</strong> <code>{{ referer }}</code></p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

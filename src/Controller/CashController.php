@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/cash', name: 'cash_')]
 class CashController extends AbstractController
@@ -507,6 +508,7 @@ class CashController extends AbstractController
     }
 
     #[Route('/cash/expense/{id}/delete', name: 'expense_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function expenseDelete(Request $request, CashMovement $expense, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('delete_expense_'.$expense->getId(), $request->request->get('_token'))) {

@@ -24,6 +24,7 @@ class Rdv
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'rdvs')] #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')]
     private ?Prestation $prestation = null;
 
     #[ORM\Column] private ?\DateTimeImmutable $startAt = null;

@@ -1,0 +1,81 @@
+{# templates/test/inactivity.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block page_header %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Test Inactivité</h4>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-body">
+        <h5>Informations de Session</h5>
+        
+        <table class="table">
+            <tr>
+                <th>Dernière activité :</th>
+                <td>{{ last_activity }}</td>
+            </tr>
+            <tr>
+                <th>Timestamp actuel :</th>
+                <td>{{ current_timestamp }}</td>
+            </tr>
+            <tr>
+                <th>Durée d'inactivité :</th>
+                <td><strong id="duration">{{ duration }}</strong> secondes</td>
+            </tr>
+            <tr>
+                <th>Timeout configuré :</th>
+                <td>{{ timeout }} secondes</td>
+            </tr>
+            <tr>
+                <th>Session verrouillée :</th>
+                <td>
+                    {% if locked %}
+                        <span class="badge bg-danger">OUI</span>
+                    {% else %}
+                        <span class="badge bg-success">NON</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+        
+        <div class="alert alert-info">
+            <strong>Instructions :</strong>
+            <ol>
+                <li>Ne faites rien pendant {{ timeout }} secondes</li>
+                <li>Rafraîchissez la page (F5)</li>
+                <li>Vous devriez être redirigé vers l'écran de verrouillage/login</li>
+            </ol>
+        </div>
+        
+        <button class="btn btn-primary" onclick="location.reload()">
+            Rafraîchir la page
+        </button>
+    </div>
+</div>
+
+<script>
+    // Compteur en temps réel
+    let lastActivity = {{ last_activity_timestamp|default(0) }};
+    let timeout = {{ timeout }};
+    
+    setInterval(() => {
+        if (lastActivity > 0) {
+            let now = Math.floor(Date.now() / 1000);
+            let duration = now - lastActivity;
+            document.getElementById('duration').textContent = duration;
+            
+            if (duration >= timeout) {
+                document.getElementById('duration').classList.add('text-danger');
+                document.getElementById('duration').textContent = duration + ' - TIMEOUT !';
+            }
+        }
+    }, 1000);
+</script>
+{% endblock %}
