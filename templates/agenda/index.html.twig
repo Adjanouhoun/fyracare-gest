@@ -1,164 +1,432 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Agenda{% endblock %}
 
-{% block page_header %}
-  <div class="d-flex align-items-center justify-content-between">
-    <div>
-      <h4 class="fs-16 mb-1">Agenda</h4>
-      <p class="text-muted mb-0">Vue calendrier + indicateurs Jour / Semaine / Mois.</p>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ path('app_rdv_new') }}" class="btn btn-primary">
-        <i class="ri-add-circle-line align-middle me-1"></i> Créer un rendez-vous
-      </a>
-      <a href="{{ path('app_rdv_all') }}" class="btn btn-soft-secondary">
-        <i class="ri-list-check-2 align-middle me-1"></i> Tous les rendez-vous
-      </a>
-    </div>
-  </div>
+{% block title %}Agenda - {{ parent() }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/main.min.css" rel="stylesheet">
+    <style>
+        /* Style Velzon pour le calendrier */
+        #calendar {
+            background: #fff;
+            border-radius: 0.25rem;
+        }
+        
+        .fc-toolbar-title {
+            font-size: 1.25rem !important;
+            font-weight: 600 !important;
+            color: #495057;
+        }
+        
+        .fc-button {
+            background-color: #fff !important;
+            border-color: #e9ebec !important;
+            color: #495057 !important;
+            text-transform: capitalize !important;
+            padding: 0.47rem 0.75rem !important;
+            font-size: 0.875rem !important;
+        }
+        
+        .fc-button:hover {
+            background-color: #f3f6f9 !important;
+            border-color: #e9ebec !important;
+            color: #495057 !important;
+        }
+        
+        .fc-button-primary:not(:disabled).fc-button-active {
+            background-color: #405189 !important;
+            border-color: #405189 !important;
+            color: #fff !important;
+        }
+        
+        .fc-daygrid-day-number {
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        
+        .fc-col-header-cell {
+            background-color: #f3f6f9;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #878a99;
+        }
+        
+        .fc-event {
+            border: none !important;
+            border-radius: 0.25rem !important;
+            padding: 2px 5px !important;
+            font-size: 0.8125rem !important;
+        }
+        
+        .fc-daygrid-day.fc-day-today {
+            background-color: rgba(64, 81, 137, 0.05) !important;
+        }
+        
+        .stat-card {
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
-  <div class="row g-3">
-    {# Colonne gauche : Compteurs + raccourcis de vue #}
-    <div class="col-xl-4">
-      <div class="row g-3">
-
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <p class="text-uppercase fw-medium text-muted mb-2">RDV du jour</p>
-              <div class="d-flex align-items-center justify-content-between">
-                <h3 class="mb-0">{{ countDay }}</h3>
-                <a href="{{ path('agenda', {view: 'day'}) }}" class="btn btn-sm btn-soft-info">
-                  <i class="ri-time-line me-1"></i> Voir la journée
-                </a>
-              </div>
-              <div class="progress mt-3" style="height:6px;">
-                <div class="progress-bar" role="progressbar" style="width: 100%"></div>
-              </div>
+ 
+  
+        
+        <!-- Page Title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">Agenda</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Tableau de bord</a></li>
+                            <li class="breadcrumb-item active">Agenda</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
-        <div class="col-sm-6">
-          <div class="card mini-stats-wid">
-            <div class="card-body">
-              <p class="text-uppercase fw-medium text-muted mb-2">Semaine</p>
-              <div class="d-flex align-items-center justify-content-between">
-                <h4 class="mb-0">{{ countWeek }}</h4>
-                <a href="{{ path('agenda', {view: 'week'}) }}" class="btn btn-sm btn-soft-primary">
-                  <i class="ri-calendar-2-line"></i>
-                </a>
-              </div>
+        <!-- Stats Cards -->
+        <div class="row mb-3">
+            <div class="col-xl-3 col-md-6">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="avatar-sm">
+                                    <span class="avatar-title bg-primary-subtle text-primary rounded">
+                                        <i class="ri-calendar-check-line fs-20"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-muted mb-1 fs-13">Total RDV</p>
+                                <h4 class="mb-0 fs-20">{{ total }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="avatar-sm">
+                                    <span class="avatar-title bg-success-subtle text-success rounded">
+                                        <i class="ri-calendar-2-line fs-20"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-muted mb-1 fs-13">Aujourd'hui</p>
+                                <h4 class="mb-0 fs-20">{{ countDay }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="avatar-sm">
+                                    <span class="avatar-title bg-info-subtle text-info rounded">
+                                        <i class="ri-calendar-event-line fs-20"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-muted mb-1 fs-13">Cette semaine</p>
+                                <h4 class="mb-0 fs-20">{{ countWeek }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="avatar-sm">
+                                    <span class="avatar-title bg-warning-subtle text-warning rounded">
+                                        <i class="ri-calendar-todo-line fs-20"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-muted mb-1 fs-13">Ce mois</p>
+                                <h4 class="mb-0 fs-20">{{ countMonth }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="col-sm-6">
-          <div class="card mini-stats-wid">
-            <div class="card-body">
-              <p class="text-uppercase fw-medium text-muted mb-2">Mois</p>
-              <div class="d-flex align-items-center justify-content-between">
-                <h4 class="mb-0">{{ countMonth }}</h4>
-                <a href="{{ path('agenda', {view: 'month'}) }}" class="btn btn-sm btn-soft-secondary">
-                  <i class="ri-calendar-event-line"></i>
-                </a>
-              </div>
+        <!-- Calendar Row -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <h5 class="card-title flex-grow-1 mb-0">
+                                <i class="ri-calendar-line align-middle me-1"></i>
+                                Calendrier des rendez-vous
+                            </h5>
+                            <div class="flex-shrink-0">
+                                <button type="button" class="btn btn-soft-primary btn-sm" id="goToNextRdv">
+                                    <i class="ri-arrow-right-circle-line align-middle me-1"></i>
+                                    Prochain RDV
+                                </button>
+                                <a href="{{ path('app_rdv_new') }}" class="btn btn-primary btn-sm ms-2">
+                                    <i class="ri-add-line align-middle me-1"></i>
+                                    Nouveau RDV
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div id="calendar"></div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
-        <div class="col-12">
-          <div class="card mini-stats-wid">
-            <div class="card-body d-flex align-items-center">
-              <div class="flex-grow-1">
-                <p class="text-uppercase fw-medium text-muted mb-2">RDV Total (toutes périodes)</p>
-                <h4 class="mb-0">{{ total }}</h4>
-              </div>
-              <div class="flex-shrink-0 avatar-sm">
-                <span class="avatar-title bg-primary-subtle text-primary rounded fs-3">
-                  <i class="ri-calendar-2-line"></i>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
     </div>
+</div>
 
-    {# Colonne droite : Calendrier #}
-    <div class="col-xl-8">
-      <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <h5 class="card-title mb-0">Calendrier</h5>
-          <div class="text-muted small">
-            <span class="badge bg-success-subtle text-success">Honoré</span>
-            <span class="badge bg-primary-subtle text-primary">Confirmé</span>
-            <span class="badge bg-info-subtle text-info">Planifié</span>
-            <span class="badge bg-warning-subtle text-warning">Absent</span>
-            <span class="badge bg-danger-subtle text-danger">Annulé</span>
-          </div>
+<!-- Modal Détails RDV -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary-subtle">
+                <h5 class="modal-title text-primary" id="eventModalLabel">
+                    <i class="ri-calendar-event-line me-2"></i>
+                    Détails du rendez-vous
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold">Client</label>
+                    <p class="fs-15" id="modalClient"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold">Prestation</label>
+                    <p class="fs-15" id="modalPrestation"></p>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label text-muted fw-semibold">Début</label>
+                        <p class="fs-15" id="modalStart"></p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted fw-semibold">Fin</label>
+                        <p class="fs-15" id="modalEnd"></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-semibold">Statut</label>
+                    <p><span class="badge" id="modalStatus"></span></p>
+                </div>
+                <div class="mb-0" id="modalNotesContainer" style="display: none;">
+                    <label class="form-label text-muted fw-semibold">Notes</label>
+                    <p class="text-muted fs-14" id="modalNotes"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
+                <a href="#" class="btn btn-primary" id="modalEditBtn">
+                    <i class="ri-edit-line align-middle me-1"></i>
+                    Modifier
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-          <div id="calendar"></div>
-          <div class="d-flex justify-content-end mt-3 gap-2">
-            <button class="btn btn-ghost-secondary btn-sm" data-fc="today"><i class="ri-timer-flash-line me-1"></i>Aujourd'hui</button>
-            <button class="btn btn-soft-secondary btn-sm" data-fc="day">Jour</button>
-            <button class="btn btn-soft-primary btn-sm" data-fc="week">Semaine</button>
-            <button class="btn btn-soft-info btn-sm" data-fc="month">Mois</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endblock %}
-
-{% block styles %}
-  {{ parent() }}
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css">
+    
 {% endblock %}
 
 {% block scripts %}
-  {{ parent() }}
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
-  <script>
-    (function () {
-      const el = document.getElementById('calendar');
-      if (!el) return;
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/fr.global.min.js"></script>
 
-      const initialView = {{ initialView|json_encode|raw }};
-      const cal = new FullCalendar.Calendar(el, {
-        initialView: initialView,
-        nowIndicator: true,
-        locale: 'fr',
-        slotMinTime: '07:00:00',
-        slotMaxTime: '22:00:00',
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        events: '{{ path('api_calendar_events') }}',
-        eventClick: function(info) {
-          if (info.event.url) {
-            info.jsEvent.preventDefault();
-            window.location.href = info.event.url;
-          }
-        },
-        eventDidMount: ({el, event}) => {
-          const st = event.extendedProps?.status || '';
-          if (st === 'ANNULE') { el.style.opacity = .6; el.style.textDecoration = 'line-through'; }
-        }
-      });
-      cal.render();
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Initialisation calendrier Velzon...');
+        
+        const calendarEl = document.getElementById('calendar');
+        const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+        
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: '{{ initialView }}',
+            locale: 'fr',
+            height: 'auto',
+            navLinks: true,
+            selectable: true,
+            selectMirror: true,
+            dayMaxEvents: true,
+            // ✅ Limiter les heures d’affichage
+            slotMinTime: "07:00:00",
+            slotMaxTime: "23:00:00",
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            
+            buttonText: {
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week: 'Semaine',
+                day: 'Jour',
+                list: 'Liste'
+            },
+            
+            // Chargement des événements
+            events: function(info, successCallback, failureCallback) {
+                console.log('📅 Chargement événements...');
+                
+                // Nettoyer les dates (enlever le timezone)
+                const startClean = info.startStr.substring(0, 19);
+                const endClean = info.endStr.substring(0, 19);
+                
+                const url = '{{ path('api_rdv_calendar_events') }}?start=' + startClean + '&end=' + endClean;
+                
+                console.log('🌐 URL:', url);
+                
+                fetch(url, {
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    console.log('📡 Status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ Événements reçus:', data.length);
+                    successCallback(data);
+                })
+                .catch(error => {
+                    console.error('❌ Erreur:', error);
+                    failureCallback(error);
+                });
+            },
+            
+            // Click sur un événement
+            eventClick: function(info) {
+                info.jsEvent.preventDefault();
+                
+                const event = info.event;
+                const props = event.extendedProps;
+                
+                // Remplir le modal
+                document.getElementById('modalClient').textContent = props.client || 'N/A';
+                document.getElementById('modalPrestation').textContent = props.prestation || 'N/A';
+                
+                // Format des dates
+                const startDate = new Date(event.start);
+                const endDate = event.end ? new Date(event.end) : null;
+                
+                document.getElementById('modalStart').textContent = startDate.toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                if (endDate) {
+                    document.getElementById('modalEnd').textContent = endDate.toLocaleString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } else {
+                    document.getElementById('modalEnd').textContent = 'N/A';
+                }
+                
+                // Statut avec badge
+                const statusBadge = document.getElementById('modalStatus');
+                const statusText = props.status || 'PLANIFIE';
+                const statusClasses = {
+                    'PLANIFIE': 'badge-soft-info',
+                    'CONFIRME': 'badge-soft-primary',
+                    'HONORE': 'badge-soft-success',
+                    'ANNULE': 'badge-soft-danger',
+                    'ABSENT': 'badge-soft-secondary'
+                };
+                
+                statusBadge.className = 'badge ' + (statusClasses[statusText] || 'badge-soft-secondary');
+                statusBadge.textContent = statusText;
+                
+                // Notes
+                if (props.notes) {
+                    document.getElementById('modalNotesContainer').style.display = 'block';
+                    document.getElementById('modalNotes').textContent = props.notes;
+                } else {
+                    document.getElementById('modalNotesContainer').style.display = 'none';
+                }
+                
+                // Lien modification
+                document.getElementById('modalEditBtn').href = '{{ path('app_rdv_index') }}/' + event.id + '/edit';
+                
+                eventModal.show();
+            },
+            
+            // Click sur une date (pour créer un RDV)
+            dateClick: function(info) {
+                console.log('📅 Date cliquée:', info.dateStr);
+                // TODO: Ouvrir modal de création
+                window.location.href = '{{ path('app_rdv_new') }}?date=' + info.dateStr;
+            }
+        });
+        
+        calendar.render();
+        console.log('✅ Calendrier rendu');
 
-      // Petits boutons sous le calendrier
-      document.querySelector('[data-fc="today"]')?.addEventListener('click', () => cal.today());
-      document.querySelector('[data-fc="day"]')?.addEventListener('click', () => cal.changeView('timeGridDay'));
-      document.querySelector('[data-fc="week"]')?.addEventListener('click', () => cal.changeView('timeGridWeek'));
-      document.querySelector('[data-fc="month"]')?.addEventListener('click', () => cal.changeView('dayGridMonth'));
-    })();
-  </script>
+        // Bouton "Prochain RDV"
+        document.getElementById('goToNextRdv')?.addEventListener('click', function() {
+            console.log('🔍 Recherche du prochain RDV...');
+            
+            fetch('{{ path('api_rdv_calendar_events') }}?start=2024-01-01T00:00:00&end=2026-12-31T23:59:59')
+                .then(r => r.json())
+                .then(events => {
+                    if (events.length > 0) {
+                        const now = new Date();
+                        const futureEvents = events
+                            .filter(e => new Date(e.start) >= now)
+                            .sort((a, b) => new Date(a.start) - new Date(b.start));
+                        
+                        if (futureEvents.length > 0) {
+                            calendar.gotoDate(futureEvents[0].start);
+                            console.log('📅 Navigation vers:', futureEvents[0].start);
+                        } else {
+                            calendar.gotoDate(events[0].start);
+                            console.log('📅 Navigation vers le premier RDV:', events[0].start);
+                        }
+                    } else {
+                        alert('Aucun rendez-vous trouvé');
+                    }
+                })
+                .catch(err => console.error('❌ Erreur:', err));
+        });
+    });
+    </script>
 {% endblock %}

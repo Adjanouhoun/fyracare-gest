@@ -40,3 +40,5 @@ security:
     - { path: ^/dashboard, roles: ROLE_USER }
     - { path: ^/rdv, roles: ROLE_USER }
     - { path: ^/payment, roles: ROLE_USER }
+    - { path: ^/rdv/api/, roles: PUBLIC_ACCESS }  # ⭐ AJOUTE CETTE LIGNE
+    - { path: ^/api/autocomplete, roles: PUBLIC_ACCESS }  # ⭐ AJOUTE AUSSI CELLE-CI

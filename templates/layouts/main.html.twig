@@ -1,70 +1,47 @@
 <!doctype html>
 <html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
-
 <head>
-
     <meta charset="utf-8" />
     <title>Fyracare | Gestion</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
-    <meta content="Themesbrand" name="author" />
+    
     <!-- App favicon -->
     <link rel="shortcut icon" href="{{ asset('assets/images/favicon.ico') }}">
     <link href="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.css') }}" rel="stylesheet" />
     <link href="{{ asset('velzon/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" />
-    <!-- Layout config Js -->
-    <script src="{{ asset('velzon/js/layout.js') }}"></script>
+     <script src="{{ asset('velzon/js/layout.js') }}"></script>
     <!-- Bootstrap Css -->
     <link href="{{ asset('velzon/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
     <!-- Icons Css -->
     <link href="{{ asset('velzon/css/icons.min.css') }}" rel="stylesheet" type="text/css" />
     <!-- App Css-->
     <link href="{{ asset('velzon/css/app.min.css') }}" rel="stylesheet" type="text/css" />
-    <!-- custom Css-->
     <link href="{{ asset('velzon/css/custom.min.css') }}" rel="stylesheet" type="text/css" />
-
+    
+    <!-- Block pour styles additionnels -->
+    {% block stylesheets %}{% endblock %}
 </head>
 
 <body>
-
-    <!-- Begin page -->
     <div id="layout-wrapper">
-<!-- block topbar -->
-   
-{% include 'partials/topbar.html.twig' %}
-<!-- Fin topbar -->
-        <!-- ========== Sidebar ========== -->
+        {% include 'partials/topbar.html.twig' %}
+        {% include 'partials/sidebar.html.twig' %}
         
-		{% include 'partials/sidebar.html.twig' %}
-        <!--  Sidebar End -->
-        <!-- Vertical Overlay-->
         <div class="vertical-overlay"></div>
-
-        <!-- ============================================================== -->
-        <!-- Start right Content here -->
-        <!-- ============================================================== -->
+        
         <div class="main-content">
-
             <div class="page-content">
                 <div class="container-fluid">
-
-                    <!-- start page title -->
-                    
                     {% block page_header %}{% endblock %}
                     <div class="row">
                         <div class="col-12">
-                             {% include 'partials/flashes.html.twig' %}
-								
-								{% block body %}{% endblock %}
+                            {% include 'partials/flashes.html.twig' %}
+                            {% block body %}{% endblock %}
                         </div>
                     </div>
-                    <!-- end page title -->
-
                 </div>
-                <!-- container-fluid -->
             </div>
-            <!-- End Page-content -->
-
+            
             <footer class="footer">
                 <div class="container-fluid">
                     <div class="row">
@@ -80,31 +57,34 @@
                 </div>
             </footer>
         </div>
-        <!-- end main content-->
-
     </div>
-    <!-- END layout-wrapper -->
 
-    <!-- JAVASCRIPT -->
-<script src="{{ asset('velzon/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ asset('velzon/libs/simplebar/simplebar.min.js') }}"></script>
-<script src="{{ asset('velzon/libs/node-waves/waves.min.js') }}"></script>
-<script src="{{ asset('velzon/libs/feather-icons/feather.min.js') }}"></script>
-<script src="{{ asset('velzon/js/pages/plugins/lord-icon-2.1.0.js') }}"></script>
-<script src="{{ asset('velzon/js/plugins.js') }}"></script>
-
-<script src="{{ asset('velzon/libs/apexcharts/apexcharts.min.js') }}"></script>
-<script src="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.js') }}"></script>
-<script src="{{ asset('velzon/libs/jsvectormap/maps/world-merc.js') }}"></script>
-<script src="{{ asset('velzon/libs/swiper/swiper-bundle.min.js') }}"></script>
-
-<script src="{{ asset('velzon/js/pages/dashboard-ecommerce.init.js') }}"></script>
-<script src="{{ asset('velzon/js/app.js') }}"></script>
-<script src="{{ asset('https://code.jquery.com/jquery-3.6.4.min.js') }}"></script>
-    {% block scripts %}
- 
-  
-{% endblock %}
+    <!-- ⚠️ ORDRE IMPORTANT DES SCRIPTS ⚠️ -->
+    
+    <!-- 1. jQuery EN PREMIER -->
+    
+    <!-- 2. Bootstrap -->
+    <script src="{{ asset('velzon/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    
+    <!-- 3. Autres libs -->
+    <script src="{{ asset('velzon/libs/simplebar/simplebar.min.js') }}"></script>
+    <script src="{{ asset('velzon/libs/node-waves/waves.min.js') }}"></script>
+    <script src="{{ asset('velzon/libs/feather-icons/feather.min.js') }}"></script>
+    <script src="{{ asset('velzon/js/pages/plugins/lord-icon-2.1.0.js') }}"></script>
+    <script src="{{ asset('velzon/js/plugins.js') }}"></script>
+    
+    <!-- 4. Charts -->
+    <script src="{{ asset('velzon/libs/apexcharts/apexcharts.min.js') }}"></script>
+    <script src="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.js') }}"></script>
+    <script src="{{ asset('velzon/libs/jsvectormap/maps/world-merc.js') }}"></script>
+    <script src="{{ asset('velzon/libs/swiper/swiper-bundle.min.js') }}"></script>
+    
+    <!-- 5. App JS -->
+    <script src="{{ asset('velzon/js/pages/dashboard-ecommerce.init.js') }}"></script>
+    <script src="{{ asset('velzon/js/app.js') }}"></script>
+    <script src="{{ asset('https://code.jquery.com/jquery-3.6.4.min.js') }}"></script>
+    
+    <!-- 6. Block pour scripts additionnels (FullCalendar, etc.) -->
+    {% block javascripts %}{% endblock %}
 </body>
-
 </html>

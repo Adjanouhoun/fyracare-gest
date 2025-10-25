@@ -22,10 +22,10 @@ final class DashboardController extends AbstractController
         // KPIs du jour
         $kpis = [
             'rdv'       => $rdvRepo->countBetween($todayStart, $todayEnd),
-            'honores'   => $rdvRepo->countByStatusBetween(\App\Entity\Rdv::S_HONORE,   $todayStart, $todayEnd),
-            'annules'   => $rdvRepo->countByStatusBetween(\App\Entity\Rdv::S_ANNULE,   $todayStart, $todayEnd),
-            'confirmes' => $rdvRepo->countByStatusBetween(\App\Entity\Rdv::S_CONFIRME, $todayStart, $todayEnd),
-            'absents'   => $rdvRepo->countByStatusBetween(\App\Entity\Rdv::S_ABSENT,   $todayStart, $todayEnd),
+            'honores'   => $rdvRepo->countByStatusBetween(Rdv::S_HONORE,   $todayStart, $todayEnd),
+            'annules'   => $rdvRepo->countByStatusBetween(Rdv::S_ANNULE,   $todayStart, $todayEnd),
+            'confirmes' => $rdvRepo->countByStatusBetween(Rdv::S_CONFIRME, $todayStart, $todayEnd),
+            'absents'   => $rdvRepo->countByStatusBetween(Rdv::S_ABSENT,   $todayStart, $todayEnd),
             'caToday'   => $payRepo->sumRevenueBetween($todayStart, $todayEnd),
         ];
 
@@ -35,9 +35,11 @@ final class DashboardController extends AbstractController
         $labels30 = [];
         $values30 = [];
         for ($i=0; $i<30; $i++) {
-            $d = $from30->modify("+$i days")->format('Y-m-d');
-            $labels30[] = $d;
-            $values30[] = $map30[$d] ?? 0;
+            $date = $from30->modify("+$i days");
+            $dateStr = $date->format('Y-m-d');
+            // Format d/m pour l'affichage
+            $labels30[] = $date->format('d/m');
+            $values30[] = $map30[$dateStr] ?? 0;
         }
 
         // Semaine en cours (lundi → dimanche)
@@ -46,11 +48,11 @@ final class DashboardController extends AbstractController
         $weekEnd   = $weekStart->modify('+6 days')->setTime(23,59,59);
 
         $statuses = [
-            \App\Entity\Rdv::S_PLANIFIE,
-            \App\Entity\Rdv::S_CONFIRME,
-            \App\Entity\Rdv::S_HONORE,
-            \App\Entity\Rdv::S_ANNULE,
-            \App\Entity\Rdv::S_ABSENT,
+            Rdv::S_PLANIFIE,
+            Rdv::S_CONFIRME,
+            Rdv::S_HONORE,
+            Rdv::S_ANNULE,
+            Rdv::S_ABSENT,
         ];
         $statusWeek = [];
         foreach ($statuses as $s) {
@@ -64,15 +66,44 @@ final class DashboardController extends AbstractController
         $topLabels  = array_column($topRows, 'libelle');
         $topValues  = array_map(fn($r) => (int) $r['total'], $topRows);
 
+        // 🆕 RDV Récents (pour la section "Activité Récente")
+        $recentRdvs = $rdvRepo->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p')
+            ->orderBy('r.startAt', 'DESC')
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+
+        // 🆕 Statistiques additionnelles
+        $additionalStats = [
+            // Taux de confirmation
+            'tauxConfirmation' => $kpis['rdv'] > 0 
+                ? round((($kpis['confirmes'] + $kpis['honores']) / $kpis['rdv']) * 100, 1)
+                : 0,
+            
+            // Taux de conversion (RDV planifiés → honorés)
+            'tauxConversion' => $kpis['rdv'] > 0 
+                ? round(($kpis['honores'] / $kpis['rdv']) * 100, 1)
+                : 0,
+            
+            // CA moyen par RDV honoré
+            'caMoyenParRdv' => $kpis['honores'] > 0
+                ? round($kpis['caToday'] / $kpis['honores'], 0)
+                : 0,
+        ];
+
         return $this->render('dashboard/index.html.twig', [
-            'from'       => $todayStart,
-            'to'         => $todayEnd,
-            'kpis'       => $kpis,
-            'labels30'   => $labels30,
-            'values30'   => $values30,
-            'statusWeek' => $statusWeek,
-            'topLabels'  => $topLabels,
-            'topValues'  => $topValues,
+            'from'             => $todayStart,
+            'to'               => $todayEnd,
+            'kpis'             => $kpis,
+            'labels30'         => $labels30,
+            'values30'         => $values30,
+            'statusWeek'       => $statusWeek,
+            'topLabels'        => $topLabels,
+            'topValues'        => $topValues,
+            'recentRdvs'       => $recentRdvs,
+            'additionalStats'  => $additionalStats,
         ]);
     }
 }

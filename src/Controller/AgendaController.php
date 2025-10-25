@@ -34,10 +34,8 @@ class AgendaController extends AbstractController
         $countWeek  = $this->countBetween($repo, $weekStart,  $weekEnd);
         $countMonth = $this->countBetween($repo, $monthStart, $monthEnd);
 
-        // KPI globaux (si tu veux les garder)
-        $total     = $repo->count([]);
-        // Ces 3 étaient déjà utiles, on peut les conserver si besoin dans la vue:
-        // $nbPlan = $repo->count(['status' => \App\Entity\Rdv::S_PLANIFIE]); etc.
+        // KPI globaux
+        $total = $repo->count([]);
 
         // Vue initiale du calendrier (query ?view=day|week|month)
         $viewParam = $request->query->get('view', 'week');
@@ -54,6 +52,12 @@ class AgendaController extends AbstractController
             'countMonth'  => $countMonth,
             'initialView' => $initialView,
         ]);
+    }
+
+    #[Route('/admin/agenda/test', name:'agenda_test', methods: ['GET'])]
+    public function test(): Response
+    {
+        return $this->render('agenda/test.html.twig');
     }
 
     private function countBetween(RdvRepository $repo, \DateTimeImmutable $start, \DateTimeImmutable $end): int
