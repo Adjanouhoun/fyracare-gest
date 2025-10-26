@@ -1,30 +1,58 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Modifier prestation | Velzon{% endblock %}
+{% block title %}Modifier prestation | Velzon
+{% endblock %}
 
 {% block page_header %}
-<div class="row mb-3 pb-1">
-  <div class="col-12 d-flex align-items-center justify-content-between">
-    <div>
-      <h4 class="fs-16 mb-1">Modifier la prestation</h4>
-      <p class="text-muted mb-0">{{ prestation.libelle }}</p>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ path('app_prestation_show', {id: prestation.id}) }}" class="btn btn-soft-info">
-        <i class="ri-eye-line me-1"></i> Voir
-      </a>
-      <a href="{{ path('app_prestation_index') }}" class="btn btn-soft-secondary">
-        <i class="ri-arrow-left-line me-1"></i> Retour
-      </a>
-    </div>
-  </div>
-</div>
+	<div class="row">
+		<div class="col-12">
+			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
+				<div>
+					<h4 class="mb-sm-0">
+						<i class="ri-stethoscope-line"></i>
+						Gestion des prestations
+					</h4>
+					<p class="text-muted mb-0">Modifier  une prestation</p>
+				</div>
+				<div class="page-title-right">
+					<ol class="breadcrumb m-0">
+						<li class="breadcrumb-item">
+							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+						</li>
+						<li class="breadcrumb-item active">Prestations</li>
+					</ol>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="row mb-3 pb-1">
+				<div class="col-12 d-flex align-items-center justify-content-between">
+					<div>
+						<h4 class="fs-16 mb-1">Modifier la prestation</h4>
+						<p class="text-muted mb-0">{{ prestation.libelle }}</p>
+					</div>
+					<div class="d-flex gap-2">
+						<a href="{{ path('app_prestation_show', {id: prestation.id}) }}" class="btn btn-soft-info">
+							<i class="ri-eye-line me-1"></i>
+							Voir
+						</a>
+						<a href="{{ path('app_prestation_index') }}" class="btn btn-soft-secondary">
+							<i class="ri-arrow-left-line me-1"></i>
+							Retour
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 {% endblock %}
 
 {% block body %}
-<div class="card">
-  <div class="card-body">
-    {% include 'partials/flashes.html.twig' %}
-    {% include 'prestation/_form.html.twig' with {'form': form, 'button_label':'Mettre à jour'} %}
-  </div>
-</div>
+	<div class="card">
+		<div class="card-body">
+			{% include 'partials/flashes.html.twig' %}
+			{% include 'prestation/_form.html.twig' with {'form': form, 'button_label':'Mettre à jour'} %}
+		</div>
+	</div>
 {% endblock %}

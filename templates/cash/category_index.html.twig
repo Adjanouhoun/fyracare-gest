@@ -1,46 +1,83 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Catégories de dépenses{% endblock %}
-
+{% block title %}Catégories de dépenses
+{% endblock %}
+{% block page_header %}
+	<div class="row">
+		<div class="col-12">
+			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
+				<div>
+					<h4 class="mb-sm-0">
+						<i class="ri-price-tag-3-line"></i>
+						Gestion de la caisse
+					</h4>
+					<p class="text-muted mb-0">Editer - Supprimer</p>
+				</div>
+				<div class="page-title-right">
+					<ol class="breadcrumb m-0">
+						<li class="breadcrumb-item">
+							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+						</li>
+						<li class="breadcrumb-item active">Catégorie</li>
+					</ol>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="row mb-3 pb-1">
+				<div class="d-flex justify-content-between align-items-center mb-3">
+					<h4>Catégories de dépenses</h4>
+					<a href="{{ path('cash_category_new') }}" class="btn btn-primary btn-sm">
+						<i class="ri-add-line"></i>
+						Nouvelle catégorie
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
 {% block body %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Catégories de dépenses</h4>
-    <a href="{{ path('cash_category_new') }}" class="btn btn-primary btn-sm">
-      <i class="ri-add-line"></i> Nouvelle catégorie
-    </a>
-  </div>
 
-  {% include 'partials/flashes.html.twig' %}
 
-  <div class="card">
-    <div class="card-body">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Nom</th>
-            <th>Description</th>
-            <th>Active</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in categories %}
-            <tr>
-              <td>{{ c.name }}</td>
-              <td>{{ c.description ?: '—' }}</td>
-              <td>{{ c.active ? 'Oui' : 'Non' }}</td>
-              <td class="text-end">
-                <a href="{{ path('cash_category_edit', {id: c.id}) }}" class="btn btn-sm btn-soft-info"><i class="ri-pencil-line"></i></a>
-                <form method="post" action="{{ path('cash_category_delete', {id: c.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette catégorie ?');">
-                  <input type="hidden" name="_token" value="{{ csrf_token('delete_cat_' ~ c.id) }}">
-                  <button class="btn btn-sm btn-soft-danger"><i class="ri-delete-bin-line"></i></button>
-                </form>
-              </td>
-            </tr>
-          {% else %}
-            <tr><td colspan="4" class="text-center text-muted">Aucune catégorie</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+	{% include 'partials/flashes.html.twig' %}
+
+	<div class="card">
+		<div class="card-body">
+			<table class="table table-hover align-middle">
+				<thead class="table-light">
+					<tr>
+						<th>Nom</th>
+						<th>Description</th>
+						<th>Active</th>
+						<th class="text-end">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for c in categories %}
+						<tr>
+							<td>{{ c.name }}</td>
+							<td>{{ c.description ?: '—' }}</td>
+							<td>{{ c.active ? 'Oui' : 'Non' }}</td>
+							<td class="text-end">
+								<a href="{{ path('cash_category_edit', {id: c.id}) }}" class="btn btn-sm btn-soft-info">
+									<i class="ri-pencil-line"></i>
+								</a>
+								<form method="post" action="{{ path('cash_category_delete', {id: c.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette catégorie ?');">
+									<input type="hidden" name="_token" value="{{ csrf_token('delete_cat_' ~ c.id) }}">
+									<button class="btn btn-sm btn-soft-danger">
+										<i class="ri-delete-bin-line"></i>
+									</button>
+								</form>
+							</td>
+						</tr>
+					{% else %}
+						<tr>
+							<td colspan="4" class="text-center text-muted">Aucune catégorie</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
 {% endblock %}

@@ -27,8 +27,20 @@ class CompanySettingsType extends AbstractType
                 'required' => false,
                 'attr' => ['rows' => 3],
             ])
-          ->add('logoFile', FileType::class, [
-                'label' => 'Logo (PNG/JPG)',
+          ->add('logoInvoiceFile', FileType::class, [
+                'label' => 'Logo Reçu(PNG/JPG)',
+                'mapped' => false,
+                'required' => false,
+                'constraints' => [
+                    new Assert\Image(
+                        maxSize: '3M',
+                        mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+                        mimeTypesMessage: 'Formats acceptés : PNG, JPG, WEBP.',
+                    ),
+                ],
+            ])
+        ->add('logoAppFile', FileType::class, [
+                'label' => 'Logo Application(PNG/JPG)',
                 'mapped' => false,
                 'required' => false,
                 'constraints' => [

@@ -1,7 +1,16 @@
 {# Dashboard Enhanced - Style Velzon #}
 {% extends 'layouts/main.html.twig' %}
 {% block title %}Dashboard{% endblock %}
-
+{# Badge statut sans constant() #}
+{% macro status_badge(s) %}
+  {% set map = {
+    'HONORE':   'bg-success-subtle text-success',
+    'CONFIRME': 'bg-primary-subtle text-primary',
+    'ANNULE':   'bg-danger-subtle text-danger',
+    'ABSENT':   'bg-warning-subtle text-warning'
+  } %}
+  <span class="badge {{ map[s] ?? 'bg-info-subtle text-info' }}">{{ s }}</span>
+{% endmacro %}
 {% block stylesheets %}
 <style>
 .stat-card {
@@ -338,12 +347,33 @@
               </thead>
               <tbody>
                 {# Cette section nécessiterait des données depuis le controller #}
-                <tr>
-                  <td colspan="5" class="text-center text-muted py-4">
-                    <i class="ri-information-line fs-18 me-2"></i>
-                    Ajoutez des RDV récents dans le controller pour afficher l'activité
-                  </td>
-                </tr>
+                {% for rdv in recentRdvs %}
+                  <tr>
+                    <td>
+                      {{ rdv.client }}
+                    </td>
+                    <td>{{ rdv.prestation }}</td>
+                    <td>{{ rdv.startAt ? rdv.startAt|date('H:i') : '—' }}
+                      {% if rdv.endAt %}– {{ rdv.endAt|date('H:i') }}{% endif %}
+                    </td>
+                    <td>{{ _self.status_badge(rdv.status) }}</td>
+                    <td class="text-end">
+                      <div class="btn-group">
+                        <a class="btn btn-sm btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}"><i class="ri-eye-line"></i></a>
+                        <a class="btn btn-sm btn-soft-info" href="{{ path('app_rdv_edit', {id: rdv.id}) }}"><i class="ri-pencil-line"></i></a>
+                        {% set dejaPaye = rdv.payments|length > 0 %}
+                        <a class="btn btn-sm btn-soft-success {{ dejaPaye ? 'disabled' : '' }}"
+                          {% if not dejaPaye %}
+                            href="{{ path('app_payment_new', { rdv: rdv.id }) }}"
+                          {% else %}
+                            href="#" tabindex="-1" aria-disabled="true" title="Déjà payé"
+                          {% endif %}>
+                          <i class="ri-cash-line"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>

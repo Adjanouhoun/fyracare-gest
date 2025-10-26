@@ -185,8 +185,8 @@ class PaymentController extends AbstractController
 
         // --- construit un Data URI pour le logo (fiable avec Dompdf)
         $logoDataUri = null;
-        if ($s->getLogoPath()) {
-            $abs = $this->getParameter('kernel.project_dir').'/public/'.$s->getLogoPath();
+        if ($s->getLogoInvoicePath()) {
+            $abs = $this->getParameter('kernel.project_dir').'/public/'.$s->getLogoInvoicePath();
             if (is_file($abs)) {
                 $mime = @mime_content_type($abs) ?: 'image/png';
                 $b64  = base64_encode(file_get_contents($abs));

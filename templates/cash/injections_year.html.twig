@@ -1,103 +1,493 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Injections — Année{% endblock %}
+{% block title %}Injections de l'année{% endblock %}
+
+{% block stylesheets %}
+<style>
+.injection-year-header {
+    background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 90%, #2BFF88 100%);
+    border: none;
+    color: white;
+}
+</style>
+{% endblock %}
 
 {% block page_header %}
-  <div class="d-flex align-items-center justify-content-between">
-    <div>
-      <h4 class="fs-16 mb-1">Injections — {{ year }}</h4>
-      <p class="text-muted mb-0">
-        Période : {{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }} — Total :
-        <strong>{{ total|number_format(0,',',' ') }} MRU</strong>
-      </p>
-    </div>
-    <div class="d-flex gap-2">
-      <a class="btn btn-ghost-secondary" href="{{ path('cash_index') }}">
-        <i class="ri-arrow-left-line"></i> Retour caisse
-      </a>
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <div>
+          <h4 class="mb-sm-0">
+            <i class="ri-funds-line text-warning me-2"></i>
+            Injections de Fonds (Année)
+          </h4>
+          <p class="text-muted mb-0">Vue d'ensemble des apports de liquidités annuels</p>
+        </div>
+        <div class="page-title-right">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{{ path('cash_index') }}">Caisse</a></li>
+            <li class="breadcrumb-item active">Injections Année</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}
 
 {% block body %}
-  <form method="get" class="card mb-3">
-    <div class="card-body row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label">Année</label>
-        <select name="year" class="form-select">
-          {% for yy in years %}
-            <option value="{{ yy }}" {% if yy == year %}selected{% endif %}>{{ yy }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-primary w-100"><i class="ri-filter-3-line"></i> Filtrer</button>
-      </div>
-    </div>
-  </form>
-
-  <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0">Évolution des injections (mois)</h5></div>
-        <div class="card-body">
-          <div id="chart-inj-year"
-               data-labels='{{ labels|json_encode|e('html_attr') }}'
-               data-values='{{ values|json_encode|e('html_attr') }}'
-               style="height:300px"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-12">
-      <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0">Détails</h5></div>
-        <div class="card-body">
-          <div class="table-responsive table-card">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Date</th>
-                  <th>Source</th>
-                  <th>Notes</th>
-                  <th class="text-end">Montant (MRU)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for e in pagination %}
-                  <tr>
-                    <td>{{ e.createdAt|date('d/m/Y H:i') }}</td>
-                    <td>{{ e.source ?: '—' }}</td>
-                    <td>{{ e.notes ?: '—' }}</td>
-                    <td class="text-end">{{ e.amount|number_format(0,',',' ') }}</td>
-                  </tr>
-                {% else %}
-                  <tr><td colspan="4" class="text-center text-muted">Aucune injection.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+  {# Header #}
+  <div class="row">
+    <div class="col-12">
+      <div class="card injection-year-header shadow-lg mb-4">
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col-lg-5">
+              <div class="d-flex align-items-center">
+                <div class="avatar-lg me-3">
+                  <span class="avatar-title bg-white bg-opacity-25 rounded fs-1">
+                    <i class="ri-line-chart-line"></i>
+                  </span>
+                </div>
+                <div>
+                  <h3 class="text-white mb-1">Année {{ year }}</h3>
+                  <p class="text-white-50 mb-0">
+                    {{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-7 mt-3 mt-lg-0">
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div class="text-center p-3" style="background: rgba(255,255,255,0.1); border-radius: 10px;">
+                    <p class="text-white-50 mb-1 fs-13">Total Année</p>
+                    <h3 class="text-white fw-bold mb-0">
+                      {{ total|number_format(0,',',' ') }} MRU
+                    </h3>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="text-center p-3" style="background: rgba(255,255,255,0.1); border-radius: 10px;">
+                    <p class="text-white-50 mb-1 fs-13">Moyenne Mensuelle</p>
+                    {% set avg = total / 12 %}
+                    <h3 class="text-white fw-bold mb-0">
+                      {{ avg|round(0)|number_format(0,',',' ') }} MRU
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="mt-3">{{ knp_pagination_render(pagination) }}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  {# Filtre Année #}
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-soft-warning">
+          <h5 class="card-title mb-0">
+            <i class="ri-filter-3-line me-2"></i>
+            Sélectionner une année
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-8">
+              <label class="form-label fw-medium">
+                <i class="ri-calendar-line me-1 text-warning"></i>
+                Année
+              </label>
+              <select name="year" class="form-select form-select-lg">
+                {% for yy in years %}
+                  <option value="{{ yy }}" {% if yy == year %}selected{% endif %}>{{ yy }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <button type="submit" class="btn btn-warning w-100 btn-lg">
+                <i class="ri-search-line me-1"></i>
+                Analyser
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Graphique + Synthèse #}
+  <div class="row">
+    <div class="col-xl-8">
+      <div class="card card-height-100">
+        <div class="card-header border-bottom-dashed">
+          <div class="d-flex align-items-center">
+            <h5 class="card-title flex-grow-1 mb-0">
+              <i class="ri-bar-chart-line text-warning me-2"></i>
+              Évolution Mensuelle
+            </h5>
+            <div class="flex-shrink-0">
+              <button class="btn btn-soft-warning btn-sm" onclick="window.print()">
+                <i class="ri-printer-line me-1"></i>
+                Imprimer
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="chart-inj-year" style="min-height: 380px;" class="apex-charts" dir="ltr"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card card-height-100">
+        <div class="card-header border-bottom-dashed bg-soft-info">
+          <h5 class="card-title mb-0">
+            <i class="ri-pie-chart-2-line me-2"></i>
+            Synthèse Annuelle
+          </h5>
+        </div>
+        <div class="card-body">
+          {# Total #}
+          <div class="mb-4 p-3 bg-warning-subtle rounded">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <p class="text-muted mb-1 fs-13">Total Année</p>
+                <h3 class="mb-0 text-warning fw-bold">
+                  {{ total|number_format(0,',',' ') }}
+                  <small class="fs-14">MRU</small>
+                </h3>
+              </div>
+              <div class="avatar-sm">
+                <span class="avatar-title bg-warning rounded-circle fs-2">
+                  <i class="ri-funds-line"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {# Mois actifs #}
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted">
+                <i class="ri-calendar-check-line me-1"></i>
+                Mois avec injection
+              </span>
+              {% set activesMonths = values|filter(v => v > 0)|length %}
+              <strong>{{ activesMonths }}/12</strong>
+            </div>
+            {% set percentActive = (activesMonths / 12 * 100) %}
+            <div class="progress progress-sm">
+              <div class="progress-bar bg-info" role="progressbar" 
+                   style="width: {{ percentActive|round(0) }}%">
+              </div>
+            </div>
+            <small class="text-muted">{{ percentActive|round(1) }}% de l'année</small>
+          </div>
+
+          {# Moyenne mensuelle #}
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted">
+                <i class="ri-calculator-line me-1"></i>
+                Moyenne / mois
+              </span>
+              {% set avg = total / 12 %}
+              <strong>{{ avg|round(0)|number_format(0,',',' ') }} MRU</strong>
+            </div>
+            <div class="progress progress-sm">
+              {% set maxValue = 0 %}
+              {% for v in values %}
+                {% if v > maxValue %}
+                  {% set maxValue = v %}
+                {% endif %}
+              {% endfor %}
+              {% set percentAvg = maxValue > 0 ? (avg / maxValue * 100) : 0 %}
+              <div class="progress-bar bg-warning" role="progressbar" 
+                   style="width: {{ percentAvg|round(0) }}%">
+              </div>
+            </div>
+            <small class="text-muted">Comparé au meilleur mois</small>
+          </div>
+
+          {# Meilleur mois #}
+          {% set maxValue = 0 %}
+          {% set maxIndex = 0 %}
+          {% for i, v in values %}
+            {% if v > maxValue %}
+              {% set maxValue = v %}
+              {% set maxIndex = i %}
+            {% endif %}
+          {% endfor %}
+          <div class="mb-3 p-3 bg-info-subtle rounded">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <p class="text-muted mb-1 fs-13">
+                  <i class="ri-trophy-line text-info me-1"></i>
+                  Meilleur mois
+                </p>
+                <h5 class="mb-0 text-info">
+                  {{ labels[maxIndex] ?? '-' }}
+                </h5>
+              </div>
+              <div class="text-end">
+                <h5 class="mb-0 text-info fw-bold">
+                  {{ maxValue|number_format(0,',',' ') }}
+                </h5>
+                <small class="text-muted">MRU</small>
+              </div>
+            </div>
+          </div>
+
+          {# Actions #}
+          <div class="d-grid gap-2 mt-4">
+            <a href="{{ path('cash_index') }}" class="btn btn-soft-secondary">
+              <i class="ri-arrow-left-line me-1"></i>
+              Retour caisse
+            </a>
+            <a href="{{ path('cash_deposit') }}" class="btn btn-warning">
+              <i class="ri-add-line me-1"></i>
+              Nouvelle injection
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Tableau Détaillé #}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom-dashed">
+          <div class="d-flex align-items-center justify-content-between">
+            <h5 class="card-title mb-0">
+              <i class="ri-file-list-3-line text-info me-2"></i>
+              Détails des Injections
+            </h5>
+            <div class="flex-shrink-0">
+              <span class="badge bg-warning-subtle text-warning fs-12">
+                {{ pagination.getTotalItemCount }} injection(s)
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-nowrap mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 50px;">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="checkAll">
+                    </div>
+                  </th>
+                  <th>
+                    <i class="ri-calendar-event-line me-1"></i>
+                    Date
+                  </th>
+                  <th>
+                    <i class="ri-arrow-down-circle-line me-1"></i>
+                    Source
+                  </th>
+                  <th>
+                    <i class="ri-file-text-line me-1"></i>
+                    Notes
+                  </th>
+                  <th class="text-end">
+                    <i class="ri-money-dollar-circle-line me-1"></i>
+                    Montant
+                  </th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in pagination %}
+                  <tr>
+                    <td>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="{{ e.id }}">
+                      </div>
+                    </td>
+                    <td>
+                      <div class="d-flex flex-column">
+                        <span class="fw-medium">{{ e.createdAt|date('d/m/Y') }}</span>
+                        <small class="text-muted">{{ e.createdAt|date('H:i') }}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-info-subtle text-info">
+                        {{ e.source ?: 'Injection manuelle' }}
+                      </span>
+                    </td>
+                    <td>{{ e.notes ?: '—' }}</td>
+                    <td class="text-end">
+                      <h6 class="mb-0 text-warning fw-semibold">
+                        +{{ e.amount|number_format(0,',',' ') }} MRU
+                      </h6>
+                    </td>
+                    <td class="text-end">
+                      <a href="{{ path('cash_deposit_edit', {id: e.id}) }}" class="btn btn-sm btn-soft-info" title="Modifier">
+                        <i class="ri-pencil-line"></i>
+                      </a>
+                      <form method="post" action="{{ path('cash_deposit_delete', {id: e.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_deposit_' ~ e.id) }}">
+                        <button type="submit" class="btn btn-sm btn-soft-danger" title="Supprimer">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="6" class="text-center py-5">
+                      <div class="text-muted">
+                        <i class="ri-inbox-line fs-1 d-block mb-2"></i>
+                        <h5 class="text-muted">Aucune injection</h5>
+                        <p class="mb-0">Aucune injection de fonds pour cette année.</p>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              {% if pagination.getTotalItemCount > 0 %}
+                <tfoot class="table-light">
+                  <tr class="table-active">
+                    <th colspan="4" class="text-end fw-bold">
+                      <i class="ri-calculator-line me-1"></i>
+                      Total Année
+                    </th>
+                    <th class="text-end">
+                      <h4 class="mb-0 text-warning">
+                        {{ total|number_format(0,',',' ') }} MRU
+                      </h4>
+                    </th>
+                    <th></th>
+                  </tr>
+                </tfoot>
+              {% endif %}
+            </table>
+          </div>
+        </div>
+        {% if pagination.getTotalItemCount > 10 %}
+          <div class="card-footer border-top-dashed">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="text-muted">
+                Affichage de {{ pagination.count }} sur {{ pagination.getTotalItemCount }} injections
+              </div>
+              <div>
+                {{ knp_pagination_render(pagination) }}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
-    (function(){
-      const el = document.getElementById('chart-inj-year');
-      const labels = JSON.parse(el.dataset.labels || '[]');
-      const values = JSON.parse(el.dataset.values || '[]');
-      if (!values.length) {
-        el.innerHTML = '<div class="text-muted">Aucune donnée pour cette année.</div>';
-        return;
+    document.addEventListener('DOMContentLoaded', function() {
+      const labels = {{ labels|json_encode|raw }};
+      const values = {{ values|json_encode|raw }};
+
+      const getChartColorsArray = (colors) => {
+        colors = JSON.parse(colors);
+        return colors.map(function(value) {
+          var newValue = value.replace(" ", "");
+          if (newValue.indexOf(",") === -1) {
+            var color = getComputedStyle(document.documentElement).getPropertyValue(newValue);
+            if (color.indexOf("#") !== -1) color = color.replace(" ", "");
+            if (color) return color;
+            else return newValue;
+          }
+        });
+      };
+
+      try {
+        if (values && values.length > 0) {
+          const chartColors = '["--vz-warning", "--vz-info"]';
+          const chart = new ApexCharts(document.querySelector('#chart-inj-year'), {
+            chart: { 
+              type: 'bar',
+              height: 380,
+              toolbar: { show: true }
+            },
+            plotOptions: { 
+              bar: { 
+                borderRadius: 8,
+                columnWidth: '60%',
+                dataLabels: {
+                  position: 'top'
+                }
+              } 
+            },
+            dataLabels: { 
+              enabled: true,
+              formatter: function(val) {
+                return Intl.NumberFormat('fr-FR', {notation: 'compact'}).format(val);
+              },
+              offsetY: -20,
+              style: {
+                fontSize: '11px',
+                colors: ["#304758"]
+              }
+            },
+            series: [{ 
+              name: 'Injections (MRU)',
+              data: values 
+            }],
+            xaxis: { 
+              categories: labels,
+              axisBorder: { show: false },
+              labels: {
+                style: {
+                  fontSize: '12px'
+                }
+              }
+            },
+            yaxis: {
+              labels: {
+                formatter: function(value) {
+                  return Intl.NumberFormat('fr-FR').format(value);
+                }
+              }
+            },
+            colors: getChartColorsArray(chartColors),
+            grid: {
+              borderColor: '#f1f1f1'
+            },
+            tooltip: { 
+              y: {
+                formatter: function(value) {
+                  return Intl.NumberFormat('fr-FR').format(value) + ' MRU';
+                }
+              }
+            }
+          });
+          
+          chart.render();
+        } else {
+          document.querySelector('#chart-inj-year').innerHTML = 
+            '<div class="text-center text-muted py-5"><i class="ri-bar-chart-line fs-1"></i><p>Aucune injection pour cette année</p></div>';
+        }
+      } catch (e) {
+        console.error('❌ Erreur chart injections année:', e);
       }
-      new ApexCharts(el, {
-        chart: { type: 'line', height: 300, toolbar: { show:false } },
-        series: [{ name: 'Injections', data: values }],
-        xaxis: { categories: labels },
-        yaxis: { labels: { formatter: v => Intl.NumberFormat('fr-FR').format(v) } },
-      }).render();
-    })();
+
+      // Checkbox tout sélectionner
+      const checkAll = document.getElementById('checkAll');
+      if (checkAll) {
+        checkAll.addEventListener('change', function() {
+          document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb => {
+            cb.checked = this.checked;
+          });
+        });
+      }
+    });
   </script>
 {% endblock %}

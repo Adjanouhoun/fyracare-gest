@@ -27,7 +27,11 @@ class CompanySettings
 
     // chemin relatif du logo (ex: uploads/logo.png)
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $logoPath = null;
+    private ?string $logoInvoicePath = null;
+
+    // chemin relatif du logo (ex: uploads/logo.png)
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $logoAppPath = null;
 
     public function getId(): int { return $this->id; }
 
@@ -40,6 +44,9 @@ class CompanySettings
     public function getAddress(): ?string { return $this->address; }
     public function setAddress(?string $address): self { $this->address = $address; return $this; }
 
-    public function getLogoPath(): ?string { return $this->logoPath; }
-    public function setLogoPath(?string $logoPath): self { $this->logoPath = $logoPath; return $this; }
+    public function getLogoInvoicePath(): ?string { return $this->logoInvoicePath; }
+    public function setLogoInvoicePath(?string $logoInvoicePath): self { $this->logoInvoicePath = $logoInvoicePath; return $this; }
+
+    public function getLogoAppPath(): ?string { return $this->logoAppPath; }
+    public function setLogoAppPath(?string $logoAppPath): self { $this->logoAppPath = $logoAppPath; return $this; }
 }

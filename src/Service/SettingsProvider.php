@@ -19,7 +19,7 @@ class SettingsProvider
         $settings = $repo->find(1);
         if (!$settings) {
             $settings = (new CompanySettings())
-                ->setPhone('') ->setEmail('') ->setAddress(null)->setLogoPath(null);
+                ->setPhone('') ->setEmail('') ->setAddress(null)->setLogoAppPath(null)->setLogoInvoicePath(null);
             $this->em->persist($settings);
             $this->em->flush();
         }

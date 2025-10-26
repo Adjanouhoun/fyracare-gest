@@ -3,10 +3,14 @@
                 <!-- Dark Logo-->
                 <a href="#" class="logo logo-dark">
                     <span class="logo-sm">
-                        <img src="{{ asset('velzon/images/lg-fyra.png') }}" alt="" height="22">
+                    {% if app_settings.get().logoAppPath %}
+                      <img src="{{ asset(app_settings.get().logoAppPath) }}" alt="" height="22">
+                    {% endif %}
                     </span>
                     <span class="logo-lg">
-                        <img src="{{ asset('velzon/images/logo-dark.png') }}" alt="" height="100%">
+                    {% if app_settings.get().logoAppPath %}
+                      <img src="{{ asset(app_settings.get().logoAppPath) }}" alt="" height="55">
+                    {% endif %}
                     </span>
                 </a>
                 <!-- Light Logo-->

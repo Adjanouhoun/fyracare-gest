@@ -2,14 +2,40 @@
 {% block title %}Catégories de dépenses{% endblock %}
 
 {% block page_header %}
-  <div class="d-flex justify-content-between align-items-center">
+	<div class="row">
+		<div class="col-12">
+			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
+				<div>
+					<h4 class="mb-sm-0">
+						<i class="ri-money-dollar-circle-line"></i>
+						Gestion de la caisse
+					</h4>
+					<p class="text-muted mb-0">Vue journalière - Entrées - Injections - Sorties</p>
+				</div>
+				<div class="page-title-right">
+					<ol class="breadcrumb m-0">
+						<li class="breadcrumb-item">
+							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+						</li>
+						<li class="breadcrumb-item active">Caisse</li>
+					</ol>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="row mb-3 pb-1">
+				  <div class="d-flex justify-content-between align-items-center">
     <h4 class="fs-16 mb-0">Catégories de dépenses</h4>
     <a class="btn btn-primary" href="{{ path('expense_cat_new') }}">
       <i class="ri-add-circle-line align-middle me-1"></i> Nouvelle catégorie
     </a>
   </div>
+			</div>
+		</div>
+	</div>
 {% endblock %}
-
 {% block body %}
   {% include 'partials/flashes.html.twig' %}
   <div class="card"><div class="card-body">

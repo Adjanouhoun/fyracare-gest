@@ -28,21 +28,39 @@ class SettingsController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            /** @var UploadedFile|null $logoFile */
-            $logoFile = $form->get('logoFile')->getData();
-            if ($logoFile) {
+            /** @var UploadedFile|null $logoInvoiceFile */
+            $logoInvoiceFile = $form->get('logoInvoiceFile')->getData();
+            if ($logoInvoiceFile) {
                 $uploadsDir = $this->getParameter('kernel.project_dir') . '/public/uploads';
                 (new Filesystem())->mkdir($uploadsDir);
-                $ext = $logoFile->guessExtension() ?: 'png';
-                $newName = 'logo-'.date('YmdHis').'.'.$ext;
-                $logoFile->move($uploadsDir, $newName);
+                $ext = $logoInvoiceFile->guessExtension() ?: 'png';
+                $newName = 'logoInvoice-'.date('YmdHis').'.'.$ext;
+                $logoInvoiceFile->move($uploadsDir, $newName);
 
                 // supprime l’ancien si existant
-                if ($settings->getLogoPath()) {
-                    $old = $this->getParameter('kernel.project_dir') . '/public/' . $settings->getLogoPath();
+                if ($settings->getLogoInvoicePath()) {
+                    $old = $this->getParameter('kernel.project_dir') . '/public/' . $settings->getLogoInvoicePath();
                     if (is_file($old)) @unlink($old);
                 }
-                $settings->setLogoPath('uploads/'.$newName);
+                $settings->setLogoInvoicePath('uploads/'.$newName);
+
+            }
+            /** @var UploadedFile|null $logoAppFile */
+            $logoAppFile = $form->get('logoAppFile')->getData();
+            if ($logoAppFile) {
+                $uploadsDir = $this->getParameter('kernel.project_dir') . '/public/uploads';
+                (new Filesystem())->mkdir($uploadsDir);
+                $ext = $logoAppFile->guessExtension() ?: 'png';
+                $newName = 'logoApp-'.date('YmdHis').'.'.$ext;
+                $logoAppFile->move($uploadsDir, $newName);
+
+                // supprime l’ancien si existant
+                if ($settings->getLogoAppPath()) {
+                    $old = $this->getParameter('kernel.project_dir') . '/public/' . $settings->getLogoAppPath();
+                    if (is_file($old)) @unlink($old);
+                }
+                $settings->setLogoAppPath('uploads/'.$newName);
+
             }
 
             $em->flush();

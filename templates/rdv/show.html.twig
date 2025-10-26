@@ -1,41 +1,89 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Détail RDV | Velzon{% endblock %}
-
-{% block page_header %}
-  <h4 class="fs-16 mb-1">Détail du rendez-vous</h4>
-  <p class="text-muted mb-0">Client & prestation</p>
+{% block title %}Détail RDV | Velzon
 {% endblock %}
 
+{% block page_header %}
+	<div class="row">
+		<div class="col-12">
+			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
+				<div>
+					<h4 class="mb-sm-0">
+						<i class="ri-calendar-2-line"></i>
+						Gestion des Rendez-vous
+					</h4>
+					<p class="text-muted mb-0">Modifier - Payer un rendez-vous</p>
+				</div>
+				<div class="page-title-right">
+					<ol class="breadcrumb m-0">
+						<li class="breadcrumb-item">
+							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+						</li>
+						<li class="breadcrumb-item active">Rendez-vous</li>
+					</ol>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="row mb-3 pb-1">
+				<div class="row mb-3">
+					<div class="col">
+						<h4 class="fs-16 mb-1">Détail du rendez-vous</h4>
+						<p class="text-muted mb-0">Client & prestation</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
 {% block body %}
-<div class="row">
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Informations</h5>
-        <div class="row g-3">
-          <div class="col-md-6"><strong>Client :</strong> {{ rdv.client ? rdv.client.nometprenom : '—' }}</div>
-          <div class="col-md-6"><strong>Téléphone :</strong> {{ rdv.client ? rdv.client.telephone : '—' }}</div>
-          <div class="col-md-6"><strong>Prestation :</strong> {{ rdv.prestation ? rdv.prestation.libelle : '—' }}</div>
-          <div class="col-md-6"><strong>Prix :</strong> {{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}</div>
-          <div class="col-md-6"><strong>Début :</strong> {{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}</div>
-          <div class="col-md-6"><strong>Fin :</strong> {{ rdv.endAt ? rdv.endAt|date('d/m/Y H:i') : '—' }}</div>
-          <div class="col-md-6">
-            <strong>Statut :</strong>
-            {% set bcl = {'planifie':'bg-warning-subtle text-warning', 'honore':'bg-success-subtle text-success', 'annule':'bg-danger-subtle text-danger'} %}
-            <span class="badge {{ bcl[rdv.status|default('planifie')] ?? 'bg-secondary' }}">{{ rdv.status|default('planifie')|capitalize }}</span>
-          </div>
-          <div class="col-12"><strong>Notes :</strong><br>{{ rdv.notes ?: '—' }}</div>
-        </div>
+	<div class="row">
+		<div class="col-lg-8">
+			<div class="card">
+				<div class="card-body">
+					<h5 class="mb-3">Informations</h5>
+					<div class="row g-3">
+						<div class="col-md-6">
+							<strong>Client :</strong>
+							{{ rdv.client ? rdv.client.nometprenom : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Téléphone :</strong>
+							{{ rdv.client ? rdv.client.telephone : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Prestation :</strong>
+							{{ rdv.prestation ? rdv.prestation.libelle : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Prix :</strong>
+							{{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Début :</strong>
+							{{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Fin :</strong>
+							{{ rdv.endAt ? rdv.endAt|date('d/m/Y H:i') : '—' }}</div>
+						<div class="col-md-6">
+							<strong>Statut :</strong>
+							{% set bcl = {'planifie':'bg-warning-subtle text-warning', 'honore':'bg-success-subtle text-success', 'annule':'bg-danger-subtle text-danger'} %}
+							<span class="badge {{ bcl[rdv.status|default('planifie')] ?? 'bg-secondary' }}">{{ rdv.status|default('planifie')|capitalize }}</span>
+						</div>
+						<div class="col-12">
+							<strong>Notes :</strong><br>{{ rdv.notes ?: '—' }}</div>
+					</div>
 
-        <div class="mt-4 d-flex gap-2">
-          <a href="{{ path('app_rdv_edit', {id: rdv.id}) }}" class="btn btn-soft-secondary"><i class="ri-pencil-line"></i> Modifier</a>
-          {% if rdv.prestation %}
-            <a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success"><i class="ri-money-dollar-circle-line"></i> Payer</a>
-          {% endif %}
-          <a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">Retour</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+					<div class="mt-4 d-flex gap-2">
+						<a href="{{ path('app_rdv_edit', {id: rdv.id}) }}" class="btn btn-soft-secondary">
+							<i class="ri-pencil-line"></i>
+							Modifier</a>
+						{% if rdv.prestation %}
+							<a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success">
+								<i class="ri-money-dollar-circle-line"></i>
+								Payer</a>
+						{% endif %}
+						<a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">Retour</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 {% endblock %}
