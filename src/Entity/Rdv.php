@@ -17,6 +17,11 @@ class Rdv
     public const S_ANNULE   = 'ANNULE';
     public const S_ABSENT   = 'ABSENT';
 
+    // Statuts de paiement
+    public const PS_NON_PAYE = 'NON_PAYE';
+    public const PS_PARTIEL  = 'PARTIEL';
+    public const PS_PAYE     = 'PAYE';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -41,6 +46,9 @@ class Rdv
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $paymentStatus = self::PS_NON_PAYE;
 
     /** @var Collection<int, Payment> */
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'rdv')]
@@ -147,6 +155,77 @@ class Rdv
             }
         }
         return $this;
+    }
+
+    public function getPaymentStatus(): ?string
+    {
+        return $this->paymentStatus;
+    }
+
+    public function setPaymentStatus(string $paymentStatus): static
+    {
+        $this->paymentStatus = $paymentStatus;
+        return $this;
+    }
+
+    /**
+     * Calcule le montant total payé pour ce rendez-vous
+     */
+    public function getTotalPaid(): int
+    {
+        $total = 0;
+        foreach ($this->payments as $payment) {
+            $total += $payment->getAmount();
+        }
+        return $total;
+    }
+
+    /**
+     * Calcule le montant restant à payer
+     */
+    public function getRemainingAmount(): int
+    {
+        $prestationPrice = $this->prestation ? $this->prestation->getPrix() : 0;
+        return max(0, $prestationPrice - $this->getTotalPaid());
+    }
+
+    /**
+     * Calcule le prix total de la prestation
+     */
+    public function getTotalAmount(): int
+    {
+        return $this->prestation ? $this->prestation->getPrix() : 0;
+    }
+
+    /**
+     * Vérifie si le paiement est complet
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->getRemainingAmount() === 0 && $this->getTotalPaid() > 0;
+    }
+
+    /**
+     * Vérifie si le paiement est partiel
+     */
+    public function isPartiallyPaid(): bool
+    {
+        $totalPaid = $this->getTotalPaid();
+        return $totalPaid > 0 && $totalPaid < $this->getTotalAmount();
+    }
+
+    /**
+     * Met à jour automatiquement le statut de paiement
+     */
+    public function updatePaymentStatus(): void
+    {
+        if ($this->isFullyPaid()) {
+            $this->paymentStatus = self::PS_PAYE;
+        } elseif ($this->isPartiallyPaid()) {
+            $this->paymentStatus = self::PS_PARTIEL;
+        } else {
+            $this->paymentStatus = self::PS_NON_PAYE;
+        }
     }
 
     public function __toString(): string

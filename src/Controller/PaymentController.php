@@ -98,49 +98,85 @@ class PaymentController extends AbstractController
     #[Route('/new/{rdv}', name: 'new', methods: ['GET','POST'])]
     public function new(Request $request, Rdv $rdv, EntityManagerInterface $em): Response
     {
-        // Un seul paiement total par RDV
-        if ($rdv->getPayments()->count() > 0) {
-            $this->addFlash('warning', 'Ce rendez-vous est déjà payé.');
+        // Vérifier si le paiement est déjà complet
+        if ($rdv->isFullyPaid()) {
+            $this->addFlash('warning', 'Ce rendez-vous est déjà entièrement payé.');
             return $this->redirectToRoute('app_rdv_show', ['id' => $rdv->getId()]);
         }
 
         $payment = new Payment();
         $payment->setRdv($rdv);
 
-        // ⚠️ Passe l’option 'rdv' au form pour pré-remplir le montant
+        // Passer l'option 'rdv' au form pour afficher le montant restant
         $form = $this->createForm(PaymentType::class, $payment, [
             'rdv' => $rdv,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Sécurité serveur
-            $payment->setAmount((int) $rdv->getPrestation()->getPrix());
+            $amount = $payment->getAmount();
+            $remainingAmount = $rdv->getRemainingAmount();
+
+            // Vérifier que le montant ne dépasse pas le montant restant
+            if ($amount > $remainingAmount) {
+                $this->addFlash('error', sprintf(
+                    'Le montant saisi (%d MRU) dépasse le montant restant à payer (%d MRU).',
+                    $amount,
+                    $remainingAmount
+                ));
+                return $this->render('payment/new.html.twig', [
+                    'rdv'  => $rdv,
+                    'form' => $form,
+                ]);
+            }
+
             $payment->setPaidAt(new \DateTimeImmutable());
+            
+            // Déterminer si c'est un acompte ou le paiement final
+            $isDeposit = $amount < $remainingAmount;
+            $payment->setIsDeposit($isDeposit);
 
             $em->persist($payment);
-            $rdv->setStatus(Rdv::S_HONORE);
 
-            // 1) Premier flush pour obtenir l'ID
-            //$em->flush();
+            // Mettre à jour le statut de paiement du rendez-vous
+            $rdv->addPayment($payment);
+            $rdv->updatePaymentStatus();
+            
+            // Si le paiement est complet, marquer le rendez-vous comme honoré
+            if ($rdv->isFullyPaid()) {
+                $rdv->setStatus(Rdv::S_HONORE);
+            }
 
-            // 2) Générer le numéro de reçu = date du jour + ID
-            //    Format exemple: 20251006-123
+            // Premier flush pour obtenir l'ID
+            $em->flush();
+
+            // Générer le numéro de reçu = date du jour + ID
             $todayStr = (new \DateTimeImmutable())->format('dmY');
             $payment->setReceiptNumber(sprintf('%s-%d', $todayStr, $payment->getId()));
 
-            // 3) Second flush pour enregistrer le reçu
-            //$em->flush();
-
-        $mv = new CashMovement();
-        $mv->setType(CashMovement::IN)
-        ->setAmount($payment->getAmount())
-        ->setSource(CashMovement::SRC_PAYMENT)
-        ->setNotes('Paiement RDV #'.$rdv->getId().' – '.$rdv->getPrestation()->getLibelle());
-        $em->persist($mv);
+            // Créer le mouvement de caisse (seulement pour le montant versé)
+            $mv = new CashMovement();
+            $mv->setType(CashMovement::IN)
+                ->setAmount($payment->getAmount())
+                ->setSource(CashMovement::SRC_PAYMENT)
+                ->setNotes(sprintf(
+                    '%s RDV #%d – %s (Total payé: %d/%d MRU)',
+                    $isDeposit ? 'Acompte' : 'Paiement final',
+                    $rdv->getId(),
+                    $rdv->getPrestation()->getLibelle(),
+                    $rdv->getTotalPaid(),
+                    $rdv->getTotalAmount()
+                ));
+            $em->persist($mv);
+            
+            // Second flush pour enregistrer le reçu et le mouvement de caisse
             $em->flush();
 
-            $this->addFlash('success', 'Paiement enregistré avec succès.');
+            $message = $isDeposit 
+                ? sprintf('Acompte de %d MRU enregistré. Reste à payer : %d MRU', $amount, $rdv->getRemainingAmount())
+                : 'Paiement final enregistré avec succès.';
+            
+            $this->addFlash('success', $message);
             return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
         } 
 
@@ -171,8 +207,16 @@ class PaymentController extends AbstractController
     public function delete(Request $request, Payment $payment, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('delete_payment_'.$payment->getId(), $request->request->get('_token'))) {
+            $rdv = $payment->getRdv();
+            
             $em->remove($payment);
             $em->flush();
+            
+            // Mettre à jour le statut de paiement du rendez-vous après suppression
+            if ($rdv) {
+                $rdv->updatePaymentStatus();
+                $em->flush();
+            }
         }
         return $this->redirectToRoute('app_payment_index');
     }

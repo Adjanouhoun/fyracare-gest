@@ -85,5 +85,92 @@
 				</div>
 			</div>
 		</div>
+		<div class="col-lg-4">
+			{# Statut de paiement #}
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>Statut de paiement</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Montant total :</strong><br>
+                {{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU
+            </div>
+            <div class="col-md-4">
+                <strong>Montant payé :</strong><br>
+                {{ rdv.totalPaid|number_format(0, ',', ' ') }} MRU
+            </div>
+            <div class="col-md-4">
+                <strong>Reste à payer :</strong><br>
+                <span class="text-{{ rdv.remainingAmount > 0 ? 'danger' : 'success' }}">
+                    {{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
+                </span>
+            </div>
+        </div>
+        <div class="mt-3">
+            <strong>Statut :</strong>
+            {% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+                <span class="badge bg-success">Payé</span>
+            {% elseif rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+                <span class="badge bg-warning">Partiellement payé</span>
+            {% else %}
+                <span class="badge bg-secondary">Non payé</span>
+            {% endif %}
+        </div>
+
+        {# Afficher les paiements #}
+        {% if rdv.payments|length > 0 %}
+            <hr>
+            <h6>Historique des paiements</h6>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Montant</th>
+                        <th>Méthode</th>
+                        <th>Type</th>
+                        <th>Reçu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in rdv.payments %}
+                        <tr>
+                            <td>{{ payment.paidAt|date('d/m/Y H:i') }}</td>
+                            <td>{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+                            <td>{{ payment.methode }}</td>
+                            <td>
+                                {% if payment.isDeposit %}
+                                    <span class="badge bg-info">Acompte</span>
+                                {% else %}
+                                    <span class="badge bg-success">Paiement final</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('app_payment_show', {id: payment.id}) }}" class="btn btn-sm btn-primary">
+                                    Voir
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {# Bouton pour ajouter un paiement #}
+        {% if rdv.remainingAmount > 0 %}
+            <div class="mt-3">
+                <a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success">
+                    {% if rdv.totalPaid > 0 %}
+                        Verser le reste ({{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
+                    {% else %}
+                        Enregistrer un paiement
+                    {% endif %}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
 	</div>
 {% endblock %}

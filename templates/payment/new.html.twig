@@ -11,6 +11,18 @@
 {% block body %}
   {% include 'partials/flashes.html.twig' %}
 
+  {# Informations de paiement #}
+  <div class="alert alert-info">
+    <h5>Informations de paiement</h5>
+    <ul class="mb-0">
+        <li><strong>Montant total :</strong> {{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU</li>
+        {% if rdv.totalPaid > 0 %}
+            <li><strong>Déjà payé :</strong> {{ rdv.totalPaid|number_format(0, ',', ' ') }} MRU</li>
+        {% endif %}
+        <li><strong>Reste à payer :</strong> <span class="text-danger">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</span></li>
+    </ul>
+</div>
+
   <div class="row">
     {# --------- COL GAUCHE : Résumé RDV --------- #}
     <div class="col-lg-7">
@@ -62,94 +74,334 @@
 
     {# --------- COL DROITE : Formulaire paiement --------- #}
     <div class="col-lg-5">
-  <div class="card">
-    <div class="card-body">
-      <h5 class="mb-3">Enregistrer le paiement</h5>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">Enregistrer le paiement</h5>
 
-      {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+          {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'id': 'payment-form'}}) }}
 
-      {# --- Montant (affichage verrouillé + vrai champ masqué) --- #}
-      <div class="mb-3">
-        <label class="form-label">Montant à payer</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="ri-cash-line"></i></span>
-          <input type="text"
-                 class="form-control"
-                 value="{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU"
-                 readonly>
+          {# --- Montant avec boutons de pourcentage --- #}
+          <div class="mb-3">
+            <label class="form-label">
+              Montant à verser <span class="text-danger">*</span>
+            </label>
+            <small class="text-muted d-block mb-2">
+              Cliquez sur un bouton pour sélectionner le montant (Maximum : {{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
+            </small>
+
+            {# Boutons de raccourci pourcentage #}
+            <div class="btn-group w-100 mb-2" role="group" aria-label="Raccourcis pourcentage">
+              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="25">
+                <strong>25%</strong>
+                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.25)|number_format(0, ',', ' ') }}</small>
+              </button>
+              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="50">
+                <strong>50%</strong>
+                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.50)|number_format(0, ',', ' ') }}</small>
+              </button>
+              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="75">
+                <strong>75%</strong>
+                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.75)|number_format(0, ',', ' ') }}</small>
+              </button>
+              <button type="button" class="btn btn-outline-success percentage-btn" data-percentage="100">
+                <strong>100%</strong>
+                <small class="d-block" style="font-size: 0.7rem;">{{ rdv.remainingAmount|number_format(0, ',', ' ') }}</small>
+              </button>
+            </div>
+
+            {# Champ montant (readonly pour affichage) #}
+            <div class="input-group">
+              <span class="input-group-text"><i class="ri-cash-line"></i></span>
+              <input type="text" 
+                     class="form-control form-control-lg text-center fw-bold"
+                     id="payment-amount-display"
+                     readonly
+                     placeholder="Sélectionnez un pourcentage"
+                     style="background-color: #f3f6f9; font-size: 1.5rem;">
+              <span class="input-group-text">MRU</span>
+            </div>
+
+            {# Champ réel caché pour le formulaire Symfony #}
+            {% if form.amount is defined %}
+              <div style="display: none;">
+                {{ form_widget(form.amount) }}
+              </div>
+              {{ form_errors(form.amount) }}
+            {% endif %}
+            
+            {# Affichage du type de paiement détecté #}
+            <div class="mt-2">
+              <small id="payment-type-indicator" class="text-muted">
+                <i class="ri-information-line"></i> 
+                Cliquez sur un bouton ci-dessus pour sélectionner le montant
+              </small>
+            </div>
+          </div>
+
+          {# --- Méthode (UI boutons → pilote les radios réelles) --- #}
+          <div class="mb-3">
+            <label class="form-label">Méthode de paiement</label>
+
+            {% if form.methode is defined %}
+              <div class="d-none">
+                {{ form_row(form.methode) }}
+              </div>
+
+              <div class="row g-2">
+                <div class="col-6">
+                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-especes" checked>
+                  <label class="btn btn-outline-dark w-100" for="m-especes"
+                         onclick="(function(){var r0=document.getElementById('{{ form.methode.vars.id }}_0'); if(r0){r0.checked=true;r0.dispatchEvent(new Event('change',{bubbles:true}));}})();">
+                    <i class="ri-wallet-3-line me-1"></i> Espèces
+                  </label>
+                </div>
+                <div class="col-6">
+                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-mobile">
+                  <label class="btn btn-outline-dark w-100" for="m-mobile"
+                         onclick="(function(){var r1=document.getElementById('{{ form.methode.vars.id }}_1'); if(r1){r1.checked=true;r1.dispatchEvent(new Event('change',{bubbles:true}));}})();">
+                    <i class="ri-smartphone-line me-1"></i> Mobile
+                  </label>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          {# --- Notes (OPTIONNEL) --- #}
+          <div class="mb-3">
+            <label class="form-label">Notes <small class="text-muted">(optionnel)</small></label>
+            {% if form.notes is defined %}
+              {{ form_widget(form.notes, {
+                attr: {
+                  rows: 3,
+                  placeholder: 'Ajouter des notes sur ce paiement...'
+                }
+              }) }}
+              {{ form_errors(form.notes) }}
+            {% else %}
+              <textarea class="form-control" rows="3" placeholder="Ajouter des notes sur ce paiement..."></textarea>
+            {% endif %}
+          </div>
+
+          {# --- paidAt caché --- #}
+          <div class="d-none">
+            {% if form.paidAt is defined %}
+              {{ form_row(form.paidAt) }}
+            {% endif %}
+          </div>
+
+          {# --- Autres champs restants (CSRF…) --- #}
+          {{ form_rest(form) }}
+
+          <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success" id="submit-payment-btn">
+              <i class="ri-check-line"></i> Valider le paiement
+            </button>
+            <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-ghost-secondary">Annuler</a>
+          </div>
+
+          {{ form_end(form) }}
         </div>
-        {% if form.amount is defined %}
-          <div class="d-none">
-            {{ form_row(form.amount) }}
-          </div>
-        {% endif %}
       </div>
-
-      {# --- Méthode (UI boutons → pilote les radios réelles) --- #}
-      <div class="mb-3">
-        <label class="form-label">Méthode de paiement</label>
-
-        {% if form.methode is defined %}
-          <div class="d-none">
-            {{ form_row(form.methode) }}
-          </div>
-
-          <div class="row g-2">
-            <div class="col-6">
-              <input class="btn-check" type="radio" name="payment_methode_fake" id="m-especes" checked>
-              <label class="btn btn-outline-dark w-100" for="m-especes"
-                     onclick="(function(){var r0=document.getElementById('{{ form.methode.vars.id }}_0'); if(r0){r0.checked=true;r0.dispatchEvent(new Event('change',{bubbles:true}));}})();">
-                <i class="ri-wallet-3-line me-1"></i> Espèces
-              </label>
-            </div>
-            <div class="col-6">
-              <input class="btn-check" type="radio" name="payment_methode_fake" id="m-mobile">
-              <label class="btn btn-outline-dark w-100" for="m-mobile"
-                     onclick="(function(){var r1=document.getElementById('{{ form.methode.vars.id }}_1'); if(r1){r1.checked=true;r1.dispatchEvent(new Event('change',{bubbles:true}));}})();">
-                <i class="ri-smartphone-line me-1"></i> Mobile
-              </label>
-            </div>
-          </div>
-        {% endif %}
-      </div>
-
-      {# --- Notes (OBLIGATOIRE) --- #}
-      <div class="mb-3">
-        <label class="form-label">Notes <span class="text-danger">*</span></label>
-        {% if form.notes is defined %}
-          {{ form_widget(form.notes, {
-            attr: {
-              rows: 3,
-              placeholder: 'Notes internes…',
-              required: true
-            }
-          }) }}
-          {{ form_errors(form.notes) }}
-        {% else %}
-          <textarea class="form-control" rows="3" placeholder="Notes internes…" required></textarea>
-        {% endif %}
-      </div>
-
-      {# --- paidAt caché --- #}
-      <div class="d-none">
-        {% if form.paidAt is defined %}
-          {{ form_row(form.paidAt) }}
-        {% endif %}
-      </div>
-
-      {# --- Autres champs restants (CSRF…) --- #}
-      {{ form_rest(form) }}
-
-      <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-success">
-          <i class="ri-check-line"></i> Valider et voir le reçu
-        </button>
-        <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-ghost-secondary">Annuler</a>
-      </div>
-
-      {{ form_end(form) }}
     </div>
   </div>
-</div>
-  </div>
+
+  {# JavaScript pour gérer les boutons de pourcentage #}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+  // Constantes
+  const remainingAmount = {{ rdv.remainingAmount }};
+  const displayInput = document.getElementById('payment-amount-display');
+  
+  // Trouver le champ amount généré par Symfony (peut avoir un ID différent)
+  const realInput = document.querySelector('input[name*="[amount]"]');
+  
+  const indicator = document.getElementById('payment-type-indicator');
+  const percentageButtons = document.querySelectorAll('.percentage-btn');
+  const submitBtn = document.getElementById('submit-payment-btn');
+
+  // Debug: afficher l'ID du champ trouvé
+  console.log('Real input found:', realInput);
+  if (realInput) {
+    console.log('Real input ID:', realInput.id);
+    console.log('Real input name:', realInput.name);
+  }
+
+  // Variable pour stocker le montant sélectionné
+  let selectedAmount = 0;
+
+  // Fonction pour formater les montants avec espaces
+  function formatAmount(amount) {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
+
+  // Fonction pour mettre à jour l'indicateur de type de paiement
+  function updatePaymentIndicator(amount) {
+    if (!indicator) return;
+    if (amount === 0) {
+      indicator.innerHTML = '<i class="ri-information-line"></i> Cliquez sur un bouton ci-dessus pour sélectionner le montant';
+      indicator.className = 'text-muted';
+    } else if (amount > remainingAmount) {
+      indicator.innerHTML = '<i class="ri-error-warning-line"></i> Le montant dépasse le reste à payer (' + formatAmount(remainingAmount) + ' MRU)';
+      indicator.className = 'text-danger';
+    } else if (amount === remainingAmount) {
+      indicator.innerHTML = '<i class="ri-check-circle-line"></i> <strong>Paiement final</strong> - Le rendez-vous sera marqué comme entièrement payé';
+      indicator.className = 'text-success';
+    } else {
+      const percentage = Math.round((amount / remainingAmount) * 100);
+      indicator.innerHTML = '<i class="ri-coins-line"></i> <strong>Acompte</strong> de ' + formatAmount(amount) + ' MRU (' + percentage + '%) - Reste : ' + formatAmount(remainingAmount - amount) + ' MRU';
+      indicator.className = 'text-warning';
+    }
+  }
+
+  // Gestionnaire pour les boutons de pourcentage
+  percentageButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const percentage = parseInt(this.getAttribute('data-percentage'));
+      const calculatedAmount = Math.round((remainingAmount * percentage) / 100);
+
+      // Stocker le montant
+      selectedAmount = calculatedAmount;
+
+      // Mettre à jour l'affichage
+      if (displayInput) {
+        displayInput.value = formatAmount(calculatedAmount);
+      }
+
+      // Mettre à jour le champ réel du formulaire
+      if (realInput) {
+        realInput.value = calculatedAmount;  // <-- Ici on met à jour le champ Symfony
+      }
+
+      // Mettre à jour l'indicateur
+      updatePaymentIndicator(calculatedAmount);
+
+      // Effet visuel sur le bouton cliqué
+      percentageButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      });
+
+      this.classList.add('active');
+
+      // Changer la couleur du bouton actif
+      if (percentage === 100) {
+        this.style.backgroundColor = '#198754';
+        this.style.color = 'white';
+        this.style.borderColor = '#198754';
+      } else {
+        this.style.backgroundColor = '#0d6efd';
+        this.style.color = 'white';
+        this.style.borderColor = '#0d6efd';
+      }
+
+      // Animation du champ d'affichage
+      if (displayInput) {
+        displayInput.classList.add('border-primary', 'border-3');
+        setTimeout(function() {
+          displayInput.classList.remove('border-primary', 'border-3');
+        }, 500);
+      }
+    });
+  });
+
+  // Validation avant soumission
+  const form = document.getElementById('payment-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      console.log('Form submit - realInput:', realInput);
+      console.log('Form submit - realInput.value:', realInput ? realInput.value : 'null');
+      console.log('Form submit - selectedAmount:', selectedAmount);
+      
+      if (!realInput) {
+        e.preventDefault();
+        alert('Erreur : champ de montant introuvable. Veuillez recharger la page.');
+        return false;
+      }
+      
+      if (!realInput.value || realInput.value === '' || realInput.value === '0') {
+        e.preventDefault();
+        alert('Veuillez sélectionner un montant à payer en cliquant sur un des boutons.');
+        return false;
+      }
+
+      const amount = parseInt(realInput.value);
+      if (isNaN(amount) || amount <= 0) {
+        e.preventDefault();
+        alert('Veuillez sélectionner un montant valide.');
+        return false;
+      }
+      
+      if (amount > remainingAmount) {
+        e.preventDefault();
+        alert('Le montant saisi (' + formatAmount(amount) + ' MRU) dépasse le reste à payer (' + formatAmount(remainingAmount) + ' MRU).');
+        return false;
+      }
+    });
+  }
+});
+
+  </script>
+
+  {# CSS personnalisé #}
+  <style>
+    .percentage-btn {
+      font-weight: 600;
+      transition: all 0.3s ease;
+      padding: 0.75rem 0.5rem;
+    }
+    
+    .percentage-btn strong {
+      display: block;
+      font-size: 1.1rem;
+    }
+    
+    .percentage-btn small {
+      opacity: 0.8;
+      font-weight: normal;
+    }
+    
+    .percentage-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .percentage-btn.active {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    #payment-amount-display {
+      cursor: default;
+      user-select: none;
+    }
+    
+    #payment-amount-display:focus {
+      outline: none;
+      box-shadow: none;
+    }
+    
+    .border-primary {
+      border-color: #0d6efd !important;
+      animation: pulse 0.5s ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    
+    #payment-type-indicator {
+      font-size: 0.9rem;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      display: block;
+    }
+    
+    #payment-type-indicator i {
+      margin-right: 0.25rem;
+    }
+  </style>
 {% endblock %}

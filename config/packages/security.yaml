@@ -37,6 +37,7 @@ security:
     - { path: ^/prestation, roles: ROLE_ADMIN }
     - { path: ^/cash/categories, roles: ROLE_ADMIN }
     - { path: ^/deposit/delete, roles: ROLE_ADMIN }
+    - { path: ^/cash/expense/new, roles: ROLE_ADMIN }
     - { path: ^/dashboard, roles: ROLE_USER }
     - { path: ^/rdv, roles: ROLE_USER }
     - { path: ^/payment, roles: ROLE_USER }
