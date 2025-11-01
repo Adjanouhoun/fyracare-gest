@@ -1,6 +1,5 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Détail RDV | Velzon
-{% endblock %}
+{% block title %}Détail RDV | Velzon{% endblock %}
 
 {% block page_header %}
 	<div class="row">
@@ -18,7 +17,10 @@
 						<li class="breadcrumb-item">
 							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
 						</li>
-						<li class="breadcrumb-item active">Rendez-vous</li>
+						<li class="breadcrumb-item">
+							<a href="{{ path('app_rdv_all') }}">Rendez-vous</a>
+						</li>
+						<li class="breadcrumb-item active">Détail</li>
 					</ol>
 				</div>
 			</div>
@@ -29,7 +31,7 @@
 			<div class="row mb-3 pb-1">
 				<div class="row mb-3">
 					<div class="col">
-						<h4 class="fs-16 mb-1">Détail du rendez-vous</h4>
+						<h4 class="fs-16 mb-1">Détail du rendez-vous #{{ rdv.id }}</h4>
 						<p class="text-muted mb-0">Client & prestation</p>
 					</div>
 				</div>
@@ -37,7 +39,29 @@
 		</div>
 	</div>
 {% endblock %}
+
 {% block body %}
+	{# Alerte paiement partiel #}
+	{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+		<div class="alert alert-warning border-warning alert-dismissible fade show" role="alert">
+			<div class="d-flex align-items-center">
+				<i class="ri-alert-line fs-2 me-3"></i>
+				<div class="flex-grow-1">
+					<strong>Paiement partiel en cours</strong><br>
+					<span class="text-muted">
+						{{ rdv.totalPaid|number_format(0, ',', ' ') }} MRU versés sur {{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU. 
+						Reste à payer : <strong class="text-danger">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</strong>
+					</span>
+				</div>
+				<a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-warning">
+					<i class="ri-cash-line me-1"></i>
+					Compléter le paiement
+				</a>
+			</div>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	{% endif %}
+
 	<div class="row">
 		<div class="col-lg-8">
 			<div class="card">
@@ -46,131 +70,209 @@
 					<div class="row g-3">
 						<div class="col-md-6">
 							<strong>Client :</strong>
-							{{ rdv.client ? rdv.client.nometprenom : '—' }}</div>
+							{{ rdv.client ? rdv.client.nometprenom : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Téléphone :</strong>
-							{{ rdv.client ? rdv.client.telephone : '—' }}</div>
+							{{ rdv.client ? rdv.client.telephone : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Prestation :</strong>
-							{{ rdv.prestation ? rdv.prestation.libelle : '—' }}</div>
+							{{ rdv.prestation ? rdv.prestation.libelle : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Prix :</strong>
-							{{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}</div>
+							{{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Début :</strong>
-							{{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}</div>
+							{{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Fin :</strong>
-							{{ rdv.endAt ? rdv.endAt|date('d/m/Y H:i') : '—' }}</div>
+							{{ rdv.endAt ? rdv.endAt|date('d/m/Y H:i') : '—' }}
+						</div>
 						<div class="col-md-6">
 							<strong>Statut :</strong>
-							{% set bcl = {'planifie':'bg-warning-subtle text-warning', 'honore':'bg-success-subtle text-success', 'annule':'bg-danger-subtle text-danger'} %}
-							<span class="badge {{ bcl[rdv.status|default('planifie')] ?? 'bg-secondary' }}">{{ rdv.status|default('planifie')|capitalize }}</span>
+							{% set bcl = {
+								'PLANIFIE':'bg-info-subtle text-info', 
+								'CONFIRME':'bg-primary-subtle text-primary', 
+								'HONORE':'bg-success-subtle text-success', 
+								'ANNULE':'bg-danger-subtle text-danger',
+								'ABSENT':'bg-warning-subtle text-warning'
+							} %}
+							<span class="badge {{ bcl[rdv.status] ?? 'bg-secondary' }}">{{ rdv.status|capitalize }}</span>
 						</div>
 						<div class="col-12">
-							<strong>Notes :</strong><br>{{ rdv.notes ?: '—' }}</div>
+							<strong>Notes :</strong><br>
+							{{ rdv.notes ?: '—' }}
+						</div>
 					</div>
 
 					<div class="mt-4 d-flex gap-2">
 						<a href="{{ path('app_rdv_edit', {id: rdv.id}) }}" class="btn btn-soft-secondary">
 							<i class="ri-pencil-line"></i>
-							Modifier</a>
-						{% if rdv.prestation %}
+							Modifier
+						</a>
+						{% if rdv.prestation and rdv.remainingAmount > 0 %}
 							<a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success">
 								<i class="ri-money-dollar-circle-line"></i>
-								Payer</a>
+								{% if rdv.totalPaid > 0 %}
+									Compléter le paiement
+								{% else %}
+									Payer
+								{% endif %}
+							</a>
 						{% endif %}
-						<a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">Retour</a>
+						<a href="{{ path('app_rdv_delete_confirm', {id: rdv.id}) }}" class="btn btn-danger">
+							<i class="ri-delete-bin-line"></i>
+							Supprimer
+						</a>
+						<a href="{{ path('app_rdv_all') }}" class="btn btn-ghost-secondary">Retour</a>
 					</div>
 				</div>
 			</div>
 		</div>
+
 		<div class="col-lg-4">
 			{# Statut de paiement #}
-<div class="card mb-3">
-    <div class="card-header">
-        <h5>Statut de paiement</h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-4">
-                <strong>Montant total :</strong><br>
-                {{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU
-            </div>
-            <div class="col-md-4">
-                <strong>Montant payé :</strong><br>
-                {{ rdv.totalPaid|number_format(0, ',', ' ') }} MRU
-            </div>
-            <div class="col-md-4">
-                <strong>Reste à payer :</strong><br>
-                <span class="text-{{ rdv.remainingAmount > 0 ? 'danger' : 'success' }}">
-                    {{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
-                </span>
-            </div>
-        </div>
-        <div class="mt-3">
-            <strong>Statut :</strong>
-            {% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
-                <span class="badge bg-success">Payé</span>
-            {% elseif rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
-                <span class="badge bg-warning">Partiellement payé</span>
-            {% else %}
-                <span class="badge bg-secondary">Non payé</span>
-            {% endif %}
-        </div>
+			<div class="card mb-3 {{ rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') ? 'border-warning' : '' }}">
+				<div class="card-header {{ rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') ? 'bg-warning-subtle' : '' }}">
+					<h5 class="mb-0">
+						<i class="ri-wallet-3-line me-2"></i>
+						Statut de paiement
+					</h5>
+				</div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div class="col-12">
+							<div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+								<div>
+									<small class="text-muted d-block">Montant total</small>
+									<h4 class="mb-0">{{ rdv.totalAmount|number_format(0, ',', ' ') }} <small class="text-muted">MRU</small></h4>
+								</div>
+								<div class="avatar-sm">
+									<span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
+										<i class="ri-price-tag-3-line"></i>
+									</span>
+								</div>
+							</div>
+						</div>
 
-        {# Afficher les paiements #}
-        {% if rdv.payments|length > 0 %}
-            <hr>
-            <h6>Historique des paiements</h6>
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Montant</th>
-                        <th>Méthode</th>
-                        <th>Type</th>
-                        <th>Reçu</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for payment in rdv.payments %}
-                        <tr>
-                            <td>{{ payment.paidAt|date('d/m/Y H:i') }}</td>
-                            <td>{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
-                            <td>{{ payment.methode }}</td>
-                            <td>
-                                {% if payment.isDeposit %}
-                                    <span class="badge bg-info">Acompte</span>
-                                {% else %}
-                                    <span class="badge bg-success">Paiement final</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('app_payment_show', {id: payment.id}) }}" class="btn btn-sm btn-primary">
-                                    Voir
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
+						<div class="col-12">
+							<div class="d-flex justify-content-between align-items-center p-3 bg-success-subtle rounded">
+								<div>
+									<small class="text-success d-block">Montant payé</small>
+									<h4 class="mb-0 text-success">{{ rdv.totalPaid|number_format(0, ',', ' ') }} <small>MRU</small></h4>
+								</div>
+								<div class="avatar-sm">
+									<span class="avatar-title bg-success text-white rounded-circle fs-3">
+										<i class="ri-check-line"></i>
+									</span>
+								</div>
+							</div>
+						</div>
 
-        {# Bouton pour ajouter un paiement #}
-        {% if rdv.remainingAmount > 0 %}
-            <div class="mt-3">
-                <a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success">
-                    {% if rdv.totalPaid > 0 %}
-                        Verser le reste ({{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
-                    {% else %}
-                        Enregistrer un paiement
-                    {% endif %}
-                </a>
-            </div>
-        {% endif %}
-    </div>
-</div>
+						{% if rdv.remainingAmount > 0 %}
+							<div class="col-12">
+								<div class="d-flex justify-content-between align-items-center p-3 bg-danger-subtle rounded">
+									<div>
+										<small class="text-danger d-block">Reste à payer</small>
+										<h4 class="mb-0 text-danger">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} <small>MRU</small></h4>
+									</div>
+									<div class="avatar-sm">
+										<span class="avatar-title bg-danger text-white rounded-circle fs-3">
+											<i class="ri-error-warning-line"></i>
+										</span>
+									</div>
+								</div>
+							</div>
+						{% endif %}
+					</div>
 
+					<div class="mt-3">
+						<strong>Statut :</strong>
+						{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+							<span class="badge bg-success fs-13">
+								<i class="ri-check-double-line me-1"></i>
+								Entièrement payé
+							</span>
+						{% elseif rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+							<span class="badge bg-warning fs-13">
+								<i class="ri-error-warning-line me-1"></i>
+								Partiellement payé
+							</span>
+						{% else %}
+							<span class="badge bg-secondary fs-13">
+								<i class="ri-close-circle-line me-1"></i>
+								Non payé
+							</span>
+						{% endif %}
+					</div>
+
+					{# Historique des paiements #}
+					{% if rdv.payments|length > 0 %}
+						<hr class="my-3">
+						<h6>
+							<i class="ri-history-line me-1"></i>
+							Historique des paiements ({{ rdv.payments|length }})
+						</h6>
+						<div class="table-responsive">
+							<table class="table table-sm table-borderless mb-0">
+								<thead class="table-light">
+									<tr>
+										<th>Date</th>
+										<th>Montant</th>
+										<th>Type</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for payment in rdv.payments %}
+										<tr>
+											<td>
+												<small>{{ payment.paidAt|date('d/m/Y') }}</small><br>
+												<small class="text-muted">{{ payment.paidAt|date('H:i') }}</small>
+											</td>
+											<td>
+												<strong>{{ payment.amount|number_format(0, ',', ' ') }}</strong>
+												<small class="text-muted">MRU</small><br>
+												<small class="text-muted">{{ payment.methode }}</small>
+											</td>
+											<td>
+												{% if payment.isDeposit %}
+													<span class="badge bg-info-subtle text-info">Acompte</span>
+												{% else %}
+													<span class="badge bg-success-subtle text-success">Final</span>
+												{% endif %}
+											</td>
+											<td class="text-end">
+												<a href="{{ path('app_payment_show', {id: payment.id}) }}" class="btn btn-sm btn-soft-primary" title="Voir le reçu">
+													<i class="ri-file-text-line"></i>
+												</a>
+											</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+					{% endif %}
+
+					{# Bouton pour ajouter un paiement #}
+					{% if rdv.remainingAmount > 0 %}
+						<div class="mt-3 d-grid">
+							<a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-{{ rdv.totalPaid > 0 ? 'warning' : 'success' }} btn-lg">
+								<i class="ri-cash-line me-2"></i>
+								{% if rdv.totalPaid > 0 %}
+									Verser le reste ({{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
+								{% else %}
+									Enregistrer un paiement
+								{% endif %}
+							</a>
+						</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
 	</div>
 {% endblock %}

@@ -26,23 +26,71 @@ class RdvController extends AbstractController
         private AppointmentOverlapService $overlapService
     ) {}
 
+    /**
+     * Page principale RDV : RDV du jour + RDV impayés
+     */
     #[Route('/', name: 'app_rdv_index', methods: ['GET'])]
     public function index(Request $request, RdvRepository $repo, PaginatorInterface $paginator): Response
     {
         $today = new \DateTimeImmutable('today', new \DateTimeZone('Europe/Paris'));
+        $status = $request->query->get('status');
+        $q = trim((string)$request->query->get('q', ''));
+
+        // Créer le QueryBuilder de base
+        $qb = $repo->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p');
+
+        // Logique : RDV du jour OU RDV impayés (toutes dates)
+        $todayStart = $today->setTime(0, 0, 0);
+        $todayEnd = $today->setTime(23, 59, 59);
+
+        $qb->where(
+            $qb->expr()->orX(
+                // RDV du jour
+                $qb->expr()->between('r.startAt', ':todayStart', ':todayEnd'),
+                // OU RDV non payés ou partiellement payés
+                $qb->expr()->in('r.paymentStatus', [Rdv::PS_NON_PAYE, Rdv::PS_PARTIEL])
+            )
+        )
+        ->setParameter('todayStart', $todayStart)
+        ->setParameter('todayEnd', $todayEnd);
+
+        // Filtre par statut
+        if ($status) {
+            $qb->andWhere('r.status = :st')->setParameter('st', $status);
+        }
+
+        // Recherche
+        if ($q !== '') {
+            $qb->andWhere('LOWER(c.nometprenom) LIKE :q OR LOWER(p.libelle) LIKE :q2 OR c.telephone LIKE :qraw')
+               ->setParameter('q', '%'.mb_strtolower($q).'%')
+               ->setParameter('q2', '%'.mb_strtolower($q).'%')
+               ->setParameter('qraw', '%'.$q.'%');
+        }
+
+        $qb->orderBy('r.startAt', 'ASC');
 
         $pagination = $paginator->paginate(
-            $repo->createQBForDay($today),
+            $qb,
             $request->query->getInt('page', 1),
-            10
+            15
         );
 
         return $this->render('rdv/index.html.twig', [
             'today'      => $today,
             'pagination' => $pagination,
+            'status'     => $status,
+            'q'          => $q,
+            'statuses'   => [
+                Rdv::S_PLANIFIE, Rdv::S_CONFIRME, Rdv::S_HONORE, Rdv::S_ANNULE, Rdv::S_ABSENT
+            ],
         ]);
     }
 
+    /**
+     * Tous les RDV (historique complet)
+     */
     #[Route('/all', name: 'app_rdv_all', methods: ['GET'])]
     public function all(Request $request, RdvRepository $repo, PaginatorInterface $paginator): Response
     {
@@ -81,6 +129,20 @@ class RdvController extends AbstractController
         ]);
     }
 
+    #[Route('/partial-payments', name: 'app_rdv_partial_payments', methods: ['GET'])]
+    public function partialPayments(Request $request, RdvRepository $repo, PaginatorInterface $paginator): Response
+    {
+        $pagination = $paginator->paginate(
+            $repo->createQBForPartiallyPaid(),
+            $request->query->getInt('page', 1),
+            15
+        );
+
+        return $this->render('rdv/partial_payments.html.twig', [
+            'pagination' => $pagination,
+        ]);
+    }
+
     #[Route('/new', name: 'app_rdv_new', methods: ['GET', 'POST'])]
     public function new(
         Request $request, 
@@ -90,7 +152,7 @@ class RdvController extends AbstractController
     {
         $rdv = new Rdv();
         
-        // ✅ Pré-remplir le client si l'ID est dans l'URL
+        // Pré-remplir le client si l'ID est dans l'URL
         $clientId = $request->query->get('client');
         if ($clientId) {
             $client = $clientRepo->find($clientId);
@@ -101,14 +163,11 @@ class RdvController extends AbstractController
             }
         }
         
-        // ✅ Pré-remplir la date si présente dans l'URL
+        // Pré-remplir la date si présente dans l'URL
         $dateParam = $request->query->get('date');
         if ($dateParam) {
             try {
-                // Nettoyer la date pour enlever le timezone si présent
-                // Ex: "2025-10-21T00:30:00 02:00" ou "2025-10-21T00:30:00+02:00"
                 $dateClean = preg_replace('/([T\s]\d{2}:\d{2}:\d{2})[\s\+\-].*$/', '$1', $dateParam);
-                
                 $date = new \DateTimeImmutable($dateClean);
                 $rdv->setStartAt($date);
             } catch (\Exception $e) {
@@ -185,94 +244,84 @@ class RdvController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/delete-confirm', name: 'app_rdv_delete_confirm', methods: ['GET'])]
+    public function deleteConfirm(Rdv $rdv, EntityManagerInterface $em): Response
+    {
+        $payments = $rdv->getPayments()->toArray();
+        $cashRepo = $em->getRepository(\App\Entity\CashMovement::class);
+        $cashMovements = $cashRepo->findByRdvId($rdv->getId());
+        
+        return $this->render('rdv/delete_confirm.html.twig', [
+            'rdv' => $rdv,
+            'payments' => $payments,
+            'cashMovements' => $cashMovements,
+        ]);
+    }
+
     #[Route('/{id}', name: 'app_rdv_delete', methods: ['POST'])]
     public function delete(Request $request, Rdv $rdv, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('delete'.$rdv->getId(), $request->request->get('_token'))) {
+            $cashRepo = $em->getRepository(\App\Entity\CashMovement::class);
+            $cashMovements = $cashRepo->findByRdvId($rdv->getId());
+            
+            foreach ($cashMovements as $movement) {
+                $em->remove($movement);
+            }
+            
             $em->remove($rdv);
             $em->flush();
-            $this->addFlash('success', 'Rendez-vous supprimé.');
+            
+            $this->addFlash('success', 'Rendez-vous, paiements et mouvements de caisse supprimés avec succès.');
         }
         return $this->redirectToRoute('app_rdv_index');
     }
 
     // ========== ROUTES API POUR LE CALENDRIER ==========
 
-    /**
-     * @IsGranted("IS_AUTHENTICATED_REMEMBERED")
-     */
     #[Route('/api/calendar-events', name: 'api_rdv_calendar_events', methods: ['GET'])]
     public function calendarEvents(Request $request, RdvRepository $rdvRepo): JsonResponse
     {
         try {
             $start = $request->query->get('start');
             $end = $request->query->get('end');
-            
-            error_log("=== API CALENDAR EVENTS ===");
-            error_log("Start brut: $start");
-            error_log("End brut: $end");
 
             if (!$start || !$end) {
                 return $this->json(['error' => 'Paramètres start et end requis'], 400);
             }
 
-            // ✅ FIX : Nettoyer les dates pour enlever le timezone
-            // FullCalendar envoie : 2025-09-01T00:00:00+02:00
-            // On veut : 2025-09-01 00:00:00
             $startClean = preg_replace('/T(\d{2}:\d{2}:\d{2}).*$/', ' $1', $start);
             $endClean = preg_replace('/T(\d{2}:\d{2}:\d{2}).*$/', ' $1', $end);
-            
-            error_log("Start nettoyé: $startClean");
-            error_log("End nettoyé: $endClean");
 
-            // Conversion en DateTimeImmutable
             try {
                 $startDate = new \DateTimeImmutable($startClean);
                 $endDate = new \DateTimeImmutable($endClean);
             } catch (\Exception $e) {
-                error_log("❌ Erreur parsing dates: " . $e->getMessage());
                 return $this->json(['error' => 'Format de date invalide'], 400);
             }
 
-            // Requête avec BETWEEN
             $qb = $rdvRepo->createQueryBuilder('r')
-                ->leftJoin('r.client', 'c')
-                ->addSelect('c')
-                ->leftJoin('r.prestation', 'p')
-                ->addSelect('p')
+                ->leftJoin('r.client', 'c')->addSelect('c')
+                ->leftJoin('r.prestation', 'p')->addSelect('p')
                 ->where('r.startAt BETWEEN :start AND :end')
                 ->setParameter('start', $startDate)
                 ->setParameter('end', $endDate)
                 ->orderBy('r.startAt', 'ASC');
 
             $rdvs = $qb->getQuery()->getResult();
-            
-            error_log("✅ RDV trouvés: " . count($rdvs));
 
-            // Construction du JSON
             $events = [];
             foreach ($rdvs as $rdv) {
-                // Client
                 $client = 'Sans client';
                 if ($rdv->getClient()) {
-                    if (method_exists($rdv->getClient(), 'getNometprenom')) {
-                        $client = $rdv->getClient()->getNometprenom();
-                    } elseif (method_exists($rdv->getClient(), '__toString')) {
-                        $client = (string) $rdv->getClient();
-                    }
+                    $client = $rdv->getClient()->getNometprenom();
                 }
                 
-                // Prestation
                 $prestation = 'Sans prestation';
                 if ($rdv->getPrestation()) {
-                    if (method_exists($rdv->getPrestation(), 'getLibelle')) {
-                        $prestation = $rdv->getPrestation()->getLibelle();
-                    } elseif (method_exists($rdv->getPrestation(), '__toString')) {
-                        $prestation = (string) $rdv->getPrestation();
-                    }
+                    $prestation = $rdv->getPrestation()->getLibelle();
                 }
                 
-                // Statut et couleur
                 $status = $rdv->getStatus() ?? 'PLANIFIE';
                 $backgroundColor = match($status) {
                     'PLANIFIE' => '#0dcaf0',
@@ -300,26 +349,14 @@ class RdvController extends AbstractController
                 ];
             }
 
-            error_log("📦 Events JSON: " . json_encode($events));
-            
             return $this->json($events);
 
         } catch (\Exception $e) {
-            error_log("❌ ERREUR GLOBALE: " . $e->getMessage());
-            error_log("Stack: " . $e->getTraceAsString());
-            
-            return $this->json([
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
+            error_log("Erreur API: " . $e->getMessage());
+            return $this->json(['error' => $e->getMessage()], 500);
         }
     }
 
-
-    /**
-     * API: Créer un RDV rapide depuis le calendrier
-     */
     #[Route('/api/quick-create', name: 'api_rdv_quick_create', methods: ['POST'])]
     public function quickCreate(
         Request $request,
@@ -332,7 +369,6 @@ class RdvController extends AbstractController
         try {
             $rdv = new Rdv();
             
-            // Client
             if (!empty($data['clientId'])) {
                 $client = $clientRepo->find($data['clientId']);
                 if (!$client) {
@@ -343,7 +379,6 @@ class RdvController extends AbstractController
                 return $this->json(['error' => 'Client requis'], 400);
             }
 
-            // Prestation
             if (!empty($data['prestationId'])) {
                 $prestation = $prestRepo->find($data['prestationId']);
                 if (!$prestation) {
@@ -354,12 +389,10 @@ class RdvController extends AbstractController
                 return $this->json(['error' => 'Prestation requise'], 400);
             }
 
-            // Dates
             if (!empty($data['start'])) {
                 $start = new \DateTimeImmutable($data['start']);
                 $rdv->setStartAt($start);
                 
-                // Calcul auto de la fin
                 $duree = $prestation->getDureeMin();
                 $end = $start->modify("+{$duree} minutes");
                 $rdv->setEndAt($end);
@@ -367,15 +400,12 @@ class RdvController extends AbstractController
                 return $this->json(['error' => 'Date de début requise'], 400);
             }
 
-            // Statut
             $rdv->setStatus($data['status'] ?? Rdv::S_PLANIFIE);
 
-            // Notes
             if (!empty($data['notes'])) {
                 $rdv->setNotes($data['notes']);
             }
 
-            // Vérification des chevauchements
             if (!$this->overlapService->canScheduleAppointment($rdv)) {
                 return $this->json([
                     'error' => $this->overlapService->getOverlapErrorMessage($rdv)
@@ -392,7 +422,7 @@ class RdvController extends AbstractController
             ], 201);
 
         } catch (\Exception $e) {
-            error_log("❌ Erreur quick-create: " . $e->getMessage());
+            error_log("Erreur quick-create: " . $e->getMessage());
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

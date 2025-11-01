@@ -1,0 +1,212 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Confirmation de suppression | Velzon{% endblock %}
+
+{% block page_header %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <div>
+                <h4 class="mb-sm-0">
+                    <i class="ri-delete-bin-line text-danger"></i>
+                    Confirmation de suppression
+                </h4>
+                <p class="text-muted mb-0">Vérifiez les éléments qui seront supprimés</p>
+            </div>
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ path('app_rdv_index') }}">Rendez-vous</a></li>
+                    <li class="breadcrumb-item active">Confirmation suppression</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger-subtle">
+                <h5 class="card-title text-danger mb-0">
+                    <i class="ri-alert-line"></i> Attention : Cette action est irréversible !
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Vous êtes sur le point de supprimer ce rendez-vous.</strong><br>
+                    Les éléments suivants seront également supprimés de manière définitive :
+                </div>
+
+                {# Informations du RDV #}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Rendez-vous</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <strong>Client :</strong> {{ rdv.client ? rdv.client.nometprenom : '—' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Téléphone :</strong> {{ rdv.client ? rdv.client.telephone : '—' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Prestation :</strong> {{ rdv.prestation ? rdv.prestation.libelle : '—' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Prix :</strong> {{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Date :</strong> {{ rdv.startAt ? rdv.startAt|date('d/m/Y H:i') : '—' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Statut :</strong>
+                                <span class="badge bg-secondary">{{ rdv.status|default('planifie')|capitalize }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Paiements associés #}
+                {% if payments|length > 0 %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-warning-subtle">
+                        <h5 class="mb-0 text-warning">
+                            <i class="ri-money-dollar-circle-line"></i>
+                            {{ payments|length }} Paiement(s) à supprimer
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>N° Reçu</th>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Méthode</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.receiptNumber }}</td>
+                                    <td>{{ payment.paidAt|date('d/m/Y H:i') }}</td>
+                                    <td class="text-end">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+                                    <td>{{ payment.methode }}</td>
+                                    <td>
+                                        {% if payment.isDeposit %}
+                                            <span class="badge bg-info">Acompte</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Paiement final</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="2" class="text-end">Total :</td>
+                                    <td class="text-end">
+                                        {% set totalPayments = 0 %}
+                                        {% for payment in payments %}
+                                            {% set totalPayments = totalPayments + payment.amount %}
+                                        {% endfor %}
+                                        {{ totalPayments|number_format(0, ',', ' ') }} MRU
+                                    </td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Mouvements de caisse associés #}
+                {% if cashMovements|length > 0 %}
+                <div class="card mb-3 border-info">
+                    <div class="card-header bg-info-subtle">
+                        <h5 class="mb-0 text-info">
+                            <i class="ri-wallet-3-line"></i>
+                            {{ cashMovements|length }} Mouvement(s) de caisse à supprimer
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Montant</th>
+                                    <th>Source</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movement in cashMovements %}
+                                <tr>
+                                    <td>{{ movement.createdAt|date('d/m/Y H:i') }}</td>
+                                    <td>
+                                        <span class="badge {{ movement.type == 'IN' ? 'bg-success' : 'bg-danger' }}">
+                                            {{ movement.type == 'IN' ? 'Entrée' : 'Sortie' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">{{ movement.amount|number_format(0, ',', ' ') }} MRU</td>
+                                    <td>{{ movement.source }}</td>
+                                    <td class="small">{{ movement.notes|default('—') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="2" class="text-end">Total :</td>
+                                    <td class="text-end">
+                                        {% set totalCash = 0 %}
+                                        {% for movement in cashMovements %}
+                                            {% set totalCash = totalCash + movement.amount %}
+                                        {% endfor %}
+                                        {{ totalCash|number_format(0, ',', ' ') }} MRU
+                                    </td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Récapitulatif final #}
+                <div class="card bg-danger-subtle border-danger">
+                    <div class="card-body">
+                        <h5 class="text-danger mb-3">
+                            <i class="ri-information-line"></i> Récapitulatif de la suppression
+                        </h5>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>✗ 1</strong> Rendez-vous</li>
+                            <li><strong>✗ {{ payments|length }}</strong> Paiement(s)</li>
+                            <li><strong>✗ {{ cashMovements|length }}</strong> Mouvement(s) de caisse</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {# Boutons d'action #}
+                <div class="mt-4 d-flex gap-2">
+                    <form method="post" action="{{ path('app_rdv_delete', {id: rdv.id}) }}" onsubmit="return confirm('Êtes-vous absolument certain de vouloir supprimer ce rendez-vous et tous les éléments associés ? Cette action est IRRÉVERSIBLE.');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ri-delete-bin-line"></i>
+                            Confirmer la suppression
+                        </button>
+                    </form>
+                    <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-secondary">
+                        <i class="ri-close-line"></i>
+                        Annuler
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

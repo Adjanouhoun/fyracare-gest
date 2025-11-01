@@ -97,17 +97,83 @@
 									—
 									{{ payment.rdv.endAt|date('H:i') }}
 								</div>
+								{# Indication du type de paiement #}
+								<div class="mt-2">
+									{% if payment.isDeposit %}
+										<span class="badge bg-info">Acompte</span>
+									{% else %}
+										<span class="badge bg-success">Paiement final</span>
+									{% endif %}
+								</div>
 							</td>
 							<td class="text-end">{{ payment.amount|number_format(0, ',', ' ') }}</td>
 						</tr>
 					</tbody>
 					<tfoot>
 						<tr>
-							<th class="text-end">Total payé</th>
+							<th class="text-end">Montant du paiement</th>
 							<th class="text-end">{{ payment.amount|number_format(0, ',', ' ') }}</th>
 						</tr>
 					</tfoot>
 				</table>
+			</div>
+
+			{# --- STATUT DU PAIEMENT --- #}
+			<div class="card bg-light border mb-3">
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6">
+							<h6 class="text-uppercase text-muted mb-3">Statut du paiement</h6>
+							<div class="d-flex justify-content-between mb-2">
+								<span>Prix total de la prestation :</span>
+								<strong>{{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU</strong>
+							</div>
+							<div class="d-flex justify-content-between mb-2">
+								<span>Total payé (cumulé) :</span>
+								<strong class="text-success">{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</strong>
+							</div>
+							<div class="d-flex justify-content-between mb-2">
+								<span>Reste à payer :</span>
+								<strong class="{{ payment.rdv.remainingAmount > 0 ? 'text-danger' : 'text-success' }}">
+									{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
+								</strong>
+							</div>
+						</div>
+						<div class="col-md-6 d-flex align-items-center justify-content-center">
+							{% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+								<div class="text-center">
+									<div class="avatar-lg mx-auto mb-2">
+										<span class="avatar-title bg-success-subtle text-success rounded-circle fs-22">
+											<i class="ri-checkbox-circle-line"></i>
+										</span>
+									</div>
+									<h5 class="text-success mb-0">Paiement complet</h5>
+									<p class="text-muted small mb-0">La prestation est entièrement payée</p>
+								</div>
+							{% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+								<div class="text-center">
+									<div class="avatar-lg mx-auto mb-2">
+										<span class="avatar-title bg-warning-subtle text-warning rounded-circle fs-22">
+											<i class="ri-time-line"></i>
+										</span>
+									</div>
+									<h5 class="text-warning mb-0">Paiement partiel</h5>
+									<p class="text-muted small mb-0">{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU reste à payer</p>
+								</div>
+							{% else %}
+								<div class="text-center">
+									<div class="avatar-lg mx-auto mb-2">
+										<span class="avatar-title bg-secondary-subtle text-secondary rounded-circle fs-22">
+											<i class="ri-error-warning-line"></i>
+										</span>
+									</div>
+									<h5 class="text-secondary mb-0">Non payé</h5>
+									<p class="text-muted small mb-0">Aucun paiement enregistré</p>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
 			</div>
 
 			{# --- NOTES (si présentes) --- #}

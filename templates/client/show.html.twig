@@ -48,9 +48,9 @@
       <a href="{{ path('app_client_edit', {id: client.id}) }}" class="btn btn-soft-secondary">
         <i class="ri-pencil-line align-middle me-1"></i> Modifier
       </a>
-      <div onclick="return confirm('Supprimer ce client ? Tous ses rendez-vous et paiements seront aussi supprimés. Êtes-vous sûr ?');">
-          {{ include('client/_delete_form.html.twig') }}
-        </div>
+      <a href="{{ path('app_client_delete_confirm', {id: client.id}) }}" class="btn btn-danger">
+        <i class="ri-delete-bin-line align-middle me-1"></i> Supprimer
+      </a>
       <a href="{{ path('app_client_index') }}" class="btn btn-soft-dark">
         <i class="ri-arrow-left-line align-middle me-1"></i> Retour
       </a>

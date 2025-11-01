@@ -1,17 +1,34 @@
 {% extends 'layouts/main.html.twig' %}
 
-{% block title %}Tous les rendez-vous
-{% endblock %}
+{% block title %}Tous les rendez-vous{% endblock %}
 
 {% macro status_badge(s) %}
 	{% set map = {
     'HONORE':   'bg-success-subtle text-success',
     'CONFIRME': 'bg-primary-subtle text-primary',
     'ANNULE':   'bg-danger-subtle text-danger',
-    'ABSENT':   'bg-warning-subtle text-warning'
+    'ABSENT':   'bg-warning-subtle text-warning',
+    'PLANIFIE': 'bg-info-subtle text-info'
   } %}
 	<span class="badge {{ map[s] ?? 'bg-info-subtle text-info' }}">{{ s }}</span>
 {% endmacro %}
+
+{% macro payment_badge(rdv) %}
+	{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+		<span class="badge bg-success-subtle text-success">
+			<i class="ri-check-line"></i> Payé
+		</span>
+	{% elseif rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+		<span class="badge bg-warning-subtle text-warning">
+			<i class="ri-error-warning-line"></i> Partiel ({{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
+		</span>
+	{% else %}
+		<span class="badge bg-secondary-subtle text-secondary">
+			<i class="ri-close-line"></i> Non payé
+		</span>
+	{% endif %}
+{% endmacro %}
+
 {% block page_header %}
 	<div class="row">
 		<div class="col-12">
@@ -19,61 +36,78 @@
 				<div>
 					<h4 class="mb-sm-0">
 						<i class="ri-calendar-2-line"></i>
-						Gestion des Rendez-vous
+						Tous les Rendez-vous
 					</h4>
-					<p class="text-muted mb-0">Voir - Modifier - Payer un rendez-vous</p>
+					<p class="text-muted mb-0">Historique complet de tous les rendez-vous</p>
 				</div>
 				<div class="page-title-right">
 					<ol class="breadcrumb m-0">
 						<li class="breadcrumb-item">
 							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
 						</li>
-						<li class="breadcrumb-item active">Rendez-vous</li>
+						<li class="breadcrumb-item">
+							<a href="{{ path('app_rdv_index') }}">Rendez-vous</a>
+						</li>
+						<li class="breadcrumb-item active">Tous les RDV</li>
 					</ol>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="row mb-3 pb-1">
-				<div class="row mb-3">
-					<div class="col">
-						<h4 class="fs-16 mb-1">Tous les rendez-vous</h4>
-						<p class="text-muted mb-0">Filtre par statut et recherche.</p>
-					</div>
-					<div class="col-auto d-flex gap-2">
-						<a href="{{ path('app_rdv_index') }}" class="btn btn-soft-secondary">
-							<i class="ri-calendar-check-line align-middle me-1"></i>
-							RDV du jour
-						</a>
+{% endblock %}
+
+{% block body %}
+	{# Boutons de navigation #}
+	<div class="row mb-3">
+		<div class="col-12">
+			<div class="card">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h5 class="mb-0">Historique complet</h5>
+							<small class="text-muted">Tous les rendez-vous, toutes les dates</small>
+						</div>
+						<div class="d-flex gap-2">
+							<a href="{{ path('app_rdv_index') }}" class="btn btn-secondary">
+								<i class="ri-arrow-left-line me-1"></i>
+								Retour
+							</a>
+							<a href="{{ path('app_rdv_partial_payments') }}" class="btn btn-warning">
+								<i class="ri-alert-line me-1"></i>
+								Paiements partiels
+							</a>
+							<a href="{{ path('app_rdv_new') }}" class="btn btn-success">
+								<i class="ri-add-line me-1"></i>
+								Nouveau RDV
+							</a>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-{% endblock %}
-{% block body %}
+
+	{# Formulaire de filtres #}
 	<div class="card">
-		<div class="card-header">
-			<form method="get" class="row g-2 align-items-end">
+		<div class="card-header bg-light">
+			<form method="get" class="row g-3 align-items-end">
 				<div class="col-md-3">
-					<label class="form-label">Statut</label>
+					<label class="form-label fw-semibold">Statut RDV</label>
 					<select name="status" class="form-select">
-						<option value="">— Tous —</option>
+						<option value="">— Tous les statuts —</option>
 						{% for st in statuses %}
-							<option value="{{ st }}" {% if status == st %} selected {% endif %}>{{ st }}</option>
+							<option value="{{ st }}" {% if status == st %}selected{% endif %}>{{ st }}</option>
 						{% endfor %}
 					</select>
 				</div>
 				<div class="col-md-5">
-					<label class="form-label">Recherche (client / prestation / téléphone)</label>
-					<input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Ex: Diallo, coupe, 0700…">
+					<label class="form-label fw-semibold">Recherche</label>
+					<input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Client, prestation, téléphone...">
 				</div>
 				<div class="col-md-4">
-					<button class="btn btn-primary w-100">
-						<i class="ri-search-line align-middle me-1"></i>
-						Filtrer
+					<button type="submit" class="btn btn-primary w-100">
+						<i class="ri-search-line me-1"></i>
+						Rechercher
 					</button>
 				</div>
 			</form>
@@ -89,35 +123,57 @@
 								<th>Heure</th>
 								<th>Client</th>
 								<th>Prestation</th>
-								<th>Statut</th>
+								<th>Statut RDV</th>
+								<th>Paiement</th>
 								<th class="text-end">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
 							{% for rdv in pagination %}
-								{% set dejaPaye = rdv.payments|length > 0 %}
-								<tr>
-									<td>{{ rdv.startAt ? rdv.startAt|date('d/m/Y') : '—' }}</td>
+								<tr class="{{ rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') ? 'table-warning' : '' }}">
+									<td>
+										<span class="fw-medium">{{ rdv.startAt ? rdv.startAt|date('d/m/Y') : '—' }}</span>
+									</td>
 									<td>
 										{{ rdv.startAt ? rdv.startAt|date('H:i') : '—' }}
-										{% if rdv.endAt %}–
-											{{ rdv.endAt|date('H:i') }}
-										{% endif %}
+										{% if rdv.endAt %}— {{ rdv.endAt|date('H:i') }}{% endif %}
 									</td>
-									<td>{{ rdv.client }}</td>
-									<td>{{ rdv.prestation }}</td>
+									<td>
+										<div class="d-flex align-items-center">
+											<div class="avatar-xs me-2">
+												<span class="avatar-title rounded-circle bg-primary-subtle text-primary">
+													{{ rdv.client.nometprenom|slice(0,1)|upper }}
+												</span>
+											</div>
+											<div>
+												<h6 class="mb-0">{{ rdv.client.nometprenom }}</h6>
+												<small class="text-muted">{{ rdv.client.telephone }}</small>
+											</div>
+										</div>
+									</td>
+									<td>
+										<span class="fw-medium">{{ rdv.prestation.libelle }}</span><br>
+										<small class="text-muted">{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU</small>
+									</td>
 									<td>{{ _self.status_badge(rdv.status) }}</td>
+									<td>{{ _self.payment_badge(rdv) }}</td>
 									<td class="text-end">
 										<div class="btn-group">
-											<a class="btn btn-sm btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}">
+											<a class="btn btn-sm btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}" title="Détails">
 												<i class="ri-eye-line"></i>
 											</a>
-											<a class="btn btn-sm btn-soft-info" href="{{ path('app_rdv_edit', {id: rdv.id}) }}">
+											<a class="btn btn-sm btn-soft-info" href="{{ path('app_rdv_edit', {id: rdv.id}) }}" title="Modifier">
 												<i class="ri-pencil-line"></i>
 											</a>
-											<a class="btn btn-sm btn-soft-success {{ dejaPaye ? 'disabled' : '' }}" {% if not dejaPaye %} href="{{ path('app_payment_new', { rdv: rdv.id }) }}" {% else %} href="#" tabindex="-1" aria-disabled="true" title="Déjà payé" {% endif %}>
-												<i class="ri-cash-line"></i>
-											</a>
+											{% if rdv.remainingAmount > 0 %}
+												<a class="btn btn-sm btn-success" href="{{ path('app_payment_new', { rdv: rdv.id }) }}" title="Payer">
+													<i class="ri-cash-line"></i>
+												</a>
+											{% else %}
+												<a class="btn btn-sm btn-soft-success disabled" href="#" title="Déjà payé">
+													<i class="ri-check-line"></i>
+												</a>
+											{% endif %}
 										</div>
 									</td>
 								</tr>
@@ -130,9 +186,11 @@
 					{{ knp_pagination_render(pagination) }}
 				</div>
 			{% else %}
-				<div class="text-muted">Aucun rendez-vous trouvé.</div>
+				<div class="alert alert-info text-center mb-0">
+					<i class="ri-information-line fs-3 mb-2"></i>
+					<p class="mb-0">Aucun rendez-vous trouvé.</p>
+				</div>
 			{% endif %}
 		</div>
 	</div>
-
 {% endblock %}

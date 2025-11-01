@@ -37,7 +37,6 @@ final class DashboardController extends AbstractController
         for ($i=0; $i<30; $i++) {
             $date = $from30->modify("+$i days");
             $dateStr = $date->format('Y-m-d');
-            // Format d/m pour l'affichage
             $labels30[] = $date->format('d/m');
             $values30[] = $map30[$dateStr] ?? 0;
         }
@@ -66,7 +65,7 @@ final class DashboardController extends AbstractController
         $topLabels  = array_column($topRows, 'libelle');
         $topValues  = array_map(fn($r) => (int) $r['total'], $topRows);
 
-        // 🆕 RDV Récents (pour la section "Activité Récente")
+        // RDV Récents
         $recentRdvs = $rdvRepo->createQueryBuilder('r')
             ->leftJoin('r.client', 'c')->addSelect('c')
             ->leftJoin('r.prestation', 'p')->addSelect('p')
@@ -75,35 +74,38 @@ final class DashboardController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        // 🆕 Statistiques additionnelles
+        // Statistiques additionnelles
         $additionalStats = [
-            // Taux de confirmation
             'tauxConfirmation' => $kpis['rdv'] > 0 
                 ? round((($kpis['confirmes'] + $kpis['honores']) / $kpis['rdv']) * 100, 1)
                 : 0,
             
-            // Taux de conversion (RDV planifiés → honorés)
             'tauxConversion' => $kpis['rdv'] > 0 
                 ? round(($kpis['honores'] / $kpis['rdv']) * 100, 1)
                 : 0,
             
-            // CA moyen par RDV honoré
             'caMoyenParRdv' => $kpis['honores'] > 0
                 ? round($kpis['caToday'] / $kpis['honores'], 0)
                 : 0,
         ];
 
+        // ✅ Rendez-vous partiellement payés
+        $partiallyPaidRdvs = $rdvRepo->findPartiallyPaid(5);
+        $partiallyPaidCount = $rdvRepo->countPartiallyPaid();
+
         return $this->render('dashboard/index.html.twig', [
-            'from'             => $todayStart,
-            'to'               => $todayEnd,
-            'kpis'             => $kpis,
-            'labels30'         => $labels30,
-            'values30'         => $values30,
-            'statusWeek'       => $statusWeek,
-            'topLabels'        => $topLabels,
-            'topValues'        => $topValues,
-            'recentRdvs'       => $recentRdvs,
-            'additionalStats'  => $additionalStats,
+            'from'                => $todayStart,
+            'to'                  => $todayEnd,
+            'kpis'                => $kpis,
+            'labels30'            => $labels30,
+            'values30'            => $values30,
+            'statusWeek'          => $statusWeek,
+            'topLabels'           => $topLabels,
+            'topValues'           => $topValues,
+            'recentRdvs'          => $recentRdvs,
+            'additionalStats'     => $additionalStats,
+            'partiallyPaidRdvs'   => $partiallyPaidRdvs,
+            'partiallyPaidCount'  => $partiallyPaidCount,
         ]);
     }
 }

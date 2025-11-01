@@ -395,7 +395,19 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td class="tm_width_4">{{ payment.rdv.prestation.libelle }}</td>
+                    <td class="tm_width_4">
+                      {{ payment.rdv.prestation.libelle }}
+                      <br>
+                      <span style="display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 8px; margin-top: 5px; 
+                        {% if payment.isDeposit %}
+                          background: #d1ecf1; color: #0c5460;
+                        {% else %}
+                          background: #d4edda; color: #155724;
+                        {% endif %}
+                      ">
+                        {% if payment.isDeposit %}ACOMPTE{% else %}PAIEMENT FINAL{% endif %}
+                      </span>
+                    </td>
                     <td class="tm_width_6">
                       RDV du {{ payment.rdv.startAt|date('d/m/Y H:i') }} au {{ payment.rdv.endAt|date('H:i') }}
                     </td>
@@ -414,8 +426,39 @@
                   <p class="tm_mb2"><b class="tm_primary_color">Info paiement :</b></p>
                   <p class="tm_m0">
                     Méthode : {{ payment.methode }}<br>
-                    Montant : {{ payment.amount|number_format(0, ',', ' ') }} MRU
+                    Montant de ce paiement : {{ payment.amount|number_format(0, ',', ' ') }} MRU
                   </p>
+                  
+                  {# Statut du paiement #}
+                  <p class="tm_mb2" style="margin-top: 10px;"><b class="tm_primary_color">Statut de la prestation :</b></p>
+                  <p class="tm_m0" style="font-size: 8px;">
+                    Prix total : {{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU<br>
+                    Total payé : <b>{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</b><br>
+                    Reste à payer : <b style="{% if payment.rdv.remainingAmount > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">
+                      {{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
+                    </b>
+                  </p>
+                  
+                  {# Badge du statut #}
+                  <div style="margin-top: 10px;">
+                    <span style="display: inline-block; padding: 5px 10px; border-radius: 3px; font-size: 9px; font-weight: bold;
+                      {% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+                        background: #d4edda; color: #155724;
+                      {% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+                        background: #fff3cd; color: #856404;
+                      {% else %}
+                        background: #e2e3e5; color: #383d41;
+                      {% endif %}
+                    ">
+                      {% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+                        ✓ PAIEMENT COMPLET
+                      {% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+                        ⏱ PAIEMENT PARTIEL
+                      {% else %}
+                        ✗ NON PAYÉ
+                      {% endif %}
+                    </span>
+                  </div>
                 </td>
                 <td class="tm_right_footer">
                   <table>

@@ -99,4 +99,51 @@ class RdvRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()->getArrayResult();
     }
+
+    /**
+     * Récupère les rendez-vous partiellement payés
+     * (ceux avec le statut de paiement = 'PARTIEL')
+     */
+    public function findPartiallyPaid(int $limit = null): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p')
+            ->leftJoin('r.payments', 'pay')->addSelect('pay')
+            ->andWhere('r.paymentStatus = :status')
+            ->setParameter('status', Rdv::PS_PARTIEL)
+            ->orderBy('r.startAt', 'DESC');
+
+        if ($limit) {
+            $qb->setMaxResults($limit);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * QueryBuilder pour les rendez-vous partiellement payés (pour pagination)
+     */
+    public function createQBForPartiallyPaid()
+    {
+        return $this->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p')
+            ->leftJoin('r.payments', 'pay')->addSelect('pay')
+            ->andWhere('r.paymentStatus = :status')
+            ->setParameter('status', Rdv::PS_PARTIEL)
+            ->orderBy('r.startAt', 'DESC');
+    }
+
+    /**
+     * Compte les rendez-vous partiellement payés
+     */
+    public function countPartiallyPaid(): int
+    {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.paymentStatus = :status')
+            ->setParameter('status', Rdv::PS_PARTIEL)
+            ->getQuery()->getSingleScalarResult();
+    }
 }

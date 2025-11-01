@@ -94,6 +94,39 @@ final class ClientController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/delete-confirm', name: 'app_client_delete_confirm', methods: ['GET'])]
+    #[IsGranted(
+        'ROLE_ADMIN',
+        message: "Vous devez être administrateur pour effectuer cette action.",
+        statusCode: 403
+    )]
+    public function deleteConfirm(Client $client, EntityManagerInterface $em): Response
+    {
+        // Récupérer tous les RDV du client
+        $rdvs = $client->getRdvs()->toArray();
+        
+        // Récupérer tous les paiements liés aux RDV
+        $payments = [];
+        $rdvIds = [];
+        foreach ($rdvs as $rdv) {
+            $rdvIds[] = $rdv->getId();
+            foreach ($rdv->getPayments() as $payment) {
+                $payments[] = $payment;
+            }
+        }
+        
+        // Récupérer les mouvements de caisse liés
+        $cashRepo = $em->getRepository(\App\Entity\CashMovement::class);
+        $cashMovements = $cashRepo->findByRdvIds($rdvIds);
+        
+        return $this->render('client/delete_confirm.html.twig', [
+            'client' => $client,
+            'rdvs' => $rdvs,
+            'payments' => $payments,
+            'cashMovements' => $cashMovements,
+        ]);
+    }
+
     #[Route('/{id}', name: 'app_client_delete', methods: ['POST'])]
     #[IsGranted(
         'ROLE_ADMIN',
@@ -103,9 +136,24 @@ final class ClientController extends AbstractController
     public function delete(Request $request, Client $client, EntityManagerInterface $entityManager): Response
     {
     if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->request->get('_token'))) {
+        // Récupérer tous les RDV du client pour supprimer leurs cash movements
+        $rdvIds = [];
+        foreach ($client->getRdvs() as $rdv) {
+            $rdvIds[] = $rdv->getId();
+        }
+        
+        // Supprimer les mouvements de caisse liés
+        $cashRepo = $entityManager->getRepository(\App\Entity\CashMovement::class);
+        $cashMovements = $cashRepo->findByRdvIds($rdvIds);
+        
+        foreach ($cashMovements as $movement) {
+            $entityManager->remove($movement);
+        }
+        
+        // Ensuite supprimer le client (les RDV et paiements seront supprimés automatiquement via CASCADE)
         $entityManager->remove($client);
         $entityManager->flush();
-        $this->addFlash('danger', '🗑️ Le client a bien été <strong>supprimé</strong>.');
+        $this->addFlash('success', 'Client, rendez-vous, paiements et mouvements de caisse supprimés avec succès.');
     } else {
         $this->addFlash('warning', '⚠️ Jeton CSRF invalide, suppression annulée.');
     }

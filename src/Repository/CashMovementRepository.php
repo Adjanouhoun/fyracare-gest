@@ -227,4 +227,46 @@ class CashMovementRepository extends ServiceEntityRepository
             ->getQuery()
             ->getArrayResult();
     }
+
+    /**
+     * Trouve les mouvements de caisse liés à un RDV spécifique
+     * En se basant sur les notes qui contiennent "RDV #<id>"
+     */
+    public function findByRdvId(int $rdvId): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.notes LIKE :pattern')
+            ->andWhere('m.source = :src')
+            ->setParameter('pattern', '%RDV #'.$rdvId.'%')
+            ->setParameter('src', CashMovement::SRC_PAYMENT)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve les mouvements de caisse liés aux RDV d'un client
+     */
+    public function findByRdvIds(array $rdvIds): array
+    {
+        if (empty($rdvIds)) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('m');
+        $conditions = $qb->expr()->orX();
+        
+        foreach ($rdvIds as $index => $rdvId) {
+            $conditions->add($qb->expr()->like('m.notes', ':pattern'.$index));
+            $qb->setParameter('pattern'.$index, '%RDV #'.$rdvId.'%');
+        }
+
+        return $qb
+            ->where($conditions)
+            ->andWhere('m.source = :src')
+            ->setParameter('src', CashMovement::SRC_PAYMENT)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

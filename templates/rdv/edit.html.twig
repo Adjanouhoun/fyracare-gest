@@ -1,6 +1,26 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Modifier le rendez-vous
-{% endblock %}
+
+{% block title %}RDV du jour{% endblock %}
+
+{% macro status_badge(s) %}
+	{% set map = {
+    'HONORE':   'bg-success-subtle text-success',
+    'CONFIRME': 'bg-primary-subtle text-primary',
+    'ANNULE':   'bg-danger-subtle text-danger',
+    'ABSENT':   'bg-warning-subtle text-warning'
+  } %}
+	<span class="badge {{ map[s] ?? 'bg-info-subtle text-info' }}">{{ s }}</span>
+{% endmacro %}
+
+{% macro payment_badge(rdv) %}
+	{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
+		<i class="ri-check-double-fill text-success" title="Payé"></i>
+	{% elseif rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+		<i class="ri-error-warning-fill text-warning" title="Paiement partiel"></i>
+	{% else %}
+		<i class="ri-close-circle-fill text-secondary" title="Non payé"></i>
+	{% endif %}
+{% endmacro %}
 
 {% block page_header %}
 	<div class="row">
@@ -8,34 +28,18 @@
 			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
 				<div>
 					<h4 class="mb-sm-0">
-						<i class="ri-calendar-2-line"></i>
-						Gestion des Rendez-vous
+						<i class="ri-calendar-check-line"></i>
+						Rendez-vous du jour
 					</h4>
-					<p class="text-muted mb-0">Modifier - Payer un rendez-vous</p>
+					<p class="text-muted mb-0">{{ today|date('d F Y') }}</p>
 				</div>
 				<div class="page-title-right">
 					<ol class="breadcrumb m-0">
 						<li class="breadcrumb-item">
 							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
 						</li>
-						<li class="breadcrumb-item active">Rendez-vous</li>
+						<li class="breadcrumb-item active">RDV du jour</li>
 					</ol>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="row mb-3 pb-1">
-				<div class="row mb-3">
-					<div class="d-flex align-items-center justify-content-between">
-						<h4 class="fs-16 mb-0">Modifier le rendez-vous n°: <strong>{{ rdv.id }}</strong></h4>
-            
-						<a href="{{ path('app_rdv_index') }}" class="btn btn-ghost-secondary">
-							<i class="ri-arrow-left-line"></i>
-							Retour
-						</a>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -44,8 +48,110 @@
 
 {% block body %}
 	<div class="card">
+		<div class="card-header">
+			<div class="d-flex align-items-center justify-content-between">
+				<h5 class="card-title mb-0">
+					<i class="ri-list-check-2 me-2"></i>
+					Liste des rendez-vous
+				</h5>
+				<div class="d-flex gap-2">
+					<a href="{{ path('app_rdv_partial_payments') }}" class="btn btn-soft-warning btn-sm">
+						<i class="ri-alert-line me-1"></i>
+						Paiements partiels
+					</a>
+					<a href="{{ path('app_rdv_all') }}" class="btn btn-soft-secondary btn-sm">
+						<i class="ri-calendar-2-line me-1"></i>
+						Tous les RDV
+					</a>
+					<a href="{{ path('app_rdv_new') }}" class="btn btn-success btn-sm">
+						<i class="ri-add-line me-1"></i>
+						Nouveau RDV
+					</a>
+				</div>
+			</div>
+		</div>
+
 		<div class="card-body">
-			{% include 'rdv/_form.html.twig' with { form: form, button_label: 'Enregistrer' } %}
+			{% if pagination|length > 0 %}
+				<div class="table-responsive table-card">
+					<table class="table table-hover align-middle table-nowrap mb-0">
+						<thead class="table-light">
+							<tr>
+								<th>Heure</th>
+								<th>Client</th>
+								<th>Prestation</th>
+								<th>Statut</th>
+								<th class="text-center">Paiement</th>
+								<th class="text-end">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for rdv in pagination %}
+								<tr class="{{ rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') ? 'table-warning' : '' }}">
+									<td>
+										<strong>{{ rdv.startAt ? rdv.startAt|date('H:i') : '—' }}</strong>
+										{% if rdv.endAt %}
+											<br><small class="text-muted">{{ rdv.endAt|date('H:i') }}</small>
+										{% endif %}
+									</td>
+									<td>
+										<div class="d-flex align-items-center">
+											<div class="avatar-xs me-2">
+												<span class="avatar-title rounded-circle bg-primary-subtle text-primary">
+													{{ rdv.client.nometprenom|slice(0,1)|upper }}
+												</span>
+											</div>
+											<div>
+												<h6 class="mb-0">{{ rdv.client.nometprenom }}</h6>
+												<small class="text-muted">{{ rdv.client.telephone }}</small>
+											</div>
+										</div>
+									</td>
+									<td>
+										<span class="fw-medium">{{ rdv.prestation.libelle }}</span><br>
+										<small class="text-muted">{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU</small>
+									</td>
+									<td>{{ _self.status_badge(rdv.status) }}</td>
+									<td class="text-center fs-4">
+										{{ _self.payment_badge(rdv) }}
+										{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
+											<br><small class="text-warning">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</small>
+										{% endif %}
+									</td>
+									<td class="text-end">
+										<div class="btn-group">
+											<a class="btn btn-sm btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}" title="Détails">
+												<i class="ri-eye-line"></i>
+											</a>
+											<a class="btn btn-sm btn-soft-info" href="{{ path('app_rdv_edit', {id: rdv.id}) }}" title="Modifier">
+												<i class="ri-pencil-line"></i>
+											</a>
+											{% if rdv.remainingAmount > 0 %}
+												<a class="btn btn-sm btn-{{ rdv.totalPaid > 0 ? 'warning' : 'success' }}" href="{{ path('app_payment_new', { rdv: rdv.id }) }}" title="Payer">
+													<i class="ri-cash-line"></i>
+												</a>
+											{% else %}
+												<a class="btn btn-sm btn-soft-success disabled" href="#" title="Payé">
+													<i class="ri-check-line"></i>
+												</a>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+
+				<div class="mt-3">
+					{{ knp_pagination_render(pagination) }}
+				</div>
+			{% else %}
+				<div class="alert alert-info text-center mb-0">
+					<i class="ri-information-line fs-3 mb-2"></i>
+					<p class="mb-0">Aucun rendez-vous prévu aujourd'hui.</p>
+				</div>
+			{% endif %}
 		</div>
 	</div>
 {% endblock %}
