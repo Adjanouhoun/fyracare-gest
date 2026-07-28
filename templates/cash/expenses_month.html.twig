@@ -284,22 +284,19 @@
                               Voir
                             </a>
                           </li>
-                          <li>
-                            <a class="dropdown-item" href="{{ path('cash_expense_edit', {id: e.id}) }}">
-                              <i class="ri-pencil-line align-middle me-1"></i>
-                              Modifier
-                            </a>
-                          </li>
+                          {% if is_granted('ROLE_ADMIN') %}
                           <li><hr class="dropdown-divider"></li>
                           <li>
-                            <form method="post" action="{{ path('cash_expense_delete', {id: e.id}) }}" onsubmit="return confirm('Supprimer cette dépense ?');">
-                              <input type="hidden" name="_token" value="{{ csrf_token('delete_expense_' ~ e.id) }}">
+                            <form method="post" action="{{ path('cash_expense_cancel', {id: e.id}) }}" onsubmit="return confirm('Annuler cette dépense ?');">
+                              <input type="hidden" name="_token" value="{{ csrf_token('cancel_expense_' ~ e.id) }}">
+                              <input type="text" name="reason" class="form-control form-control-sm mx-2 mb-1" style="width: calc(100% - 1rem)" minlength="5" maxlength="1000" placeholder="Motif obligatoire" required>
                               <button type="submit" class="dropdown-item text-danger">
-                                <i class="ri-delete-bin-line align-middle me-1"></i>
-                                Supprimer
+                                <i class="ri-close-circle-line align-middle me-1"></i>
+                                Annuler
                               </button>
                             </form>
                           </li>
+                          {% endif %}
                         </ul>
                       </div>
                     </td>
@@ -353,7 +350,6 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const labels = {{ labels|json_encode|raw }};

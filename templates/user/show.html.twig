@@ -48,6 +48,14 @@
       <dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ user.fullname }}</dd>
       <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ user.email }}</dd>
       <dt class="col-sm-3">Fonction</dt><dd class="col-sm-9">{{ user.fonction ?: '—' }}</dd>
+      <dt class="col-sm-3">État</dt>
+      <dd class="col-sm-9">
+        <span class="badge {{ user.active ? 'bg-success' : 'bg-danger' }}">{{ user.active ? 'Actif' : 'Désactivé' }}</span>
+        {% if not user.active and user.deactivatedAt %}
+          depuis le {{ user.deactivatedAt|date('d/m/Y H:i') }}
+          {% if user.deactivatedBy %}par {{ user.deactivatedBy.fullname }}{% endif %}
+        {% endif %}
+      </dd>
       <dt class="col-sm-3">Rôles</dt>
       <dd class="col-sm-9">
         {% for r in user.roles %}

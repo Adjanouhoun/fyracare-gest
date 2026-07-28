@@ -67,6 +67,31 @@
 {% endblock %}
 
 {% block body %}
+  {% if pendingCashClosure %}
+    <div class="alert alert-danger d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm" role="alert">
+      <div>
+        <div class="fw-bold">
+          <i class="ri-alarm-warning-line me-1"></i>
+          Clôture de caisse en attente
+        </div>
+        <div>
+          La journée du {{ pendingCashClosure|date('d/m/Y') }} comporte des mouvements mais n’a pas été clôturée.
+          Les nouvelles opérations financières sont bloquées.
+        </div>
+      </div>
+      {% if is_granted('ROLE_MANAGER') %}
+        <a class="btn btn-danger flex-shrink-0" href="{{ path('cash_close', {date: pendingCashClosure|date('Y-m-d')}) }}">
+          <i class="ri-lock-2-line me-1"></i>
+          Clôturer maintenant
+        </a>
+      {% else %}
+        <span class="badge bg-danger-subtle text-danger fs-6 flex-shrink-0">
+          Contacter un responsable
+        </span>
+      {% endif %}
+    </div>
+  {% endif %}
+
   {# Header Card avec Date #}
   <div class="row">
     <div class="col-12">
@@ -111,10 +136,27 @@
                   <i class="ri-sun-line me-1"></i>
                   Aujourd'hui
                 </a>
+                {% if is_granted('ROLE_MANAGER') %}
+                {% if todayClosure %}
+                <a class="btn btn-sm btn-light" href="{{ path('cash_closure_show', {id: todayClosure.id}) }}">
+                  <i class="ri-lock-line me-1"></i>
+                  Journée clôturée
+                </a>
+                {% elseif isToday %}
+                <a class="btn btn-sm btn-danger" href="{{ path('cash_close') }}">
+                  <i class="ri-lock-2-line me-1"></i>
+                  Clôturer la journée
+                </a>
+                {% endif %}
+                <a class="btn btn-sm btn-light" href="{{ path('cash_closures') }}">
+                  <i class="ri-history-line me-1"></i>
+                  Historique
+                </a>
                 <a class="btn btn-sm btn-success" href="{{ path('cash_deposit') }}">
                   <i class="ri-download-2-line me-1"></i>
                   Injecter
                 </a>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -125,25 +167,6 @@
 
   {# KPIs #}
   <div class="row g-3 mb-4">
-    <div class="col-xl-3 col-md-6">
-      <div class="card kpi-card-cash">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="kpi-icon bg-primary-subtle text-primary me-3">
-              <i class="ri-safe-line"></i>
-            </div>
-            <div class="flex-grow-1">
-              <p class="text-muted mb-1 fs-13">Total Caisse</p>
-              <h4 class="mb-0 fw-bold">
-                {{ (totalCaisse is defined ? totalCaisse : currentCash)|number_format(0, ',', ' ') }}
-                <small class="text-muted fs-13 fw-normal">MRU</small>
-              </h4>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="col-xl-3 col-md-6">
       <div class="card kpi-card-cash">
         <div class="card-body">
@@ -163,7 +186,7 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-md-6">
+    <div class="col-xl-3 col-md-6">
       <div class="card kpi-card-cash">
         <div class="card-body">
           <div class="d-flex align-items-center">
@@ -181,7 +204,7 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-md-6">
+    <div class="col-xl-3 col-md-6">
       <div class="card kpi-card-cash">
         <div class="card-body">
           <div class="d-flex align-items-center">
@@ -199,7 +222,7 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-md-6">
+    <div class="col-xl-3 col-md-6">
       <div class="card kpi-card-cash">
         <div class="card-body">
           <div class="d-flex align-items-center">
@@ -229,7 +252,7 @@
               <i class="ri-arrow-down-circle-line text-success me-2"></i>
               Entrées (Paiements)
             </h5>
-            <div class="d-flex gap-2">
+            {% if is_granted('ROLE_MANAGER') %}<div class="d-flex gap-2">
               <a class="btn btn-soft-success btn-sm" href="{{ path('cash_entries_month', { m: month, y: year }) }}">
                 <i class="ri-calendar-event-line me-1"></i>
                 Mois
@@ -238,7 +261,7 @@
                 <i class="ri-calendar-2-line me-1"></i>
                 Année
               </a>
-            </div>
+            </div>{% endif %}
           </div>
         </div>
         <div class="card-body p-0">
@@ -314,6 +337,7 @@
               Sorties (Dépenses)
             </h5>
             <div class="d-flex gap-2">
+              {% if is_granted('ROLE_MANAGER') %}
               <a class="btn btn-soft-danger btn-sm" href="{{ path('cash_expenses_month', { m: month, y: year }) }}">
                 <i class="ri-calendar-event-line me-1"></i>
                 Mois
@@ -322,6 +346,7 @@
                 <i class="ri-calendar-2-line me-1"></i>
                 Année
               </a>
+              {% endif %}
               <a class="btn btn-danger btn-sm" href="{{ path('cash_expense_new') }}">
                 <i class="ri-add-line me-1"></i>
                 Nouvelle
@@ -372,9 +397,6 @@
                       <a href="{{ path('cash_expense_show', {id: s.id}) }}" class="btn btn-sm btn-soft-info" title="Voir">
                         <i class="ri-eye-line"></i>
                       </a>
-                      <a href="{{ path('cash_expense_edit', {id: s.id}) }}" class="btn btn-sm btn-soft-primary" title="Modifier">
-                        <i class="ri-pencil-line"></i>
-                      </a>
                     </td>
                   </tr>
                 {% else %}
@@ -419,7 +441,7 @@
               <i class="ri-download-2-line text-warning me-2"></i>
               Entrées (Injections de Fonds)
             </h5>
-            <div class="d-flex gap-2">
+            {% if is_granted('ROLE_MANAGER') %}<div class="d-flex gap-2">
               <a class="btn btn-soft-warning btn-sm" href="{{ path('cash_injections_month', { m: month, y: year }) }}">
                 <i class="ri-calendar-event-line me-1"></i>
                 Mois
@@ -432,7 +454,7 @@
                 <i class="ri-add-line me-1"></i>
                 Nouvelle injection
               </a>
-            </div>
+            </div>{% endif %}
           </div>
         </div>
         <div class="card-body p-0">
@@ -469,15 +491,15 @@
                       </span>
                     </td>
                     <td class="text-end">
-                      <a href="{{ path('cash_deposit_edit', { id: inj.id }) }}" class="btn btn-sm btn-soft-primary" title="Modifier">
-                        <i class="ri-pencil-line"></i>
-                      </a>
-                      <form method="post" action="{{ path('cash_deposit_delete', { id: inj.id }) }}" style="display:inline" onsubmit="return confirm('Supprimer cette injection ?');">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete_deposit_' ~ inj.id) }}">
-                        <button type="submit" class="btn btn-sm btn-soft-danger" title="Supprimer">
-                          <i class="ri-delete-bin-line"></i>
+                      {% if is_granted('ROLE_ADMIN') %}
+                      <form method="post" action="{{ path('cash_deposit_cancel', { id: inj.id }) }}" class="d-inline-flex gap-1" onsubmit="return confirm('Annuler cette injection ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('cancel_deposit_' ~ inj.id) }}">
+                        <input type="text" name="reason" class="form-control form-control-sm" minlength="5" maxlength="1000" placeholder="Motif" required>
+                        <button type="submit" class="btn btn-sm btn-soft-danger" title="Annuler">
+                          <i class="ri-close-circle-line"></i>
                         </button>
                       </form>
+                      {% endif %}
                     </td>
                   </tr>
                 {% else %}

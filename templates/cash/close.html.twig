@@ -34,10 +34,40 @@
         <div class="card-body">
           <h5 class="mb-3">Valider la clôture</h5>
           {{ form_start(form) }}
-            <label class="form-label">Notes (facultatif)</label>
-            {{ form_widget(form.notes, {attr:{class:'form-control', rows:3}}) }}
+            {% if isLate %}
+              <div class="alert alert-warning">Cette journée est clôturée en retard. Le motif est obligatoire.</div>
+            {% endif %}
+            <label class="form-label">Solde réellement compté (MRU)</label>
+            {{ form_widget(form.countedBalance, {attr:{
+              class:'form-control mb-2',
+              min:0,
+              'data-expected-balance': balance
+            }}) }}
+            {{ form_errors(form.countedBalance) }}
+            <div id="cash-variance-alert" class="alert alert-success py-2 mb-3">
+              Aucun écart : le solde compté correspond au solde théorique.
+            </div>
+            {% if isLate %}
+              {{ form_label(form.lateReason, null, {label_attr:{class:'form-label'}}) }}
+              {{ form_widget(form.lateReason, {attr:{class:'form-control mb-3', required:true, minlength:5}}) }}
+              {{ form_errors(form.lateReason) }}
+            {% else %}
+              {% do form.lateReason.setRendered %}
+            {% endif %}
+            <label class="form-label" for="{{ form.notes.vars.id }}">
+              Justification de l’écart
+              <span id="cash-notes-required" class="text-danger d-none">*</span>
+            </label>
+            {{ form_widget(form.notes, {attr:{
+              class:'form-control',
+              rows:3,
+              minlength:5,
+              placeholder:'Obligatoire si le solde compté diffère du solde théorique'
+            }}) }}
+            {{ form_errors(form.notes) }}
+            <div class="form-text">Facultatif uniquement lorsque l’écart est nul.</div>
             <div class="mt-3 d-flex gap-2">
-              <button class="btn btn-soft-primary"><i class="ri-checkbox-circle-line"></i> Enregistrer</button>
+              <button class="btn btn-soft-primary"><i class="ri-checkbox-circle-line"></i> Clôturer définitivement</button>
               <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">Annuler</a>
             </div>
           {{ form_end(form) }}
@@ -45,4 +75,42 @@
       </div>
     </div>
   </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const counted = document.getElementById('{{ form.countedBalance.vars.id }}');
+      const notes = document.getElementById('{{ form.notes.vars.id }}');
+      const requiredMark = document.getElementById('cash-notes-required');
+      const alert = document.getElementById('cash-variance-alert');
+      const formElement = counted.closest('form');
+      const expected = Number(counted.dataset.expectedBalance);
+
+      function refreshVariance() {
+        const entered = Number(counted.value);
+        const variance = Number.isFinite(entered) ? entered - expected : 0;
+        const hasVariance = variance !== 0;
+
+        notes.required = hasVariance;
+        requiredMark.classList.toggle('d-none', !hasVariance);
+        alert.className = 'alert py-2 mb-3 ' + (hasVariance ? 'alert-danger' : 'alert-success');
+        alert.textContent = hasVariance
+          ? 'Écart constaté : ' + variance.toLocaleString('fr-FR') + ' MRU. Une justification est obligatoire.'
+          : 'Aucun écart : le solde compté correspond au solde théorique.';
+
+        return variance;
+      }
+
+      counted.addEventListener('input', refreshVariance);
+      formElement.addEventListener('submit', function (event) {
+        const variance = refreshVariance();
+        if (variance !== 0 && !window.confirm(
+          'Le solde compté présente un écart de ' + variance.toLocaleString('fr-FR') +
+          ' MRU. Confirmez-vous cette clôture ?'
+        )) {
+          event.preventDefault();
+        }
+      });
+      refreshVariance();
+    });
+  </script>
 {% endblock %}

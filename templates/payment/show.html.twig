@@ -48,6 +48,14 @@
 {% endblock %}
 
 {% block body %}
+	{% if payment.cancelled %}
+		<div class="alert alert-danger">
+			<strong>Paiement annulé le {{ payment.cancelledAt|date('d/m/Y H:i') }}</strong>
+			{% if payment.cancelledBy %} par {{ payment.cancelledBy.fullname }}{% endif %}.<br>
+			<strong>Motif :</strong> {{ payment.cancellationReason }}<br>
+			Une contrepassation du même montant a été enregistrée en caisse.
+		</div>
+	{% endif %}
 	<div class="card">
 		<div class="card-body">
 			<div class="row g-3">
@@ -61,6 +69,9 @@
 					<strong>Montant :</strong>
 					{{ payment.amount|number_format(0, ',', ' ') }}
 					MRU</div>
+				<div class="col-md-4">
+					<strong>Encaissé par :</strong>
+					{{ payment.receivedBy ? payment.receivedBy.fullname : 'Information historique indisponible' }}</div>
 				<div class="col-md-4">
 					<strong>Client :</strong>
 					{{ rdv.client.nometprenom }}
@@ -81,4 +92,10 @@
 			</div>
 		</div>
 	</div>
+	{% if is_granted('ROLE_ADMIN') and not payment.cancelled %}
+		<div class="card border-danger">
+			<div class="card-header"><strong>Annulation comptable</strong></div>
+			<div class="card-body">{{ include('payment/_delete_form.html.twig') }}</div>
+		</div>
+	{% endif %}
 {% endblock %}

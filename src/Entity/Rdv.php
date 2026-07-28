@@ -50,6 +50,19 @@ class Rdv
     #[ORM\Column(length: 255)]
     private ?string $paymentStatus = self::PS_NON_PAYE;
 
+    #[ORM\Column]
+    private ?int $priceAtBooking = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $cancelledAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $cancelledBy = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $cancellationReason = null;
+
     /** @var Collection<int, Payment> */
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'rdv')]
     private Collection $payments;
@@ -84,6 +97,29 @@ class Rdv
     {
         $this->prestation = $prestation;
         return $this;
+    }
+
+    public function getPriceAtBooking(): int
+    {
+        return $this->priceAtBooking ?? (int) ($this->prestation?->getPrix() ?? 0);
+    }
+
+    public function setPriceAtBooking(int $priceAtBooking): static
+    {
+        if ($priceAtBooking < 0) {
+            throw new \InvalidArgumentException('Le tarif du rendez-vous ne peut pas être négatif.');
+        }
+
+        $this->priceAtBooking = $priceAtBooking;
+        return $this;
+    }
+
+    #[ORM\PrePersist]
+    public function snapshotPrice(): void
+    {
+        if ($this->priceAtBooking === null) {
+            $this->priceAtBooking = (int) ($this->prestation?->getPrix() ?? 0);
+        }
     }
 
     public function getStartAt(): ?\DateTimeImmutable
@@ -175,7 +211,9 @@ class Rdv
     {
         $total = 0;
         foreach ($this->payments as $payment) {
-            $total += $payment->getAmount();
+            if (!$payment->isCancelled()) {
+                $total += $payment->getAmount();
+            }
         }
         return $total;
     }
@@ -185,8 +223,7 @@ class Rdv
      */
     public function getRemainingAmount(): int
     {
-        $prestationPrice = $this->prestation ? $this->prestation->getPrix() : 0;
-        return max(0, $prestationPrice - $this->getTotalPaid());
+        return max(0, $this->getPriceAtBooking() - $this->getTotalPaid());
     }
 
     /**
@@ -194,7 +231,7 @@ class Rdv
      */
     public function getTotalAmount(): int
     {
-        return $this->prestation ? $this->prestation->getPrix() : 0;
+        return $this->getPriceAtBooking();
     }
 
     /**
@@ -226,6 +263,44 @@ class Rdv
         } else {
             $this->paymentStatus = self::PS_NON_PAYE;
         }
+    }
+
+    public function getCancelledAt(): ?\DateTimeImmutable
+    {
+        return $this->cancelledAt;
+    }
+
+    public function setCancelledAt(?\DateTimeImmutable $cancelledAt): static
+    {
+        $this->cancelledAt = $cancelledAt;
+        return $this;
+    }
+
+    public function getCancelledBy(): ?User
+    {
+        return $this->cancelledBy;
+    }
+
+    public function setCancelledBy(?User $cancelledBy): static
+    {
+        $this->cancelledBy = $cancelledBy;
+        return $this;
+    }
+
+    public function getCancellationReason(): ?string
+    {
+        return $this->cancellationReason;
+    }
+
+    public function setCancellationReason(?string $cancellationReason): static
+    {
+        $this->cancellationReason = $cancellationReason;
+        return $this;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelledAt !== null;
     }
 
     public function __toString(): string

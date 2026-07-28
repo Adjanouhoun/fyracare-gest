@@ -1,0 +1,6 @@
+framework:
+    session:
+        name: FYRACARE_DEMO
+        cookie_secure: auto
+        cookie_httponly: true
+        cookie_samesite: lax

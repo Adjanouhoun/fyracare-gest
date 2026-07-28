@@ -41,6 +41,13 @@
 {% endblock %}
 
 {% block body %}
+	{% if rdv.cancelled %}
+		<div class="alert alert-danger">
+			<strong>Rendez-vous annulé le {{ rdv.cancelledAt|date('d/m/Y H:i') }}</strong>
+			{% if rdv.cancelledBy %} par {{ rdv.cancelledBy.fullname }}{% endif %}.<br>
+			<strong>Motif :</strong> {{ rdv.cancellationReason }}
+		</div>
+	{% endif %}
 	{# Alerte paiement partiel #}
 	{% if rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
 		<div class="alert alert-warning border-warning alert-dismissible fade show" role="alert">
@@ -82,7 +89,7 @@
 						</div>
 						<div class="col-md-6">
 							<strong>Prix :</strong>
-							{{ rdv.prestation ? (rdv.prestation.prix|number_format(0, ',', ' ') ~ ' MRU') : '—' }}
+							{{ rdv.prestation ? (rdv.totalAmount|number_format(0, ',', ' ') ~ ' MRU') : '—' }}
 						</div>
 						<div class="col-md-6">
 							<strong>Début :</strong>
@@ -110,11 +117,13 @@
 					</div>
 
 					<div class="mt-4 d-flex gap-2">
+						{% if not rdv.cancelled %}
 						<a href="{{ path('app_rdv_edit', {id: rdv.id}) }}" class="btn btn-soft-secondary">
 							<i class="ri-pencil-line"></i>
 							Modifier
 						</a>
-						{% if rdv.prestation and rdv.remainingAmount > 0 %}
+						{% endif %}
+						{% if not rdv.cancelled and rdv.prestation and rdv.remainingAmount > 0 %}
 							<a href="{{ path('app_payment_new', {rdv: rdv.id}) }}" class="btn btn-success">
 								<i class="ri-money-dollar-circle-line"></i>
 								{% if rdv.totalPaid > 0 %}
@@ -124,14 +133,51 @@
 								{% endif %}
 							</a>
 						{% endif %}
-						<a href="{{ path('app_rdv_delete_confirm', {id: rdv.id}) }}" class="btn btn-danger">
-							<i class="ri-delete-bin-line"></i>
-							Supprimer
-						</a>
+						{% if is_granted('ROLE_ADMIN') and not rdv.cancelled %}
+							<a href="{{ path('app_rdv_cancel_confirm', {id: rdv.id}) }}" class="btn btn-warning">
+								<i class="ri-calendar-close-line"></i>
+								Annuler
+							</a>
+						{% endif %}
 						<a href="{{ path('app_rdv_all') }}" class="btn btn-ghost-secondary">Retour</a>
 					</div>
+
+					{% if allowedTransitions|length > 0 and is_granted('ROLE_RECEPTION_CAISSE') %}
+						<hr>
+						<h6>Mettre à jour l’état du rendez-vous</h6>
+						<div class="d-flex flex-wrap gap-2">
+							{% set labels = {'CONFIRME':'Confirmer', 'HONORE':'Marquer honoré', 'ABSENT':'Marquer absent'} %}
+							{% set colors = {'CONFIRME':'primary', 'HONORE':'success', 'ABSENT':'warning'} %}
+							{% for targetStatus in allowedTransitions %}
+								<form method="post" action="{{ path('app_rdv_status', {id: rdv.id, status: targetStatus}) }}">
+									<input type="hidden" name="_token" value="{{ csrf_token('rdv_status_' ~ rdv.id ~ '_' ~ targetStatus) }}">
+									<button class="btn btn-{{ colors[targetStatus] }}" onclick="return confirm('Confirmer ce changement d’état ?');">
+										{{ labels[targetStatus] }}
+									</button>
+								</form>
+							{% endfor %}
+						</div>
+					{% endif %}
 				</div>
 			</div>
+
+			{% if statusHistory|length > 0 %}
+				<div class="card">
+					<div class="card-header"><h5 class="mb-0">Historique des états</h5></div>
+					<div class="card-body">
+						{% for item in statusHistory %}
+							<div class="border-bottom pb-2 mb-2">
+								<strong>{{ item.oldStatus }} → {{ item.newStatus }}</strong>
+								<div class="text-muted small">
+									{{ item.changedAt|date('d/m/Y H:i') }}
+									{% if item.changedBy %} · {{ item.changedBy.fullname }}{% endif %}
+								</div>
+								{% if item.note %}<div>{{ item.note }}</div>{% endif %}
+							</div>
+						{% endfor %}
+					</div>
+				</div>
+			{% endif %}
 		</div>
 
 		<div class="col-lg-4">
@@ -229,7 +275,7 @@
 								</thead>
 								<tbody>
 									{% for payment in rdv.payments %}
-										<tr>
+										<tr class="{{ payment.cancelled ? 'text-decoration-line-through text-muted' : '' }}">
 											<td>
 												<small>{{ payment.paidAt|date('d/m/Y') }}</small><br>
 												<small class="text-muted">{{ payment.paidAt|date('H:i') }}</small>
@@ -240,7 +286,9 @@
 												<small class="text-muted">{{ payment.methode }}</small>
 											</td>
 											<td>
-												{% if payment.isDeposit %}
+												{% if payment.cancelled %}
+													<span class="badge bg-danger">Annulé</span>
+												{% elseif payment.isDeposit %}
 													<span class="badge bg-info-subtle text-info">Acompte</span>
 												{% else %}
 													<span class="badge bg-success-subtle text-success">Final</span>

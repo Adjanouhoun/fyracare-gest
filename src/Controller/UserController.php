@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Form\UserType;
 use App\Form\ChangeUserPasswordType;
 use App\Repository\UserRepository;
+use App\Service\UserAccountManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -27,7 +28,12 @@ class UserController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET','POST'])]
-    public function new(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): Response
+    public function new(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher,
+        UserAccountManager $accounts,
+    ): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
@@ -39,7 +45,16 @@ class UserController extends AbstractController
             $plain = $form->get('plainPassword')->getData();
             $user->setPassword($hasher->hashPassword($user, $plain));
             $em->persist($user);
-            $em->flush();
+            if ($form->get('active')->getData()) {
+                $em->flush();
+            } else {
+                $author = $this->getUser();
+                if (!$author instanceof User) {
+                    throw $this->createAccessDeniedException();
+                }
+                $em->flush();
+                $accounts->deactivate($user, $author);
+            }
 
             $this->addFlash('success', 'Utilisateur créé.');
             return $this->redirectToRoute('app_user_show', ['id' => $user->getId()]);
@@ -61,15 +76,44 @@ class UserController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET','POST'])]
-    public function edit(Request $request, User $user, EntityManagerInterface $em): Response
+    public function edit(
+        Request $request,
+        User $user,
+        EntityManagerInterface $em,
+        UserAccountManager $accounts,
+    ): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
+        $wasActive = $user->isActive();
+        $wasAdmin = in_array('ROLE_ADMIN', $user->getRoles(), true);
         $form = $this->createForm(UserType::class, $user, ['mode' => 'edit']);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
+            $author = $this->getUser();
+            if (!$author instanceof User) {
+                throw $this->createAccessDeniedException();
+            }
+            $willBeAdmin = in_array('ROLE_ADMIN', $user->getRoles(), true);
+            if ($user === $author && $wasAdmin && !$willBeAdmin) {
+                $this->addFlash('danger', 'Vous ne pouvez pas retirer votre propre rôle administrateur.');
+                return $this->redirectToRoute('app_user_edit', ['id' => $user->getId()]);
+            }
+
+            $shouldBeActive = (bool) $form->get('active')->getData();
+            try {
+                if ($wasActive && !$shouldBeActive) {
+                    $accounts->deactivate($user, $author);
+                } elseif (!$wasActive && $shouldBeActive) {
+                    $accounts->reactivate($user);
+                } else {
+                    $em->flush();
+                }
+            } catch (\DomainException $exception) {
+                $this->addFlash('danger', $exception->getMessage());
+                return $this->redirectToRoute('app_user_edit', ['id' => $user->getId()]);
+            }
             $this->addFlash('success', 'Utilisateur mis à jour.');
             return $this->redirectToRoute('app_user_show', ['id' => $user->getId()]);
         }
@@ -83,19 +127,48 @@ class UserController extends AbstractController
     
      
 
-    #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, User $user, EntityManagerInterface $em): Response
+    #[Route('/{id}/deactivate', name: 'deactivate', methods: ['POST'])]
+    public function deactivate(Request $request, User $user, UserAccountManager $accounts): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
-        if ($this->isCsrfTokenValid('delete_user_'.$user->getId(), $request->request->get('_token'))) {
-            $em->remove($user);
-            $em->flush();
-            $this->addFlash('success', 'Utilisateur supprimé.');
+        if (!$this->isCsrfTokenValid('deactivate_user_'.$user->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
         }
+
+        $author = $this->getUser();
+        if (!$author instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $accounts->deactivate($user, $author);
+            $this->addFlash('success', 'Compte désactivé. Son historique est conservé.');
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        }
+
         return $this->redirectToRoute('app_user_index');
     }
-    #[Route('/{id}/password', name: 'password', methods: ['GET','POST'])]
+
+    #[Route('/{id}/reactivate', name: 'reactivate', methods: ['POST'])]
+    public function reactivate(Request $request, User $user, UserAccountManager $accounts): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        if (!$this->isCsrfTokenValid('reactivate_user_'.$user->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
+        }
+
+        try {
+            $accounts->reactivate($user);
+            $this->addFlash('success', 'Compte réactivé.');
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        }
+
+        return $this->redirectToRoute('app_user_index');
+    }
     #[Route('/{id}/password', name: 'password', methods: ['GET','POST'])]
     public function password(Request $request, User $user, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');

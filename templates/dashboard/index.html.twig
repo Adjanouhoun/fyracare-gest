@@ -63,14 +63,78 @@
 {% endblock %}
 
 {% block body %}
+  {% if pendingCashClosure %}
+    <div class="alert alert-danger d-flex justify-content-between align-items-center">
+      <div>
+        <strong>Caisse non clôturée le {{ pendingCashClosure|date('d/m/Y') }}</strong><br>
+        Les nouvelles opérations financières sont bloquées jusqu’à sa régularisation.
+      </div>
+      {% if is_granted('ROLE_MANAGER') %}
+        <a href="{{ path('cash_close', {date: pendingCashClosure|date('Y-m-d')}) }}" class="btn btn-danger">Clôturer maintenant</a>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if overdueUnresolved|length > 0 %}
+    <div class="alert alert-danger">
+      <h5><i class="ri-alarm-warning-line"></i> {{ kpis.enRetard }} rendez-vous passé(s) à régulariser</h5>
+      {% for rdv in overdueUnresolved %}
+        <div class="d-flex justify-content-between align-items-center border-top py-2">
+          <span>{{ rdv.startAt|date('d/m/Y H:i') }} · {{ rdv.client.nometprenom }} · {{ rdv.status }}</span>
+          <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-sm btn-danger">Vérifier</a>
+        </div>
+      {% endfor %}
+      {% if kpis.enRetard > overdueUnresolved|length %}
+        <div class="text-end mt-2">
+          <a href="{{ path('app_rdv_index') }}" class="btn btn-sm btn-outline-danger">
+            Voir les {{ kpis.enRetard - overdueUnresolved|length }} autres
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if awaitingConfirmation|length > 0 %}
+    <div class="card border-warning">
+      <div class="card-header bg-warning-subtle">
+        <h5 class="mb-0"><i class="ri-notification-3-line"></i> Confirmations à vérifier dans les {{ reminderHours }} prochaines heures</h5>
+      </div>
+      <div class="card-body">
+        {% for rdv in awaitingConfirmation %}
+          <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom py-2 gap-2">
+            <span>
+              <strong>{{ rdv.startAt|date('d/m/Y H:i') }}</strong> ·
+              {{ rdv.client.nometprenom }} · {{ rdv.client.telephone }} · {{ rdv.prestation.libelle }}
+            </span>
+            <div class="d-flex gap-2">
+              {% if is_granted('ROLE_RECEPTION_CAISSE') %}
+                <form method="post" action="{{ path('app_rdv_status', {id: rdv.id, status: 'CONFIRME'}) }}">
+                  <input type="hidden" name="_token" value="{{ csrf_token('rdv_status_' ~ rdv.id ~ '_CONFIRME') }}">
+                  <button class="btn btn-sm btn-primary">Confirmer</button>
+                </form>
+              {% endif %}
+              <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+            </div>
+          </div>
+        {% endfor %}
+        {% if kpis.aConfirmer > awaitingConfirmation|length %}
+          <div class="text-end mt-2">
+            <a href="{{ path('app_rdv_index') }}" class="btn btn-sm btn-outline-warning">
+              Voir les {{ kpis.aConfirmer - awaitingConfirmation|length }} autres
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
   {# SECTION 1: KPIs Aujourd'hui #}
   <div class="row">
     <div class="col-xl-3 col-md-6">
-      <div class="card card-animate stat-card primary">
+      <div class="card card-animate stat-card primary h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-grow-1 overflow-hidden">
-              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">CA du Jour</p>
+              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">RDV aujourd’hui</p>
             </div>
             <div class="flex-shrink-0">
               <h5 class="text-success fs-14 mb-0">
@@ -81,14 +145,13 @@
           <div class="d-flex align-items-end justify-content-between mt-4">
             <div>
               <h4 class="fs-22 fw-semibold ff-secondary mb-2">
-                <span class="counter-value" data-target="{{ kpis.caToday }}">{{ kpis.caToday|number_format(0, ',', ' ') }}</span>
-                <small class="text-muted fs-13"> MRU</small>
+                <span class="counter-value" data-target="{{ kpis.rdv }}">{{ kpis.rdv }}</span>
               </h4>
-              <a href="{{ path('cash_index') }}" class="text-decoration-underline text-muted">Voir la caisse</a>
+              <a href="{{ path('app_rdv_index') }}" class="text-decoration-underline text-muted">Voir les rendez-vous</a>
             </div>
             <div class="avatar-sm flex-shrink-0">
               <span class="avatar-title bg-success-subtle rounded fs-3">
-                <i class="ri-money-dollar-circle-line text-success"></i>
+                <i class="ri-calendar-check-line text-primary"></i>
               </span>
             </div>
           </div>
@@ -97,23 +160,23 @@
     </div>
 
     <div class="col-xl-3 col-md-6">
-      <div class="card card-animate stat-card info">
+      <div class="card card-animate stat-card info h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-grow-1 overflow-hidden">
-              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">RDV Aujourd'hui</p>
+              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">À confirmer</p>
             </div>
           </div>
           <div class="d-flex align-items-end justify-content-between mt-4">
             <div>
               <h4 class="fs-22 fw-semibold ff-secondary mb-2">
-                <span class="counter-value" data-target="{{ kpis.rdv }}">{{ kpis.rdv }}</span>
+                <span class="counter-value" data-target="{{ kpis.aConfirmer }}">{{ kpis.aConfirmer }}</span>
               </h4>
-              <a href="{{ path('app_rdv_index') }}" class="text-decoration-underline text-muted">Liste des RDV</a>
+              <span class="text-muted">Dans les {{ reminderHours }} prochaines heures</span>
             </div>
             <div class="avatar-sm flex-shrink-0">
               <span class="avatar-title bg-info-subtle rounded fs-3">
-                <i class="ri-calendar-check-line text-info"></i>
+                <i class="ri-notification-3-line text-info"></i>
               </span>
             </div>
           </div>
@@ -122,25 +185,23 @@
     </div>
 
     <div class="col-xl-3 col-md-6">
-      <div class="card card-animate stat-card success">
+      <div class="card card-animate stat-card warning h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-grow-1 overflow-hidden">
-              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Honorés</p>
+              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Retards à traiter</p>
             </div>
           </div>
           <div class="d-flex align-items-end justify-content-between mt-4">
             <div>
               <h4 class="fs-22 fw-semibold ff-secondary mb-2">
-                <span class="counter-value" data-target="{{ kpis.honores }}">{{ kpis.honores }}</span>
-                <small class="text-muted fs-13">/ {{ kpis.rdv }}</small>
+                <span class="counter-value" data-target="{{ kpis.enRetard }}">{{ kpis.enRetard }}</span>
               </h4>
-              {% set tauxHonore = kpis.rdv > 0 ? (kpis.honores / kpis.rdv * 100) : 0 %}
-              <span class="badge bg-success-subtle text-success mb-0">{{ tauxHonore|round(1) }}%</span>
+              <span class="text-muted">RDV passés sans état final</span>
             </div>
             <div class="avatar-sm flex-shrink-0">
               <span class="avatar-title bg-success-subtle rounded fs-3">
-                <i class="ri-checkbox-circle-line text-success"></i>
+                <i class="ri-time-line text-warning"></i>
               </span>
             </div>
           </div>
@@ -149,26 +210,59 @@
     </div>
 
     <div class="col-xl-3 col-md-6">
-      <div class="card card-animate stat-card danger">
+      <div class="card card-animate stat-card danger h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-grow-1 overflow-hidden">
-              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Annulés / Absents</p>
+              <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Paiements à compléter</p>
             </div>
           </div>
           <div class="d-flex align-items-end justify-content-between mt-4">
             <div>
               <h4 class="fs-22 fw-semibold ff-secondary mb-2">
-                <span class="counter-value" data-target="{{ kpis.annules + kpis.absents }}">{{ kpis.annules + kpis.absents }}</span>
+                <span class="counter-value" data-target="{{ kpis.paiementsACompleter }}">{{ kpis.paiementsACompleter }}</span>
               </h4>
-              <span class="badge bg-danger-subtle text-danger">{{ kpis.annules }} annulés</span>
-              <span class="badge bg-secondary-subtle text-secondary">{{ kpis.absents }} no-show</span>
+              <a href="{{ path('app_rdv_partial_payments') }}" class="text-decoration-underline text-muted">Voir les soldes restants</a>
             </div>
             <div class="avatar-sm flex-shrink-0">
               <span class="avatar-title bg-danger-subtle rounded fs-3">
-                <i class="ri-close-circle-line text-danger"></i>
+                <i class="ri-bank-card-line text-danger"></i>
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header">
+      <h5 class="card-title mb-1">
+        <i class="ri-refresh-line align-middle me-1 text-primary"></i>
+        Statuts enregistrés aujourd’hui
+      </h5>
+      <p class="text-muted mb-0">
+        Ces compteurs suivent les changements effectués aujourd’hui, quelle que soit la date prévue du rendez-vous.
+      </p>
+    </div>
+    <div class="card-body">
+      <div class="row text-center g-3">
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <div class="text-success fs-3 fw-semibold">{{ statusChangesToday.HONORE ?? 0 }}</div>
+            <div class="text-muted">Passés à honoré</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <div class="text-secondary fs-3 fw-semibold">{{ statusChangesToday.ABSENT ?? 0 }}</div>
+            <div class="text-muted">Passés à absent</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100">
+            <div class="text-danger fs-3 fw-semibold">{{ statusChangesToday.ANNULE ?? 0 }}</div>
+            <div class="text-muted">Annulés</div>
           </div>
         </div>
       </div>
@@ -334,13 +428,14 @@
   {% endif %}
 
   {# SECTION 4: Graphique CA 30 jours #}
+  {% if canViewFinancials %}
   <div class="row">
     <div class="col-xl-12">
       <div class="card">
         <div class="card-header border-0 align-items-center d-flex">
           <h4 class="card-title mb-0 flex-grow-1">
             <i class="ri-line-chart-line align-middle me-1 text-primary"></i>
-            Évolution du CA — 30 derniers jours
+            Évolution des encaissements — 30 derniers jours
           </h4>
         </div>
         <div class="card-body p-0 pb-2">
@@ -351,16 +446,16 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
-  {# SECTION 5: Statuts RDV + Top Prestations #}
+  {# SECTION 5: Statuts des rendez-vous prévus cette semaine #}
   <div class="row">
-    {# Statuts RDV (Semaine) #}
-    <div class="col-xl-5">
+    <div class="col-12">
       <div class="card card-height-100">
         <div class="card-header align-items-center d-flex">
           <h4 class="card-title mb-0 flex-grow-1">
             <i class="ri-pie-chart-2-line align-middle me-1 text-info"></i>
-            Statuts RDV (Cette semaine)
+            Statuts des RDV prévus cette semaine
           </h4>
         </div>
         <div class="card-body">
@@ -408,25 +503,6 @@
       </div>
     </div>
 
-    {# Top Prestations #}
-    <div class="col-xl-7">
-      <div class="card card-height-100">
-        <div class="card-header align-items-center d-flex">
-          <h4 class="card-title mb-0 flex-grow-1">
-            <i class="ri-bar-chart-2-line align-middle me-1 text-warning"></i>
-            Top Prestations (CA — Ce mois)
-          </h4>
-          <div class="flex-shrink-0">
-            <a href="{{ path('stats_index') }}" class="btn btn-soft-primary btn-sm">
-              <i class="ri-eye-line align-middle me-1"></i> Voir tout
-            </a>
-          </div>
-        </div>
-        <div class="card-body">
-          <div id="chart-top-prestations" style="min-height: 300px;" class="apex-charts" dir="ltr"></div>
-        </div>
-      </div>
-    </div>
   </div>
 
   {# SECTION 6: Activité Récente #}
@@ -436,7 +512,7 @@
         <div class="card-header align-items-center d-flex">
           <h4 class="card-title mb-0 flex-grow-1">
             <i class="ri-history-line align-middle me-1 text-muted"></i>
-            Activité Récente
+            Prochains rendez-vous
           </h4>
           <div class="flex-shrink-0">
             <a href="{{ path('app_rdv_index') }}" class="btn btn-soft-info btn-sm">Tout voir</a>
@@ -495,14 +571,11 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const labels30   = {{ labels30|json_encode|raw }};
       const values30   = {{ values30|json_encode|raw }};
       const statusWeek = {{ statusWeek|json_encode|raw }};
-      const topLabels  = {{ topLabels|json_encode|raw }};
-      const topValues  = {{ topValues|json_encode|raw }};
 
       const getChartColorsArray = (colors) => {
         colors = JSON.parse(colors);
@@ -517,6 +590,7 @@
         });
       };
 
+      {% if canViewFinancials %}
       // 1) CA 30 jours
       try {
         const chart1Colors = '["--vz-primary", "--vz-success"]';
@@ -524,7 +598,7 @@
           chart: { height: 320, type: 'area', toolbar: { show: false }},
           dataLabels: { enabled: false },
           stroke: { curve: 'smooth', width: 3 },
-          series: [{ name: 'Chiffre d\'affaires', data: values30 }],
+          series: [{ name: 'Encaissements', data: values30 }],
           fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.5, opacityTo: 0.1 }},
           xaxis: { categories: labels30, labels: { rotate: -45 }},
           yaxis: { labels: { formatter: (v) => Intl.NumberFormat('fr-FR').format(v) }},
@@ -532,7 +606,8 @@
           tooltip: { y: { formatter: (v) => Intl.NumberFormat('fr-FR').format(v) + ' MRU' }}
         });
         chart1.render();
-      } catch (e) { console.error('Erreur chart CA:', e); }
+      } catch (e) { console.error('Erreur graphique encaissements:', e); }
+      {% endif %}
 
       // 2) Statuts semaine
       try {
@@ -555,25 +630,6 @@
         }
       } catch (e) { console.error('Erreur chart statuts:', e); }
 
-      // 3) Top prestations
-      try {
-        if (topLabels.length > 0) {
-          const chart3Colors = '["--vz-warning"]';
-          const chart3 = new ApexCharts(document.querySelector("#chart-top-prestations"), {
-            series: [{ name: 'CA', data: topValues }],
-            chart: { type: 'bar', height: 300, toolbar: { show: false }},
-            plotOptions: { bar: { borderRadius: 8, columnWidth: '60%' }},
-            dataLabels: { enabled: false },
-            xaxis: { categories: topLabels, labels: { rotate: -45 }},
-            yaxis: { labels: { formatter: (v) => Intl.NumberFormat('fr-FR').format(v) }},
-            colors: getChartColorsArray(chart3Colors),
-            tooltip: { y: { formatter: (v) => Intl.NumberFormat('fr-FR').format(v) + ' MRU' }}
-          });
-          chart3.render();
-        } else {
-          document.querySelector("#chart-top-prestations").innerHTML = '<div class="text-center text-muted py-5">Aucune prestation ce mois</div>';
-        }
-      } catch (e) { console.error('Erreur chart top:', e); }
     });
   </script>
 {% endblock %}

@@ -4,11 +4,15 @@ namespace App\Controller;
 
 use App\Entity\CashClosure;
 use App\Entity\CashMovement;
+use App\Entity\User;
 use App\Form\CashClosureType;
 use App\Form\CashExpenseType;
 use App\Repository\CashMovementRepository;
 use App\Repository\CashClosureRepository;
 use App\Repository\PaymentRepository;
+use App\Service\CashMovementCancellationService;
+use App\Service\CashPeriodGuard;
+use App\Service\CashRegisterService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface; 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,18 +22,22 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/cash', name: 'cash_')]
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 class CashController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(
         Request $request,
         CashMovementRepository $movRepo,
+        CashClosureRepository $closureRepo,
+        CashPeriodGuard $cashPeriodGuard,
         PaginatorInterface $paginator
     ): Response {
         $tz  = new \DateTimeZone(\date_default_timezone_get());
+        $today = new \DateTimeImmutable('today', $tz);
         $day = $request->query->get('d')
             ? new \DateTimeImmutable($request->query->get('d'), $tz)
-            : new \DateTimeImmutable('today', $tz);
+            : $today;
 
         $start = $day->setTime(0, 0, 0);
         $end   = $day->setTime(23, 59, 59);
@@ -91,25 +99,22 @@ class CashController extends AbstractController
             ['pageParameterName' => 'page_inj']
         );
 
-        // --- Totaux du jour (sur les pages courantes) ---
-        $sumAmounts = static fn($iter) => array_sum(array_map(fn($m) => $m->getAmount(), iterator_to_array($iter)));
-        $totalInPayments = $sumAmounts($paymentsPage);
-        $totalOutExpenses = $sumAmounts($expensesPage);
-        $totalInInjections = $sumAmounts($injectionsPage);
+        // Les totaux sont calculés sur toute la journée, indépendamment de la pagination.
+        $totalInPayments = $movRepo->sumBetweenByTypeAndSource(
+            $start,
+            $end,
+            CashMovement::IN,
+            CashMovement::SRC_PAYMENT,
+        );
+        $totalOutExpenses = $movRepo->sumBetween($start, $end, CashMovement::OUT);
+        $totalInInjections = $movRepo->sumBetweenByTypeExcludingSource(
+            $start,
+            $end,
+            CashMovement::IN,
+            CashMovement::SRC_PAYMENT,
+        );
 
         $balance = ($totalInPayments + $totalInInjections) - $totalOutExpenses;
-        $totalCaisse = $movRepo->currentCash();
-
-        // Solde général (adapte selon tes méthodes de repo)
-        // Idées: sumAllIn() - sumAllOut() ou repo->sumByType(...)
-        $currentCash = method_exists($movRepo, 'sumCurrentCash')
-            ? $movRepo->sumCurrentCash()
-            : (
-                (method_exists($movRepo, 'sumAllIn') ? $movRepo->sumAllIn() : 0)
-                -
-                (method_exists($movRepo, 'sumAllOut') ? $movRepo->sumAllOut() : 0)
-            );
-
         $month = (int) $day->format('n');
         $year  = (int) $day->format('Y');
 
@@ -124,8 +129,9 @@ class CashController extends AbstractController
             'totalOutExpenses'=> $totalOutExpenses,
             'totalInInjections'=> $totalInInjections,
             'balance'         => $balance,
-            'currentCash'     => $currentCash,
-            'totalCaisse'     => $totalCaisse,
+            'todayClosure'    => $closureRepo->findForDate($day),
+            'isToday'         => $day->format('Y-m-d') === $today->format('Y-m-d'),
+            'pendingCashClosure' => $cashPeriodGuard->findOldestPendingDate($today),
         ]);
     }
 
@@ -133,7 +139,8 @@ class CashController extends AbstractController
     public function newExpense(
         Request $request,
         EntityManagerInterface $em,
-        CashMovementRepository $mvRepo
+        CashMovementRepository $mvRepo,
+        CashPeriodGuard $periodGuard,
     ): Response {
         $tz = new \DateTimeZone(\date_default_timezone_get());
         $availableToday = $mvRepo->currentCash();
@@ -146,6 +153,12 @@ class CashController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $periodGuard->assertOpen(new \DateTimeImmutable('now', $tz));
+            } catch (\DomainException $exception) {
+                $this->addFlash('danger', $exception->getMessage());
+                return $this->redirectToRoute('cash_index');
+            }
             if ($mv->getAmount() <= 0) {
                 $this->addFlash('danger', 'Le montant doit être supérieur à 0.');
             } elseif ($mv->getAmount() > $availableToday) {
@@ -166,38 +179,64 @@ class CashController extends AbstractController
     }
 
     #[Route('/close', name: 'close', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function closeDay(
         Request $request,
         CashMovementRepository $mvRepo,
-        EntityManagerInterface $em
+        CashClosureRepository $closureRepo,
+        CashRegisterService $cashRegister,
+        CashPeriodGuard $cashPeriodGuard,
     ): Response {
         $tz   = new \DateTimeZone(\date_default_timezone_get());
-        $from = (new \DateTimeImmutable('today', $tz))->setTime(0, 0);
-        $to   = (new \DateTimeImmutable('today', $tz))->setTime(23, 59, 59);
+        $requestedDate = $request->query->getString('date');
+        $today = new \DateTimeImmutable('today', $tz);
+        try {
+            $from = $requestedDate !== ''
+                ? (new \DateTimeImmutable($requestedDate, $tz))->setTime(0, 0)
+                : ($cashPeriodGuard->findOldestPendingDate($today) ?? $today);
+        } catch (\Throwable) {
+            throw $this->createNotFoundException('Date de clôture invalide.');
+        }
+        if ($from > $today) {
+            throw $this->createNotFoundException('Une journée future ne peut pas être clôturée.');
+        }
+        $to = $from->setTime(23, 59, 59);
 
         $totalIn  = $mvRepo->sumBetween($from, $to, CashMovement::IN);
         $totalOut = $mvRepo->sumBetween($from, $to, CashMovement::OUT);
         $balance  = $totalIn - $totalOut;
 
+        $existingClosure = $closureRepo->findForDate($from);
+        if ($existingClosure) {
+            $this->addFlash('info', 'La caisse de cette journée est déjà clôturée.');
+            return $this->redirectToRoute('cash_closure_show', ['id' => $existingClosure->getId()]);
+        }
+
         $closure = new CashClosure();
         $closure->setTotalIn($totalIn)->setTotalOut($totalOut)->setBalance($balance);
+        $closure->setCountedBalance(max(0, $balance));
 
         $form = $this->createForm(CashClosureType::class, $closure);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $mv = new CashMovement();
-            $mv->setType(CashMovement::OUT)
-               ->setAmount(0)
-               ->setSource(CashMovement::SRC_CLOSURE)
-               ->setNotes('Clôture de caisse du ' . $closure->getClosedAt()->format('d/m/Y'));
-
-            $em->persist($closure);
-            $em->persist($mv);
-            $em->flush();
-
-            $this->addFlash('success', 'Clôture enregistrée.');
-            return $this->redirectToRoute('cash_closures');
+            $user = $this->getUser();
+            if (!$user instanceof User) {
+                throw $this->createAccessDeniedException();
+            }
+            try {
+                $savedClosure = $cashRegister->close(
+                    $from,
+                    $closure->getCountedBalance(),
+                    $user,
+                    $closure->getNotes(),
+                    $closure->getLateReason(),
+                );
+                $this->addFlash('success', 'Clôture enregistrée.');
+                return $this->redirectToRoute('cash_closure_show', ['id' => $savedClosure->getId()]);
+            } catch (\DomainException $exception) {
+                $this->addFlash('danger', $exception->getMessage());
+            }
         }
 
         return $this->render('cash/close.html.twig', [
@@ -207,10 +246,12 @@ class CashController extends AbstractController
             'totalIn'  => $totalIn,
             'totalOut' => $totalOut,
             'balance'  => $balance,
+            'isLate'   => $from < $today,
         ]);
     }
 
     #[Route('/closures', name: 'closures', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function closures(CashClosureRepository $repo): Response
     {
         $items = $repo->findBy([], ['closedAt' => 'DESC']);
@@ -218,12 +259,14 @@ class CashController extends AbstractController
     }
 
     #[Route('/closure/{id}', name: 'closure_show', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function closureShow(CashClosure $closure): Response
     {
         return $this->render('cash/closure_show.html.twig', ['closure' => $closure]);
     }
 
     #[Route('/expenses/month', name: 'expenses_month', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function expensesMonth(
     Request $request,
     CashMovementRepository $cashRepo,
@@ -306,6 +349,7 @@ class CashController extends AbstractController
     }
 
     #[Route('/expenses/year', name: 'expenses_year', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function expensesYear(
         Request $request,
         CashMovementRepository $movRepo,
@@ -363,6 +407,7 @@ class CashController extends AbstractController
     }
 
     #[Route('/entries/month', name: 'entries_month', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function entriesMonth(
         Request $request,
         PaymentRepository $payRepo,
@@ -432,6 +477,7 @@ class CashController extends AbstractController
     }
 
     #[Route('/entries/year', name: 'entries_year', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function entriesYear(
         Request $request,
         PaymentRepository $payRepo,
@@ -488,38 +534,40 @@ class CashController extends AbstractController
         ]);
     }
 
-    #[Route('/cash/expense/{id}/edit', name: 'expense_edit', methods: ['GET','POST'])]
-    public function expenseEdit(Request $request, CashMovement $expense, EntityManagerInterface $em, CashMovementRepository $mvRepo): Response
+    #[Route('/cash/expense/{id}/cancel', name: 'expense_cancel', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function expenseCancel(
+        Request $request,
+        CashMovement $expense,
+        CashMovementCancellationService $cancellation,
+    ): Response
     {
-        // (Optionnel) Recontrôle du plafond journalier si tu veux
-        $form = $this->createForm(CashExpenseType::class, $expense);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Dépense mise à jour.');
-            return $this->redirectToRoute('cash_index');
+        if (!$this->isCsrfTokenValid(
+            'cancel_expense_'.$expense->getId(),
+            $request->request->getString('_token'),
+        )) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
+        }
+        if ($expense->getType() !== CashMovement::OUT || $expense->getSource() !== CashMovement::SRC_EXPENSE) {
+            throw $this->createNotFoundException();
         }
 
-        return $this->render('cash/expense_edit.html.twig', [
-            'form'    => $form,
-            'expense' => $expense,
-        ]);
-    }
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
 
-    #[Route('/cash/expense/{id}/delete', name: 'expense_delete', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function expenseDelete(Request $request, CashMovement $expense, EntityManagerInterface $em): Response
-    {
-        if ($this->isCsrfTokenValid('delete_expense_'.$expense->getId(), $request->request->get('_token'))) {
-            $em->remove($expense);
-            $em->flush();
-            $this->addFlash('success', 'Dépense supprimée.');
+        try {
+            $cancellation->cancel($expense, $user, $request->request->getString('reason'));
+            $this->addFlash('success', 'Dépense annulée. L’historique est conservé.');
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
         }
         return $this->redirectToRoute('cash_index');
     }
 
      #[Route('/injections/month', name: 'injections_month', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function injectionsMonth(
         Request $request,
         CashMovementRepository $movRepo,
@@ -574,6 +622,7 @@ class CashController extends AbstractController
     }
 
     #[Route('/injections/year', name: 'injections_year', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
     public function injectionsYear(
         Request $request,
         CashMovementRepository $movRepo,

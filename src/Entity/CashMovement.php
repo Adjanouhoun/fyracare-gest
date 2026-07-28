@@ -13,6 +13,7 @@ class CashMovement
     public const OUT = 'OUT';
 
     public const SRC_PAYMENT = 'PAYMENT';
+    public const SRC_PAYMENT_REVERSAL = 'PAYMENT_REVERSAL';
     public const SRC_MANUAL  = 'MANUAL';
     public const SRC_CLOSURE = 'CLOSURE';
     public const SRC_EXPENSE = 'EXPENSE'; // <-- ajouté
@@ -39,6 +40,10 @@ class CashMovement
     #[ORM\ManyToOne(targetEntity: ExpenseCategory::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ExpenseCategory $category = null;
+
+    #[ORM\ManyToOne(targetEntity: Payment::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Payment $payment = null;
   
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -49,6 +54,9 @@ class CashMovement
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $deletionReason = null;
 
     #[ORM\ManyToOne(targetEntity: \App\Entity\User::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -99,6 +107,9 @@ class CashMovement
 
     public function isDeleted(): bool { return $this->deletedAt !== null; }
 
+    public function getDeletionReason(): ?string { return $this->deletionReason; }
+    public function setDeletionReason(?string $reason): self { $this->deletionReason = $reason; return $this; }
+
     public function getUpdatedBy(): ?\App\Entity\User { return $this->updatedBy; }
     public function setUpdatedBy(?\App\Entity\User $u): self { $this->updatedBy = $u; return $this; }
 
@@ -123,6 +134,17 @@ class CashMovement
     public function setCategory(?ExpenseCategory $category): self
     {
         $this->category = $category;
+        return $this;
+    }
+
+    public function getPayment(): ?Payment
+    {
+        return $this->payment;
+    }
+
+    public function setPayment(?Payment $payment): self
+    {
+        $this->payment = $payment;
         return $this;
     }
 

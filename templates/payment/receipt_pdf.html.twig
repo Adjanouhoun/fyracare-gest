@@ -426,6 +426,7 @@
                   <p class="tm_mb2"><b class="tm_primary_color">Info paiement :</b></p>
                   <p class="tm_m0">
                     Méthode : {{ payment.methode }}<br>
+                    Encaissé par : {{ payment.receivedBy ? payment.receivedBy.fullname : '—' }}<br>
                     Montant de ce paiement : {{ payment.amount|number_format(0, ',', ' ') }} MRU
                   </p>
                   

@@ -1,0 +1,4 @@
+doctrine:
+    dbal:
+        url: 'sqlite:///%kernel.project_dir%/var/demo/fyracare-demo.sqlite'
+        driver: pdo_sqlite

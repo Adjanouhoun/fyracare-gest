@@ -1,62 +1,29 @@
-{# Stats Enhanced - Style Velzon #}
 {% extends 'layouts/main.html.twig' %}
 {% block title %}Statistiques{% endblock %}
 
 {% block stylesheets %}
 <style>
-.stats-filter-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-.stats-filter-card .form-label {
-    color: rgba(255,255,255,0.9);
-    font-weight: 500;
-}
-.stats-filter-card .form-control,
-.stats-filter-card .form-select {
-    border: 1px solid rgba(255,255,255,0.3);
-    background: rgba(255,255,255,0.1);
-    color: white;
-}
-.stats-filter-card .form-control:focus,
-.stats-filter-card .form-select:focus {
-    background: rgba(255,255,255,0.2);
-    border-color: rgba(255,255,255,0.5);
-    color: white;
-}
-.stats-filter-card .form-control::placeholder {
-    color: rgba(255,255,255,0.6);
-}
-.stats-filter-card .btn-light {
-    background: white;
-    color: #667eea;
-    font-weight: 600;
-}
-.kpi-card-enhanced {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-.kpi-card-enhanced:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
-}
-.kpi-card-enhanced::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    opacity: 0.1;
-    transform: translate(30%, -30%);
-}
-.kpi-card-enhanced.primary::before { background: #0d6efd; }
-.kpi-card-enhanced.success::before { background: #198754; }
-.kpi-card-enhanced.danger::before { background: #dc3545; }
-.kpi-card-enhanced.warning::before { background: #ffc107; }
-.kpi-card-enhanced.info::before { background: #0dcaf0; }
+  .stats-filter { background: linear-gradient(135deg, #405189, #299cdb); color: #fff; }
+  .stats-filter .form-label { color: rgba(255,255,255,.9); }
+  .metric-card { border: 0; box-shadow: 0 .125rem .5rem rgba(0,0,0,.06); height: 100%; }
+  .metric-card .metric-value { font-size: 1.65rem; font-weight: 700; }
+  .stats-tabs .nav-link { font-weight: 600; }
+  .stats-tabs .nav-link.active { color: var(--vz-primary); border-bottom: 3px solid var(--vz-primary); }
+  .chart-box { min-height: 330px; }
+  .stats-periods { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: .25rem; }
+  .stats-periods .btn { white-space: nowrap; }
+  .performance-table { min-width: 760px; }
+  @media (max-width: 767.98px) {
+    .chart-box { min-height: 280px; }
+    .stats-tabs { flex-wrap: nowrap; overflow-x: auto; }
+    .stats-tabs .nav-link { white-space: nowrap; }
+    .page-title-box > .d-flex { margin-top: 1rem; width: 100%; }
+    .page-title-box > .d-flex .btn { flex: 1; }
+  }
+  @media print {
+    .stats-filter, .stats-tabs, .btn-print, .page-title-right { display: none !important; }
+    .tab-pane { display: block !important; opacity: 1 !important; }
+  }
 </style>
 {% endblock %}
 
@@ -65,17 +32,18 @@
   <div class="col-12">
     <div class="page-title-box d-sm-flex align-items-center justify-content-between">
       <div>
-        <h4 class="mb-sm-0">
-          <i class="ri-bar-chart-box-line align-middle me-2 text-primary"></i>
-          Statistiques Détaillées
-        </h4>
-        <p class="text-muted mb-0">Analyses complètes et visualisations de votre activité</p>
+        <h4 class="mb-sm-0"><i class="ri-bar-chart-box-line me-2 text-primary"></i>Statistiques</h4>
+        <p class="text-muted mb-0">Activité, finances et performances sur une période</p>
       </div>
-      <div class="page-title-right">
-        <ol class="breadcrumb m-0">
-          <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Dashboard</a></li>
-          <li class="breadcrumb-item active">Statistiques</li>
-        </ol>
+      <div class="d-flex gap-2">
+        <a href="{{ path('stats_index', {from: from|date('Y-m-d'), to: to|date('Y-m-d'), format: 'csv'}) }}"
+           class="btn btn-soft-success">
+          <i class="ri-file-excel-2-line me-1"></i> Exporter CSV
+        </a>
+        <button type="button" class="btn btn-soft-secondary btn-print" onclick="window.print()">
+          <i class="ri-printer-line me-1"></i> Imprimer
+        </button>
+        <a href="{{ path('admin_dashboard') }}" class="btn btn-soft-primary">Dashboard</a>
       </div>
     </div>
   </div>
@@ -83,375 +51,226 @@
 {% endblock %}
 
 {% block body %}
-{# Filtre Période - Design Premium #}
-<div class="row">
-  <div class="col-12">
-    <div class="card stats-filter-card border-0 shadow-lg mb-4">
-      <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-          <div class="col-md-4">
-            <label class="form-label">
-              <i class="ri-calendar-event-line me-1"></i>
-              Date de début
-            </label>
-            <input type="date" class="form-control" name="from" value="{{ from|date('Y-m-d') }}">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">
-              <i class="ri-calendar-check-line me-1"></i>
-              Date de fin
-            </label>
-            <input type="date" class="form-control" name="to" value="{{ to|date('Y-m-d') }}">
-          </div>
-          <div class="col-md-4">
-            <button type="submit" class="btn btn-light w-100">
-              <i class="ri-search-line me-2"></i>
-              Analyser la période
-            </button>
-          </div>
-        </form>
-        <div class="mt-3 text-center">
-          <small class="text-white-50">
-            <i class="ri-information-line me-1"></i>
-            Période analysée : {{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }}
-            ({{ from.diff(to).days|abs + 1 }} jours)
-          </small>
-        </div>
+{% set totalFinal = kpis.honores + kpis.absents + kpis.annules %}
+{% set tauxRealisation = kpis.rdv > 0 ? (kpis.honores / kpis.rdv * 100) : 0 %}
+{% set tauxAbsence = kpis.rdv > 0 ? (kpis.absents / kpis.rdv * 100) : 0 %}
+{% set tauxAnnulation = kpis.rdv > 0 ? (kpis.annules / kpis.rdv * 100) : 0 %}
+
+<div class="card stats-filter border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Date de début</label>
+        <input type="date" class="form-control" name="from" value="{{ from|date('Y-m-d') }}" required>
       </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Date de fin</label>
+        <input type="date" class="form-control" name="to" value="{{ to|date('Y-m-d') }}" required>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <button class="btn btn-light w-100"><i class="ri-search-line me-1"></i> Analyser</button>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <a class="btn btn-outline-light w-100" href="{{ path('stats_index') }}">
+          <i class="ri-refresh-line me-1"></i> Mois en cours
+        </a>
+      </div>
+    </form>
+    <div class="mt-3 small text-white-50">
+      Période analysée : {{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }}
+      ({{ from.diff(to).days|abs + 1 }} jours)
+    </div>
+    <div class="d-flex gap-2 mt-3 stats-periods">
+      {% set periods = {
+        today: 'Aujourd’hui',
+        week: 'Cette semaine',
+        month: 'Ce mois',
+        previous_month: 'Mois précédent',
+        year: 'Cette année'
+      } %}
+      {% for key, label in periods %}
+        <a href="{{ key == 'month' ? path('stats_index') : path('stats_index', {period: key}) }}"
+           class="btn btn-sm {{ (key == 'month' and selectedPeriod == '') or selectedPeriod == key ? 'btn-light' : 'btn-outline-light' }}">
+          {{ label }}
+        </a>
+      {% endfor %}
     </div>
   </div>
 </div>
 
-{# KPIs - Design Premium #}
-<div class="row">
-  <div class="col-xl-3 col-sm-6">
-    <div class="card card-animate kpi-card-enhanced primary border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <p class="fw-medium text-muted mb-2">Total RDV</p>
-            <h2 class="mt-2 ff-secondary fw-bold">
-              <span class="counter-value" data-target="{{ kpis.rdv }}">{{ kpis.rdv }}</span>
-            </h2>
-            <p class="mb-0 text-muted">
-              <span class="badge bg-light text-primary">
-                <i class="ri-calendar-line align-middle"></i> Période complète
-              </span>
-            </p>
-          </div>
-          <div>
-            <div class="avatar-sm flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle rounded-circle fs-2">
-                <i class="ri-calendar-2-line text-primary"></i>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-sm-6">
-    <div class="card card-animate kpi-card-enhanced success border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <p class="fw-medium text-muted mb-2">RDV Honorés</p>
-            <h2 class="mt-2 ff-secondary fw-bold text-success">
-              <span class="counter-value" data-target="{{ kpis.honores }}">{{ kpis.honores }}</span>
-            </h2>
-            <p class="mb-0 text-muted">
-              {% set tauxHonore = kpis.rdv > 0 ? (kpis.honores / kpis.rdv * 100) : 0 %}
-              <span class="badge bg-success-subtle text-success">
-                <i class="ri-arrow-up-line align-middle"></i> {{ tauxHonore|round(1) }}%
-              </span>
-              <span class="text-muted ms-2">de réussite</span>
-            </p>
-          </div>
-          <div>
-            <div class="avatar-sm flex-shrink-0">
-              <span class="avatar-title bg-success-subtle rounded-circle fs-2">
-                <i class="ri-checkbox-circle-line text-success"></i>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-sm-6">
-    <div class="card card-animate kpi-card-enhanced danger border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <p class="fw-medium text-muted mb-2">RDV Annulés</p>
-            <h2 class="mt-2 ff-secondary fw-bold text-danger">
-              <span class="counter-value" data-target="{{ kpis.annules }}">{{ kpis.annules }}</span>
-            </h2>
-            <p class="mb-0 text-muted">
-              {% set tauxAnnule = kpis.rdv > 0 ? (kpis.annules / kpis.rdv * 100) : 0 %}
-              <span class="badge bg-danger-subtle text-danger">
-                {{ tauxAnnule|round(1) }}%
-              </span>
-              <span class="text-muted ms-2">du total</span>
-            </p>
-          </div>
-          <div>
-            <div class="avatar-sm flex-shrink-0">
-              <span class="avatar-title bg-danger-subtle rounded-circle fs-2">
-                <i class="ri-close-circle-line text-danger"></i>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-sm-6">
-    <div class="card card-animate kpi-card-enhanced warning border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <p class="fw-medium text-muted mb-2">No-Show</p>
-            <h2 class="mt-2 ff-secondary fw-bold text-warning">
-              <span class="counter-value" data-target="{{ kpis.absents }}">{{ kpis.absents }}</span>
-            </h2>
-            <p class="mb-0 text-muted">
-              {% set tauxAbsent = kpis.rdv > 0 ? (kpis.absents / kpis.rdv * 100) : 0 %}
-              <span class="badge bg-warning-subtle text-warning">
-                {{ tauxAbsent|round(1) }}%
-              </span>
-              <span class="text-muted ms-2">d'absences</span>
-            </p>
-          </div>
-          <div>
-            <div class="avatar-sm flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle rounded-circle fs-2">
-                <i class="ri-user-unfollow-line text-warning"></i>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="alert alert-info border-0">
+  <i class="ri-information-line me-1"></i>
+  Les résultats d’activité utilisent la date prévue du rendez-vous. Les encaissements utilisent la date du paiement.
 </div>
 
-{# Chiffre d'affaires - Card Premium #}
-<div class="row">
-  <div class="col-12">
-    <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-      <div class="card-body p-4">
-        <div class="row align-items-center">
-          <div class="col-md-8">
-            <div class="d-flex align-items-center">
-              <div class="avatar-lg flex-shrink-0 me-3">
-                <span class="avatar-title bg-white bg-opacity-25 rounded-circle fs-1">
-                  <i class="ri-money-dollar-circle-line text-white"></i>
-                </span>
+<ul class="nav nav-tabs nav-tabs-custom stats-tabs mb-4" role="tablist">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#stats-activity" type="button">
+      <i class="ri-calendar-check-line me-1"></i> Activité
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#stats-finance" type="button">
+      <i class="ri-money-dollar-circle-line me-1"></i> Finances
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#stats-services" type="button">
+      <i class="ri-service-line me-1"></i> Prestations
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="stats-activity">
+    <div class="row g-3 mb-4">
+      {% set activityCards = [
+        {label: 'Total RDV', value: kpis.rdv, color: 'primary', icon: 'ri-calendar-2-line'},
+        {label: 'Honorés', value: kpis.honores, color: 'success', icon: 'ri-checkbox-circle-line'},
+        {label: 'Absents', value: kpis.absents, color: 'secondary', icon: 'ri-user-unfollow-line'},
+        {label: 'Annulés', value: kpis.annules, color: 'danger', icon: 'ri-close-circle-line'}
+      ] %}
+      {% for card in activityCards %}
+        <div class="col-xl-3 col-sm-6">
+          <div class="card metric-card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+              <div>
+                <p class="text-muted mb-1">{{ card.label }}</p>
+                <div class="metric-value text-{{ card.color }}">{{ card.value|number_format(0, ',', ' ') }}</div>
               </div>
-              <div class="text-white">
-                <h5 class="text-white-50 mb-2">
-                  <i class="ri-line-chart-line me-1"></i>
-                  Chiffre d'Affaires Total
-                </h5>
-                <h1 class="fw-bold mb-0">
-                  {{ kpis.ca|number_format(0, ',', ' ') }}
-                  <span class="fs-4 fw-normal">MRU</span>
-                </h1>
-                <p class="text-white-50 mb-0 mt-2">
-                  <i class="ri-calendar-line me-1"></i>
-                  {{ from|date('d/m/Y') }} - {{ to|date('d/m/Y') }}
-                </p>
-              </div>
+              <span class="avatar-title bg-{{ card.color }}-subtle text-{{ card.color }} rounded fs-2 p-3">
+                <i class="{{ card.icon }}"></i>
+              </span>
             </div>
           </div>
-          <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            {% set nbJours = from.diff(to).days|abs + 1 %}
-            {% set moyenneJour = nbJours > 0 ? (kpis.ca / nbJours) : 0 %}
-            <div class="text-white">
-              <p class="text-white-50 mb-1">Moyenne par jour</p>
-              <h3 class="text-white fw-semibold mb-0">
-                {{ moyenneJour|round(0)|number_format(0, ',', ' ') }} MRU
-              </h3>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card metric-card"><div class="card-body text-center">
+          <p class="text-muted mb-1">Taux de réalisation</p>
+          <div class="metric-value text-success">{{ tauxRealisation|round(1) }} %</div>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card"><div class="card-body text-center">
+          <p class="text-muted mb-1">Taux d’absence</p>
+          <div class="metric-value text-secondary">{{ tauxAbsence|round(1) }} %</div>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card"><div class="card-body text-center">
+          <p class="text-muted mb-1">Taux d’annulation</p>
+          <div class="metric-value text-danger">{{ tauxAnnulation|round(1) }} %</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Évolution des rendez-vous</h5></div>
+      <div class="card-body"><div id="chart-activity" class="chart-box"></div></div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="stats-finance">
+    <div class="row g-3 mb-4">
+      {% set financeCards = [
+        {label: 'CA réalisé', value: kpis.ca, color: 'success'},
+        {label: 'Encaissements reçus', value: kpis.encaissements, color: 'primary'},
+        {label: 'Reste à encaisser', value: kpis.resteAEncaisser, color: 'warning'},
+        {label: 'Dépenses', value: kpis.depenses, color: 'danger'}
+      ] %}
+      {% for card in financeCards %}
+        <div class="col-xl-3 col-sm-6">
+          <div class="card metric-card"><div class="card-body">
+            <p class="text-muted mb-1">{{ card.label }}</p>
+            <div class="metric-value text-{{ card.color }}">{{ card.value|number_format(0, ',', ' ') }} <small class="fs-13">MRU</small></div>
+          </div></div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-xl-8">
+        <div class="card h-100">
+          <div class="card-header"><h5 class="card-title mb-0">CA réalisé et encaissements</h5></div>
+          <div class="card-body"><div id="chart-finance" class="chart-box"></div></div>
+        </div>
+      </div>
+      <div class="col-xl-4">
+        <div class="card h-100">
+          <div class="card-header"><h5 class="card-title mb-0">Modes d’encaissement</h5></div>
+          <div class="card-body"><div id="chart-methods" class="chart-box"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-xl-8">
+        <div class="card">
+          <div class="card-header"><h5 class="card-title mb-0">Dépenses par catégorie</h5></div>
+          <div class="card-body"><div id="chart-expenses" class="chart-box"></div></div>
+        </div>
+      </div>
+      <div class="col-xl-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">Lecture de la caisse physique</h5>
+            <div class="d-flex justify-content-between border-bottom py-3">
+              <span>Espèces encaissées</span><strong>{{ kpis.especes|number_format(0, ',', ' ') }} MRU</strong>
             </div>
+            <div class="d-flex justify-content-between border-bottom py-3">
+              <span>Paiements mobiles</span><strong>{{ kpis.mobile|number_format(0, ',', ' ') }} MRU</strong>
+            </div>
+            <div class="d-flex justify-content-between py-3">
+              <span>Flux net de caisse</span>
+              <strong class="{{ kpis.fluxCaisse < 0 ? 'text-danger' : 'text-success' }}">
+                {{ kpis.fluxCaisse|number_format(0, ',', ' ') }} MRU
+              </strong>
+            </div>
+            <p class="text-muted small mb-0">Le mobile est inclus dans les encaissements, jamais dans la caisse physique.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-{# Graphiques Principaux #}
-<div class="row">
-  {# Graphique CA par jour #}
-  <div class="col-xl-8">
-    <div class="card card-height-100">
-      <div class="card-header border-bottom-dashed align-items-center d-flex">
-        <h4 class="card-title mb-0 flex-grow-1">
-          <i class="ri-line-chart-line text-primary me-2"></i>
-          Évolution du CA par Jour
-        </h4>
-        <div class="flex-shrink-0">
-          <div class="dropdown card-header-dropdown">
-            <button class="btn btn-soft-primary btn-sm" type="button">
-              <i class="ri-download-2-line align-middle me-1"></i>
-              Exporter
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div id="chart-ca-jour" style="min-height: 350px;" class="apex-charts" dir="ltr"></div>
-      </div>
-    </div>
-  </div>
-
-  {# Top Prestations #}
-  <div class="col-xl-4">
-    <div class="card card-height-100">
-      <div class="card-header border-bottom-dashed align-items-center d-flex">
-        <h4 class="card-title mb-0 flex-grow-1">
-          <i class="ri-medal-line text-warning me-2"></i>
-          Top Prestations
-        </h4>
+  <div class="tab-pane fade" id="stats-services">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-1">Performance des prestations honorées</h5>
+        <p class="text-muted mb-0">Comparaison du volume, du chiffre d’affaires réalisé et des paiements reçus.</p>
       </div>
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-borderless table-sm align-middle mb-0">
+          <table class="table table-hover align-middle mb-0 performance-table">
             <thead class="table-light">
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">Prestation</th>
-                <th scope="col" class="text-end">Nombre</th>
+                <th>Prestation</th>
+                <th class="text-end">Réalisées</th>
+                <th class="text-end">CA réalisé</th>
+                <th class="text-end">Encaissé</th>
+                <th class="text-end">Écart</th>
               </tr>
             </thead>
             <tbody>
-              {% for row in topPrestations %}
+              {% for row in performances %}
                 <tr>
-                  <td class="fw-medium text-center">
-                    {% if loop.index == 1 %}
-                      <span class="badge bg-warning-subtle text-warning fs-12">
-                        <i class="ri-trophy-line"></i>
-                      </span>
-                    {% elseif loop.index == 2 %}
-                      <span class="badge bg-secondary-subtle text-secondary fs-12">
-                        <i class="ri-medal-2-line"></i>
-                      </span>
-                    {% elseif loop.index == 3 %}
-                      <span class="badge bg-danger-subtle text-danger fs-12">
-                        <i class="ri-award-line"></i>
-                      </span>
-                    {% else %}
-                      {{ loop.index }}
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="flex-shrink-0 me-2">
-                        <div class="avatar-xs">
-                          <span class="avatar-title rounded-circle bg-primary-subtle text-primary">
-                            {{ row.libelle|slice(0, 1)|upper }}
-                          </span>
-                        </div>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-0 text-truncate" style="max-width: 150px;">
-                          {{ row.libelle }}
-                        </h6>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="text-end">
-                    <span class="badge bg-primary-subtle text-primary fs-12 px-3 py-2">
-                      {{ row.n|number_format(0, ',', ' ') }}
-                    </span>
+                  <td class="fw-medium">{{ row.libelle }}</td>
+                  <td class="text-end">{{ row.count }}</td>
+                  <td class="text-end">{{ row.ca|number_format(0, ',', ' ') }} MRU</td>
+                  <td class="text-end">{{ row.encaisse|number_format(0, ',', ' ') }} MRU</td>
+                  <td class="text-end {{ row.encaisse - row.ca < 0 ? 'text-warning' : 'text-success' }}">
+                    {{ (row.encaisse - row.ca)|number_format(0, ',', ' ') }} MRU
                   </td>
                 </tr>
               {% else %}
-                <tr>
-                  <td colspan="3" class="text-center text-muted py-4">
-                    <i class="ri-inbox-line fs-1 mb-2 d-block"></i>
-                    Aucune donnée disponible
-                  </td>
-                </tr>
+                <tr><td colspan="5" class="text-center text-muted py-5">Aucune prestation honorée sur cette période.</td></tr>
               {% endfor %}
             </tbody>
           </table>
-        </div>
-        
-        {% if topPrestations|length > 0 %}
-          <div class="mt-3 text-center">
-            <a href="#" class="btn btn-soft-primary btn-sm">
-              Voir le rapport complet
-              <i class="ri-arrow-right-line align-middle ms-1"></i>
-            </a>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Statistiques Avancées (Optionnel) #}
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header bg-soft-info border-bottom-dashed">
-        <div class="d-flex align-items-center">
-          <h5 class="card-title flex-grow-1 mb-0">
-            <i class="ri-file-chart-line me-2"></i>
-            Analyse Détaillée de la Période
-          </h5>
-          <div class="flex-shrink-0">
-            <button class="btn btn-info btn-sm" onclick="window.print()">
-              <i class="ri-printer-line align-middle me-1"></i>
-              Imprimer
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="row text-center">
-          <div class="col-md-3">
-            <div class="border-end border-end-dashed">
-              <h5 class="text-muted text-uppercase fs-13">Taux de Confirmation</h5>
-              {% set confirmes = kpis.confirmes ?? 0 %}
-              {% set tauxConfirm = kpis.rdv > 0 ? ((confirmes + kpis.honores) / kpis.rdv * 100) : 0 %}
-              <h2 class="fw-semibold ff-secondary mb-0 text-info">
-                {{ tauxConfirm|round(1) }}<small class="fs-14 ms-1">%</small>
-              </h2>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="border-end border-end-dashed">
-              <h5 class="text-muted text-uppercase fs-13">Taux de Conversion</h5>
-              {% set tauxConv = kpis.rdv > 0 ? (kpis.honores / kpis.rdv * 100) : 0 %}
-              <h2 class="fw-semibold ff-secondary mb-0 text-success">
-                {{ tauxConv|round(1) }}<small class="fs-14 ms-1">%</small>
-              </h2>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="border-end border-end-dashed">
-              <h5 class="text-muted text-uppercase fs-13">Taux d'Annulation</h5>
-              {% set tauxAnn = kpis.rdv > 0 ? (kpis.annules / kpis.rdv * 100) : 0 %}
-              <h2 class="fw-semibold ff-secondary mb-0 text-danger">
-                {{ tauxAnn|round(1) }}<small class="fs-14 ms-1">%</small>
-              </h2>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div>
-              <h5 class="text-muted text-uppercase fs-13">Taux No-Show</h5>
-              {% set tauxNoShow = kpis.rdv > 0 ? (kpis.absents / kpis.rdv * 100) : 0 %}
-              <h2 class="fw-semibold ff-secondary mb-0 text-warning">
-                {{ tauxNoShow|round(1) }}<small class="fs-14 ms-1">%</small>
-              </h2>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -460,158 +279,79 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const labelsRev = {{ labelsRev|json_encode|raw }};
-      const valuesRev = {{ valuesRev|json_encode|raw }};
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const labels = {{ labels|json_encode|raw }};
+  const money = value => Intl.NumberFormat('fr-FR').format(value) + ' MRU';
+  const colors = names => names.map(name => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || name);
 
-      console.log('📊 Stats - Données CA:', { labels: labelsRev.length, values: valuesRev.length });
+  const activityChart = new ApexCharts(document.querySelector('#chart-activity'), {
+    chart: { type: 'line', height: 330, toolbar: { show: false } },
+    series: [
+      { name: 'Honorés', data: {{ honoredValues|json_encode|raw }} },
+      { name: 'Absents', data: {{ absentValues|json_encode|raw }} },
+      { name: 'Annulés', data: {{ cancelledValues|json_encode|raw }} }
+    ],
+    xaxis: { categories: labels },
+    stroke: { curve: 'smooth', width: 3 },
+    colors: colors(['--vz-success', '--vz-secondary', '--vz-danger']),
+    noData: { text: 'Aucune donnée' }
+  });
+  activityChart.render();
 
-      // Helper function pour les couleurs Velzon
-      const getChartColorsArray = (colors) => {
-        colors = JSON.parse(colors);
-        return colors.map(function(value) {
-          var newValue = value.replace(" ", "");
-          if (newValue.indexOf(",") === -1) {
-            var color = getComputedStyle(document.documentElement).getPropertyValue(newValue);
-            if (color.indexOf("#") !== -1) color = color.replace(" ", "");
-            if (color) return color;
-            else return newValue;
-          }
-        });
-      };
+  let financeRendered = false;
+  const renderFinanceCharts = () => {
+    if (financeRendered) return;
+    financeRendered = true;
 
-      try {
-        const chartColors = '["--vz-primary", "--vz-success"]';
-        const chartCaJour = new ApexCharts(document.querySelector('#chart-ca-jour'), {
-          chart: { 
-            height: 350,
-            type: 'area',
-            toolbar: { 
-              show: true,
-              tools: {
-                download: true,
-                selection: true,
-                zoom: true,
-                zoomin: true,
-                zoomout: true,
-                pan: true,
-                reset: true
-              }
-            },
-            animations: {
-              enabled: true,
-              easing: 'easeinout',
-              speed: 900
-            }
-          },
-          dataLabels: { enabled: false },
-          stroke: { 
-            curve: 'smooth',
-            width: 3
-          },
-          series: [{ 
-            name: 'Chiffre d\'affaires',
-            data: valuesRev 
-          }],
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shadeIntensity: 1,
-              opacityFrom: 0.6,
-              opacityTo: 0.1,
-              stops: [0, 90, 100]
-            }
-          },
-          xaxis: { 
-            categories: labelsRev,
-            axisTicks: { show: false },
-            axisBorder: { show: false },
-            labels: {
-              rotate: -45,
-              style: {
-                fontSize: '11px'
-              },
-              formatter: function(value) {
-                // Formatter les dates si nécessaire
-                return value;
-              }
-            }
-          },
-          yaxis: {
-            labels: {
-              formatter: function(value) {
-                return Intl.NumberFormat('fr-FR').format(value) + ' MRU';
-              },
-              style: {
-                fontSize: '12px'
-              }
-            }
-          },
-          colors: getChartColorsArray(chartColors),
-          grid: {
-            borderColor: '#f1f1f1',
-            strokeDashArray: 3,
-            padding: {
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 10
-            }
-          },
-          tooltip: { 
-            x: {
-              format: 'dd/MM/yyyy'
-            },
-            y: {
-              formatter: function(value) {
-                return Intl.NumberFormat('fr-FR').format(value) + ' MRU';
-              },
-              title: {
-                formatter: function() {
-                  return 'CA :';
-                }
-              }
-            },
-            theme: 'light'
-          },
-          markers: {
-            size: 0,
-            hover: {
-              size: 5
-            }
-          }
-        });
-        
-        chartCaJour.render();
-        console.log('✅ Graphique CA par jour rendu');
-      } catch (e) {
-        console.error('❌ Erreur chart-ca-jour:', e);
-        document.querySelector('#chart-ca-jour').innerHTML = 
-          '<div class="alert alert-danger m-3">Erreur de chargement du graphique: ' + e.message + '</div>';
-      }
+    new ApexCharts(document.querySelector('#chart-finance'), {
+      chart: { type: 'area', height: 330, toolbar: { show: false } },
+      series: [
+        { name: 'CA réalisé', data: {{ revenueValues|json_encode|raw }} },
+        { name: 'Encaissements', data: {{ receiptsValues|json_encode|raw }} }
+      ],
+      xaxis: { categories: labels },
+      stroke: { curve: 'smooth', width: 3 },
+      colors: colors(['--vz-success', '--vz-primary']),
+      yaxis: { labels: { formatter: money } },
+      tooltip: { y: { formatter: money } }
+    }).render();
 
-      // Animation des compteurs
-      const animateValue = (element, start, end, duration) => {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-          if (!startTimestamp) startTimestamp = timestamp;
-          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-          const value = Math.floor(progress * (end - start) + start);
-          element.textContent = Intl.NumberFormat('fr-FR').format(value);
-          if (progress < 1) {
-            window.requestAnimationFrame(step);
-          }
-        };
-        window.requestAnimationFrame(step);
-      };
+    new ApexCharts(document.querySelector('#chart-methods'), {
+      chart: { type: 'donut', height: 330 },
+      labels: ['Espèces', 'Mobile'],
+      series: [{{ kpis.especes }}, {{ kpis.mobile }}],
+      colors: colors(['--vz-success', '--vz-info']),
+      legend: { position: 'bottom' },
+      tooltip: { y: { formatter: money } },
+      noData: { text: 'Aucun encaissement' }
+    }).render();
 
-      // Animer tous les compteurs
-      document.querySelectorAll('.counter-value').forEach(counter => {
-        const target = parseInt(counter.getAttribute('data-target'));
-        animateValue(counter, 0, target, 1500);
-      });
+    new ApexCharts(document.querySelector('#chart-expenses'), {
+      chart: { type: 'bar', height: 330, toolbar: { show: false } },
+      series: [{ name: 'Dépenses', data: {{ expensesByCategory|map(row => row.total)|json_encode|raw }} }],
+      xaxis: { categories: {{ expensesByCategory|map(row => row.name)|json_encode|raw }} },
+      colors: colors(['--vz-danger']),
+      plotOptions: { bar: { borderRadius: 5, horizontal: true } },
+      tooltip: { y: { formatter: money } },
+      noData: { text: 'Aucune dépense' }
+    }).render();
+  };
+
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', event => {
+      const target = event.target.getAttribute('data-bs-target');
+      if (target === '#stats-finance') renderFinanceCharts();
+      if (target) history.replaceState(null, '', target);
     });
-  </script>
+  });
+
+  const requestedTab = ['#stats-activity', '#stats-finance', '#stats-services'].includes(location.hash)
+    ? document.querySelector(`[data-bs-target="${location.hash}"]`)
+    : null;
+  if (requestedTab) {
+    bootstrap.Tab.getOrCreateInstance(requestedTab).show();
+  }
+});
+</script>
 {% endblock %}

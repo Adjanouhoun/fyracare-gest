@@ -21,6 +21,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Local database backups (sensitive)
+/backups/
+
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/

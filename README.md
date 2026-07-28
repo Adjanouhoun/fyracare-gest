@@ -287,9 +287,28 @@ Via l'interface admin : **Paramètres > Entreprise**
 
 | Rôle | Accès |
 |------|-------|
-| `ROLE_USER` | Dashboard, RDV, Clients, Paiements, Agenda, Caisse (lecture) |
-| `ROLE_ADMIN` | + Prestations, Utilisateurs, Dépenses, Catégories, Paramètres |
+| `ROLE_RECEPTION_CAISSE` | Accueil, clients, RDV, agenda, paiements et opérations courantes de caisse |
+| `ROLE_MANAGER` | + Statistiques, supervision et validation des opérations sensibles |
+| `ROLE_ADMIN` | + Prestations, utilisateurs, catégories et paramètres |
 | `ROLE_SUPER_ADMIN` | Tous les accès |
+
+`ROLE_USER` est conservé uniquement comme rôle technique de compatibilité pour les
+anciens comptes. Les nouveaux comptes opérationnels doivent recevoir
+`ROLE_RECEPTION_CAISSE`.
+
+### Environnement de démonstration
+
+La démonstration utilise une base SQLite privée et ne partage aucune table avec la
+base MySQL de production.
+
+1. Vérifier que l'extension PHP `pdo_sqlite` est disponible.
+2. Déployer une copie séparée de l'application, idéalement sur un sous-domaine.
+3. Copier `.env.demo.example` vers `.env.local` et remplacer `APP_SECRET`.
+4. Créer les données fictives avec `php bin/console app:demo:reset --env=demo`.
+
+La commande refuse de fonctionner si l'environnement n'est pas `demo`, si la
+connexion n'est pas SQLite ou si le fichier cible n'est pas exactement
+`var/demo/fyracare-demo.sqlite`.
 
 ### Raccourcis clavier
 
@@ -449,5 +468,3 @@ Pour toute question ou bug :
 ---
 
 **Fait avec ❤️ en Mauritanie 🇲🇷**
-
-

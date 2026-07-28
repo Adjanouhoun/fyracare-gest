@@ -12,6 +12,7 @@ use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use FOS\CKEditorBundle\Form\Type\CKEditorType;
+use Symfony\Component\Validator\Constraints as Assert;
 
 class PaymentType extends AbstractType
 {
@@ -19,12 +20,16 @@ class PaymentType extends AbstractType
     {
         /** @var Rdv|null $rdv */
         $rdv = $options['rdv'] ?? null;
-        $defaultAmount = $rdv?->getPrestation()?->getPrix() ?? 0;
+        $defaultAmount = $rdv?->getRemainingAmount() ?? 0;
 
         $builder
             // Montant (on met la valeur ici; on le “verrouille” dans Twig via input readonly + champ caché)
             ->add('amount', IntegerType::class, [
                 'data' => $defaultAmount,
+                'constraints' => [
+                    new Assert\NotBlank(message: 'Le montant est obligatoire.'),
+                    new Assert\Positive(message: 'Le montant doit être strictement positif.'),
+                ],
             ])
 
             // Méthode (radios => expanded: true)

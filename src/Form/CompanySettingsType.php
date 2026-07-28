@@ -4,7 +4,7 @@ namespace App\Form;
 
 use App\Entity\CompanySettings;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\{EmailType,TelType,TextareaType,FileType,TextType};
+use Symfony\Component\Form\Extension\Core\Type\{EmailType,TelType,TextareaType,FileType,IntegerType};
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -26,6 +26,11 @@ class CompanySettingsType extends AbstractType
                 'label' => 'Adresse',
                 'required' => false,
                 'attr' => ['rows' => 3],
+            ])
+          ->add('confirmationReminderHours', IntegerType::class, [
+                'label' => 'Alerter avant le rendez-vous (heures)',
+                'help' => '24 heures par défaut. Valeur autorisée : de 1 à 168 heures.',
+                'attr' => ['min' => 1, 'max' => 168],
             ])
           ->add('logoInvoiceFile', FileType::class, [
                 'label' => 'Logo Reçu(PNG/JPG)',

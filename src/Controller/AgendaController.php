@@ -6,10 +6,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 class AgendaController extends AbstractController
 {
-    #[Route('/admin/agenda', name:'agenda', methods: ['GET'])]
+    #[Route('/agenda', name:'agenda', methods: ['GET'])]
     public function index(Request $request, RdvRepository $repo): Response
     {
         $tzId = \date_default_timezone_get();
@@ -54,7 +56,7 @@ class AgendaController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/agenda/test', name:'agenda_test', methods: ['GET'])]
+    #[Route('/agenda/test', name:'agenda_test', methods: ['GET'])]
     public function test(): Response
     {
         return $this->render('agenda/test.html.twig');

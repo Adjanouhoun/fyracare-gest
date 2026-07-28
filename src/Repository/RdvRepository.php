@@ -83,6 +83,111 @@ class RdvRepository extends ServiceEntityRepository
             ->getQuery()->getSingleScalarResult();
     }
 
+    public function sumHonoredRevenueBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COALESCE(SUM(r.priceAtBooking), 0)')
+            ->andWhere('r.startAt BETWEEN :from AND :to')
+            ->andWhere('r.status = :status')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('status', Rdv::S_HONORE)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** @return array<string, array<string, int>> */
+    public function statusCountsByDayBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $rows = $this->createQueryBuilder('r')
+            ->select('r.startAt, r.status')
+            ->andWhere('r.startAt BETWEEN :from AND :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            /** @var \DateTimeInterface $date */
+            $date = $row['startAt'];
+            $day = $date->format('Y-m-d');
+            $status = (string) $row['status'];
+            $counts[$day][$status] = ($counts[$day][$status] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    /** @return array<string, int> */
+    public function honoredRevenueByDayBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $rows = $this->createQueryBuilder('r')
+            ->select('r.startAt, r.priceAtBooking')
+            ->andWhere('r.startAt BETWEEN :from AND :to')
+            ->andWhere('r.status = :status')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('status', Rdv::S_HONORE)
+            ->getQuery()
+            ->getArrayResult();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            /** @var \DateTimeInterface $date */
+            $date = $row['startAt'];
+            $day = $date->format('Y-m-d');
+            $totals[$day] = ($totals[$day] ?? 0) + (int) $row['priceAtBooking'];
+        }
+
+        return $totals;
+    }
+
+    public function sumOutstandingBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        $appointments = $this->createQueryBuilder('r')
+            ->leftJoin('r.payments', 'payment')->addSelect('payment')
+            ->andWhere('r.startAt BETWEEN :from AND :to')
+            ->andWhere('r.status != :cancelled')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('cancelled', Rdv::S_ANNULE)
+            ->getQuery()
+            ->getResult();
+
+        return array_sum(array_map(
+            static fn (Rdv $rdv): int => max(0, $rdv->getRemainingAmount()),
+            $appointments,
+        ));
+    }
+
+    /** @return array<int, array{libelle: string, count: int, ca: int}> */
+    public function performanceByPrestationBetween(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        int $limit = 12,
+    ): array {
+        $rows = $this->createQueryBuilder('r')
+            ->select('p.libelle AS libelle, COUNT(r.id) AS totalCount, SUM(r.priceAtBooking) AS revenue')
+            ->join('r.prestation', 'p')
+            ->andWhere('r.startAt BETWEEN :from AND :to')
+            ->andWhere('r.status = :status')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('status', Rdv::S_HONORE)
+            ->groupBy('p.id')
+            ->orderBy('revenue', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => [
+            'libelle' => (string) $row['libelle'],
+            'count' => (int) $row['totalCount'],
+            'ca' => (int) $row['revenue'],
+        ], $rows);
+    }
+
     /**
      * Top prestations par volume de RDV dans l’intervalle.
      * Retourne des lignes: ['libelle' => string, 'n' => int]
@@ -145,5 +250,63 @@ class RdvRepository extends ServiceEntityRepository
             ->andWhere('r.paymentStatus = :status')
             ->setParameter('status', Rdv::PS_PARTIEL)
             ->getQuery()->getSingleScalarResult();
+    }
+
+    /** @return Rdv[] */
+    public function findAwaitingConfirmation(\DateTimeImmutable $now, \DateTimeImmutable $deadline, int $limit = 20): array
+    {
+        return $this->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p')
+            ->andWhere('r.status = :status')
+            ->andWhere('r.startAt BETWEEN :now AND :deadline')
+            ->setParameter('status', Rdv::S_PLANIFIE)
+            ->setParameter('now', $now)
+            ->setParameter('deadline', $deadline)
+            ->orderBy('r.startAt', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()->getResult();
+    }
+
+    /** @return Rdv[] */
+    public function findOverdueUnresolved(\DateTimeImmutable $now, int $limit = 20): array
+    {
+        return $this->createQueryBuilder('r')
+            ->leftJoin('r.client', 'c')->addSelect('c')
+            ->leftJoin('r.prestation', 'p')->addSelect('p')
+            ->andWhere('r.status IN (:statuses)')
+            ->andWhere('r.endAt < :now')
+            ->setParameter('statuses', [Rdv::S_PLANIFIE, Rdv::S_CONFIRME])
+            ->setParameter('now', $now)
+            ->orderBy('r.startAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()->getResult();
+    }
+
+    public function countAwaitingConfirmation(
+        \DateTimeImmutable $now,
+        \DateTimeImmutable $deadline,
+    ): int {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.status = :status')
+            ->andWhere('r.startAt BETWEEN :now AND :deadline')
+            ->setParameter('status', Rdv::S_PLANIFIE)
+            ->setParameter('now', $now)
+            ->setParameter('deadline', $deadline)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countOverdueUnresolved(\DateTimeImmutable $now): int
+    {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.status IN (:statuses)')
+            ->andWhere('r.endAt < :now')
+            ->setParameter('statuses', [Rdv::S_PLANIFIE, Rdv::S_CONFIRME])
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 }

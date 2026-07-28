@@ -33,6 +33,13 @@ class CompanySettings
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $logoAppPath = null;
 
+    #[ORM\Column]
+    #[Assert\Range(min: 1, max: 168)]
+    private int $confirmationReminderHours = 24;
+
+    #[ORM\Column(type: 'date_immutable')]
+    private ?\DateTimeImmutable $cashClosureEnforcementStartDate = null;
+
     public function getId(): int { return $this->id; }
 
     public function getPhone(): string { return $this->phone; }
@@ -49,4 +56,22 @@ class CompanySettings
 
     public function getLogoAppPath(): ?string { return $this->logoAppPath; }
     public function setLogoAppPath(?string $logoAppPath): self { $this->logoAppPath = $logoAppPath; return $this; }
+
+    public function getConfirmationReminderHours(): int { return $this->confirmationReminderHours; }
+    public function setConfirmationReminderHours(int $hours): self
+    {
+        $this->confirmationReminderHours = $hours;
+        return $this;
+    }
+
+    public function getCashClosureEnforcementStartDate(): \DateTimeImmutable
+    {
+        return $this->cashClosureEnforcementStartDate ??= new \DateTimeImmutable('today');
+    }
+
+    public function setCashClosureEnforcementStartDate(\DateTimeImmutable $date): self
+    {
+        $this->cashClosureEnforcementStartDate = $date->setTime(0, 0);
+        return $this;
+    }
 }

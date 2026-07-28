@@ -55,6 +55,9 @@
 					<div class="text-muted">Méthode :
 						<span class="fw-medium">{{ payment.methode }}</span>
 					</div>
+					<div class="text-muted">Encaissé par :
+						<span class="fw-medium">{{ payment.receivedBy ? payment.receivedBy.fullname : '—' }}</span>
+					</div>
 				</div>
 			</div>
 

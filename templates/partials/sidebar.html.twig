@@ -3,13 +3,21 @@
                 <!-- Dark Logo-->
                 <a href="#" class="logo logo-dark">
                     <span class="logo-sm">
-                    {% if app_settings.get().logoAppPath %}
-                      <img src="{{ asset(app_settings.get().logoAppPath) }}" alt="" height="22">
+                    {% if app_settings.logoAppPath %}
+                      <span class="brand-logo-fallback fw-bold text-primary" style="display:none">F</span>
+                      <img src="{{ asset(app_settings.logoAppPath) }}" alt="Fyracare" height="22"
+                           onerror="this.style.display='none';this.previousElementSibling.style.display='inline-block'">
+                    {% else %}
+                      <span class="fw-bold text-primary">F</span>
                     {% endif %}
                     </span>
                     <span class="logo-lg">
-                    {% if app_settings.get().logoAppPath %}
-                      <img src="{{ asset(app_settings.get().logoAppPath) }}" alt="" height="55">
+                    {% if app_settings.logoAppPath %}
+                      <span class="brand-logo-fallback fw-bold fs-4 text-primary" style="display:none">Fyracare</span>
+                      <img src="{{ asset(app_settings.logoAppPath) }}" alt="Fyracare" height="55"
+                           onerror="this.style.display='none';this.previousElementSibling.style.display='inline-block'">
+                    {% else %}
+                      <span class="fw-bold fs-4 text-primary">Fyracare</span>
                     {% endif %}
                     </span>
                 </a>
@@ -37,9 +45,11 @@
         <li class="nav-item">
           <a class="nav-link menu-link" href="{{ path('admin_dashboard') }}"><i class="ri-dashboard-2-line"></i> <span>Dashboard</span></a>
         </li>
+        {% if is_granted('ROLE_MANAGER') %}
         <li class="nav-item">
           <a class="nav-link menu-link" href="{{ path('stats_index') }}"><i class="ri-bar-chart-2-line"></i> <span>Statistiques</span></a>
         </li>   
+        {% endif %}
       </ul>
     </div>
     <div class="container-fluid">
@@ -76,6 +86,9 @@
 
         <li class="nav-item">
           <a class="nav-link menu-link" href="{{ path('app_settings_edit') }}"><i class="ri-settings-line"></i> <span>Paramètres</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link menu-link" href="{{ path('admin_activity_log_index') }}"><i class="ri-file-history-line"></i> <span>Journal d’activité</span></a>
         </li>
       </ul>
     </div>

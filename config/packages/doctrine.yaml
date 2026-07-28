@@ -17,6 +17,10 @@ doctrine:
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
+        filters:
+            active_cash_movements:
+                class: App\Doctrine\CashMovementActiveFilter
+                enabled: true
         mappings:
             App:
                 type: attribute

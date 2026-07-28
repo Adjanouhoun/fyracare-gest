@@ -11,4 +11,14 @@ class CashClosureRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, CashClosure::class);
     }
+
+    public function findForDate(\DateTimeImmutable $date): ?CashClosure
+    {
+        return $this->findOneBy(['closureDate' => $date->setTime(0, 0)]);
+    }
+
+    public function isDateClosed(\DateTimeImmutable $date): bool
+    {
+        return $this->findForDate($date) !== null;
+    }
 }

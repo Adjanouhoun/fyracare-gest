@@ -474,7 +474,6 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const labels = {{ labels|json_encode|raw }};
