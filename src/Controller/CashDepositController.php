@@ -48,7 +48,7 @@ class CashDepositController extends AbstractController
             $em->persist($m);
             $em->flush();
 
-            $this->addFlash('success', 'Dépôt enregistré 👍');
+            $this->addFlash('success', 'Apport physique enregistré.');
             return $this->redirectToRoute('cash_index', [
                 'd' => $m->getCreatedAt()->format('Y-m-d'),
             ]);

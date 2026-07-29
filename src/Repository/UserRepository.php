@@ -12,7 +12,7 @@ class UserRepository extends ServiceEntityRepository
 
     public function createSearchQB(?string $q): \Doctrine\ORM\QueryBuilder
     {
-        $qb = $this->createQueryBuilder('u')->orderBy('u.fullname', 'ASC');
+        $qb = $this->createQueryBuilder('u')->orderBy('u.id', 'DESC');
         if ($q = trim((string)$q)) {
             $qb->andWhere('LOWER(u.fullname) LIKE :q OR LOWER(u.email) LIKE :q')
                ->setParameter('q', '%'.mb_strtolower($q).'%');

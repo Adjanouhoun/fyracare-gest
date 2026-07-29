@@ -75,6 +75,51 @@ final class CashMovementRepositoryTest extends KernelTestCase
         self::assertSame(5000, $this->repository->currentCash(new \DateTimeImmutable('yesterday')));
     }
 
+    public function testCancelledMovementsAreExcludedFromActiveTotals(): void
+    {
+        $active = (new CashMovement())
+            ->setType(CashMovement::IN)
+            ->setSource(CashMovement::SRC_MANUAL)
+            ->setAmount(1000);
+        $cancelled = (new CashMovement())
+            ->setType(CashMovement::IN)
+            ->setSource(CashMovement::SRC_MANUAL)
+            ->setAmount(600)
+            ->setDeletedAt(new \DateTimeImmutable());
+        $this->em->persist($active);
+        $this->em->persist($cancelled);
+        $this->em->flush();
+
+        $from = new \DateTimeImmutable('today 00:00:00');
+        $to = new \DateTimeImmutable('today 23:59:59');
+
+        self::assertSame(1000, $this->repository->sumBetween($from, $to, CashMovement::IN));
+        self::assertCount(1, $this->repository->qbList($from, $to)->getQuery()->getResult());
+    }
+
+    public function testExpensesAndPaymentReversalsHaveSeparateTotals(): void
+    {
+        $this->persistMovement(CashMovement::OUT, CashMovement::SRC_EXPENSE, 250);
+        $this->persistMovement(CashMovement::OUT, CashMovement::SRC_PAYMENT_REVERSAL, 100);
+        $this->em->flush();
+
+        $from = new \DateTimeImmutable('today 00:00:00');
+        $to = new \DateTimeImmutable('today 23:59:59');
+
+        self::assertSame(250, $this->repository->sumBetweenByTypeAndSource(
+            $from,
+            $to,
+            CashMovement::OUT,
+            CashMovement::SRC_EXPENSE,
+        ));
+        self::assertSame(100, $this->repository->sumBetweenByTypeAndSource(
+            $from,
+            $to,
+            CashMovement::OUT,
+            CashMovement::SRC_PAYMENT_REVERSAL,
+        ));
+    }
+
     private function persistMovement(string $type, string $source, int $amount): void
     {
         $movement = (new CashMovement())

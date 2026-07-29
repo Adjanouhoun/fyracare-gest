@@ -174,7 +174,7 @@ final class StatsController extends AbstractController
             'especes' => 'Espèces encaissées (MRU)',
             'mobile' => 'Paiements mobiles (MRU)',
             'depenses' => 'Dépenses (MRU)',
-            'fluxCaisse' => 'Flux net de caisse (MRU)',
+            'fluxCaisse' => 'Flux net de caisse physique (MRU)',
         ];
         foreach ($labels as $key => $label) {
             fputcsv($stream, [$label, $kpis[$key] ?? 0], ';');

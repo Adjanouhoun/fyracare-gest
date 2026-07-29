@@ -8,6 +8,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class SettingsProvider
 {
+    private const DEFAULT_LOGO_PATH = 'images/fyracare-logo.png';
+
     public function __construct(
         private EntityManagerInterface $em,
         #[Autowire('%kernel.project_dir%')]
@@ -34,7 +36,28 @@ class SettingsProvider
 
     public function getLogoAppPath(): ?string
     {
-        $path = $this->get()->getLogoAppPath();
+        return $this->existingPublicPath($this->get()->getLogoAppPath())
+            ?? $this->existingPublicPath(self::DEFAULT_LOGO_PATH);
+    }
+
+    public function getLogoInvoicePath(): ?string
+    {
+        return $this->existingPublicPath($this->get()->getLogoInvoicePath())
+            ?? $this->existingPublicPath(self::DEFAULT_LOGO_PATH);
+    }
+
+    public function hasConfiguredLogoApp(): bool
+    {
+        return null !== $this->existingPublicPath($this->get()->getLogoAppPath());
+    }
+
+    public function hasConfiguredLogoInvoice(): bool
+    {
+        return null !== $this->existingPublicPath($this->get()->getLogoInvoicePath());
+    }
+
+    private function existingPublicPath(?string $path): ?string
+    {
         if (!$path) {
             return null;
         }

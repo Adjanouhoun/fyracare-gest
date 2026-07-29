@@ -11,21 +11,54 @@
 <body class="auth-page">
   <div class="container py-5">
     <div class="row justify-content-center">
-      <div class="col-md-5">
+      <div class="{{ app.environment == 'demo' ? 'col-lg-9' : 'col-md-5' }}">
         <div class="card">
           <div class="card-body p-4">
-            <h4 class="mb-3">Connexion</h4>
+            {% if app.environment == 'demo' %}
+              <div class="alert alert-info d-flex align-items-start gap-2" role="alert">
+                <i class="ri-flask-line fs-4"></i>
+                <div>
+                  <strong>Mode démonstration et apprentissage</strong>
+                  <div class="small">Toutes les informations sont fictives. Les actions réalisées ici n’affectent jamais la base réelle.</div>
+                </div>
+              </div>
+            {% endif %}
+            <h4 class="mb-3">{{ app.environment == 'demo' ? 'Choisir un profil de test' : 'Connexion' }}</h4>
+            {% if app.environment == 'demo' %}
+              <div class="row g-2 mb-4">
+                {% set demo_accounts = [
+                  {label: 'Réception–Caisse', email: 'reception.caisse@demo.fyracare.test', icon: 'ri-customer-service-2-line', help: 'Clients, rendez-vous, paiements et clôture'},
+                  {label: 'Manager', email: 'manager@demo.fyracare.test', icon: 'ri-bar-chart-box-line', help: 'Supervision, rapports et statistiques'},
+                  {label: 'Administrateur', email: 'admin@demo.fyracare.test', icon: 'ri-admin-line', help: 'Configuration et gestion complète'}
+                ] %}
+                {% for account in demo_accounts %}
+                  <div class="col-md-4">
+                    <button
+                      class="btn btn-outline-primary text-start w-100 h-100 demo-account"
+                      type="button"
+                      data-email="{{ account.email }}"
+                      data-password="Demo-2026!"
+                    >
+                      <i class="{{ account.icon }} me-1"></i>
+                      <strong class="d-block">{{ account.label }}</strong>
+                      <small class="text-muted">{{ account.help }}</small>
+                    </button>
+                  </div>
+                {% endfor %}
+              </div>
+              <p class="small text-muted mb-3"><i class="ri-information-line me-1"></i>Sélectionnez un profil : les identifiants seront préparés automatiquement, puis cliquez sur « Se connecter ».</p>
+            {% endif %}
             {% if error %}
               <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData,'security') }}</div>
             {% endif %}
             <form method="post" action="{{ path('app_login') }}">
               <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input class="form-control" type="email" name="email" required value="{{ last_username }}">
+                <label class="form-label" for="login-email">Email</label>
+                <input id="login-email" class="form-control" type="email" name="email" autocomplete="username" required value="{{ last_username }}">
               </div>
               <div class="mb-3">
-                <label class="form-label">Mot de passe</label>
-                <input class="form-control" type="password" name="password" required>
+                <label class="form-label" for="login-password">Mot de passe</label>
+                <input id="login-password" class="form-control" type="password" name="password" autocomplete="current-password" required>
               </div>
               <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
               <button class="btn btn-primary w-100" type="submit">Se connecter</button>
@@ -35,7 +68,24 @@
       </div>
     </div>
   </div>
-  <script src="{{ asset('velzon/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ asset('velzon/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
   <script src="{{ asset('velzon/js/app.js') }}"></script>
+  {% if app.environment == 'demo' %}
+    <script>
+      document.querySelectorAll('.demo-account').forEach(function (button) {
+        button.addEventListener('click', function () {
+          document.querySelectorAll('.demo-account').forEach(function (item) {
+            item.classList.remove('btn-primary', 'text-white');
+            item.classList.add('btn-outline-primary');
+          });
+          button.classList.remove('btn-outline-primary');
+          button.classList.add('btn-primary', 'text-white');
+          document.getElementById('login-email').value = button.dataset.email;
+          document.getElementById('login-password').value = button.dataset.password;
+          document.getElementById('login-password').focus();
+        });
+      });
+    </script>
+  {% endif %}
 </body>
 </html>

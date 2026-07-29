@@ -1,505 +1,136 @@
-{# templates/payment/receipt_pdf.html.twig — Style Invoma #}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Reçu {{ payment.receiptNumber }}</title>
+  {% set shortReference = 'REC-' ~ payment.paidAt|date('Y') ~ '-' ~ '%06d'|format(payment.id) %}
+  {% set methodLabel = payment.methode == constant('App\\Entity\\Payment::M_MOBILE') ? 'Paiement mobile' : 'Espèces' %}
+  <title>Reçu {{ shortReference }}</title>
   <style>
-    @page {
-      size: A5 portrait;
-      margin: 12mm;
-    }
-    
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: 'DejaVu Sans', Arial, sans-serif;
-      font-size: 9px;
-      color: #666;
-      line-height: 1.6em;
-    }
-    
-    .tm_container {
-      max-width: 880px;
-      margin: 0 auto;
-    }
-    
-    .tm_invoice {
-      background: #fff;
-      border-radius: 10px;
-      padding: 30px;
-    }
-    
-    /* === Header === */
-    .tm_invoice_head {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    
-    .tm_invoice_head table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .tm_invoice_head td {
-      vertical-align: middle;
-      padding: 0;
-      border: 0;
-    }
-    
-    .tm_invoice_left {
-      width: 50%;
-    }
-    
-    .tm_invoice_right {
-      width: 50%;
-      text-align: right;
-    }
-    
-    .tm_logo img {
-      max-height: 50px;
-    }
-    
-    .tm_primary_color {
-      color: #111;
-    }
-    
-    .tm_f50 {
-      font-size: 50px;
-    }
-
-    .tm_f30 {
-      font-size: 30px;
-    }
-    
-    .tm_text_uppercase {
-      text-transform: uppercase;
-    }
-    
-    .tm_align_center {
-      vertical-align: middle;
-    }
-    
-    /* === Info Section === */
-    .tm_invoice_info {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    
-    .tm_invoice_info table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .tm_invoice_info td {
-      padding: 0;
-      border: 0;
-      vertical-align: middle;
-    }
-    
-    .tm_invoice_seperator {
-      min-height: 18px;
-      border-radius: 1.6em;
-      background: #f5f6fa;
-    }
-    
-    .tm_gray_bg {
-      background: #f5f6fa;
-    }
-    
-    .tm_invoice_info_list {
-      text-align: right;
-    }
-    
-    .tm_invoice_number,
-    .tm_invoice_date {
-      margin: 0;
-      line-height: 1.5em;
-    }
-    
-    .tm_m0 {
-      margin: 0;
-    }
-    
-    .tm_mb2 {
-      margin-bottom: 2px;
-    }
-    
-    .tm_mb10 {
-      margin-bottom: 10px;
-    }
-    
-    .tm_mb20 {
-      margin-bottom: 20px;
-    }
-    
-    .tm_mb30 {
-      margin-bottom: 30px;
-    }
-    
-    /* === Client Info === */
-    .tm_invoice_head_info {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    
-    .tm_invoice_head_info table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .tm_invoice_head_info td {
-      width: 50%;
-      vertical-align: top;
-      padding: 0;
-      border: 0;
-    }
-    
-    .tm_text_right {
-      text-align: right;
-    }
-    
-    /* === Table === */
-    .tm_table {
-      margin-bottom: 30px;
-    }
-    
-    .tm_round_border {
-      border: 1px solid #dbdfea;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    
-    .tm_table_responsive {
-      overflow-x: auto;
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    th {
-      background: #f5f6fa;
-      color: #111;
-      font-weight: 600;
-      text-align: left;
-      padding: 10px 15px;
-      border: 0;
-    }
-    
-    td {
-      padding: 10px 15px;
-      border-top: 1px solid #dbdfea;
-      vertical-align: top;
-    }
-    
-    .tm_width_3 {
-      width: 25%;
-    }
-    
-    .tm_width_4 {
-      width: 33.33%;
-    }
-    
-    .tm_width_2 {
-      width: 16.66%;
-    }
-    
-    .tm_width_1 {
-      width: 8.33%;
-    }
-    
-    .tm_width_6 {
-      width: 50%;
-    }
-    
-    .tm_semi_bold {
-      font-weight: 600;
-    }
-    
-    /* === Footer === */
-    .tm_invoice_footer {
-      width: 100%;
-    }
-    
-    .tm_invoice_footer table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .tm_invoice_footer td {
-      vertical-align: top;
-      padding: 0;
-      border: 0;
-    }
-    
-    .tm_left_footer {
-      width: 58%;
-      padding: 10px 15px;
-    }
-    
-    .tm_right_footer {
-      width: 42%;
-    }
-    
-    .tm_right_footer table {
-      margin-top: -1px;
-    }
-    
-    .tm_right_footer td {
-      padding: 10px 15px;
-      text-align: right;
-    }
-    
-    .tm_border_none {
-      border: none !important;
-    }
-    
-    .tm_border_top {
-      border-top: 1px solid #dbdfea !important;
-    }
-    
-    .tm_border_bottom {
-      border-bottom: 1px solid #dbdfea !important;
-    }
-    
-    .tm_pt0 {
-      padding-top: 0;
-    }
-    
-    .tm_bold {
-      font-weight: 700;
-    }
-    
-    .tm_f16 {
-      font-size: 16px;
-    }
-
-    .tm_f10 {
-      font-size: 12px;
-    }
-    
-    .tm_border_top_0 {
-      border-top: 0 !important;
-    }
-    
-    /* === Note === */
-    .tm_padd_15_20 {
-      padding: 15px 20px;
-    }
-    
-    .tm_round_border_box {
-      border: 1px solid #dbdfea;
-      border-radius: 4px;
-      padding: 0px 5px;
-    }
-    
-    .tm_mb5 {
-      margin-bottom: 0px;
-    }
-    
-    .tm_note_list {
-      margin: 0;
-      padding-left: 20px;
-      list-style: disc;
-    }
-    
-    .tm_note_list li:not(:last-child) {
-      margin-bottom: 5px;
-    }
-    
-    .tm_ternary_color {
-      color: #b5b5b5;
-    }
+    @page { size: A5 portrait; margin: 11mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #27313c; font-family: "DejaVu Sans", Arial, sans-serif; font-size: 9px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; }
+    td { vertical-align: top; }
+    .header { border-bottom: 1px solid #dce3ea; padding-bottom: 13px; }
+    .logo { width: 64px; height: 64px; object-fit: contain; vertical-align: middle; }
+    .brand { display: inline-block; vertical-align: middle; margin-left: 10px; }
+    .brand h1 { margin: 0 0 2px; font-size: 18px; color: #1f2933; }
+    .muted { color: #718096; }
+    .small { font-size: 7.5px; }
+    .right { text-align: right; }
+    .label { color: #718096; font-size: 7px; font-weight: bold; letter-spacing: .7px; text-transform: uppercase; }
+    .receipt-title { margin: 1px 0; font-size: 15px; color: #1f2933; }
+    .method { display: inline-block; margin-top: 5px; padding: 3px 8px; border: 1px solid #dce3ea; border-radius: 10px; }
+    .party { padding: 16px 0 13px; }
+    .party h2 { margin: 4px 0 2px; font-size: 12px; color: #1f2933; }
+    .amount { background: #196aa6; color: #fff; border-radius: 8px; padding: 15px 17px; }
+    .amount-label { color: #d6e9f8; font-size: 8px; font-weight: bold; text-transform: uppercase; }
+    .amount-value { margin-top: 4px; font-size: 26px; font-weight: bold; line-height: 1; }
+    .amount-type { text-align: right; vertical-align: middle; }
+    .amount-type span { display: inline-block; background: #fff; color: #196aa6; padding: 4px 9px; border-radius: 10px; font-weight: bold; }
+    .summary { margin-top: 14px; background: #f5f7fa; border-radius: 7px; padding: 10px 13px; }
+    .summary-lines td { padding: 4px 0; border-bottom: 1px solid #e2e7ed; }
+    .summary-lines tr:last-child td { border-bottom: 0; }
+    .summary-value { width: 38%; text-align: right; white-space: nowrap; }
+    .status { width: 32%; text-align: center; vertical-align: middle; padding-left: 15px !important; }
+    .status-badge { display: inline-block; padding: 6px 9px; border-radius: 12px; font-weight: bold; }
+    .success { color: #16794b; background: #e3f7ed; }
+    .warning { color: #946200; background: #fff3d6; }
+    .danger { color: #a62929; background: #fde7e7; }
+    .cancelled { margin-bottom: 10px; padding: 8px; text-align: center; color: #a62929; background: #fde7e7; border: 1px solid #f2bcbc; font-weight: bold; }
+    .note { margin-top: 12px; padding: 8px 10px; border: 1px solid #dce3ea; border-radius: 5px; }
+    .footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #dce3ea; }
+    .technical { font-size: 6.5px; color: #8a96a3; word-break: break-all; }
   </style>
 </head>
 <body>
-  <div class="tm_container">
-    <div class="tm_invoice tm_style1">
-      <div class="tm_invoice_in">
-        
-        {# ===== HEADER ===== #}
-        <div class="tm_invoice_head tm_align_center tm_mb20">
-          <table>
-            <tr>
-              <td class="tm_invoice_left">
-                <div class="tm_logo">
-                  {% if logoDataUri %}
-                    <img src="{{ logoDataUri }}" alt="Logo">
-                  {% elseif settings.logoPath %}
-                    <img src="{{ absolute_url(asset(settings.logoPath)) }}" alt="Logo">
-                  {% endif %}
-                </div>
-              </td>
-              <td class="tm_invoice_right">
-                <div class="tm_primary_color tm_f30 tm_text_uppercase">Reçu</div>
-              </td>
-            </tr>
-          </table>
-        </div>
+  {% if payment.cancelled %}<div class="cancelled">PAIEMENT ANNULÉ — document conservé pour la traçabilité</div>{% endif %}
 
-        {# ===== INFO LINE ===== #}
-        <div class="tm_invoice_info tm_mb20">
-          <table>
-            <tr>
-              <td style="width: 60%;">
-                <div class="tm_invoice_seperator tm_gray_bg"></div>
-              </td>
-              <td style="width: 40%;">
-                <div class="tm_invoice_info_list">
-                  <p class="tm_invoice_number tm_m0">N° de reçu : <b class="tm_primary_color">#{{ payment.receiptNumber }}</b></p>
-                  <p class="tm_invoice_date tm_m0">Date : <b class="tm_primary_color">{{ payment.paidAt|date('d.m.Y') }}</b></p>
-                </div>
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        {# ===== CLIENT & EMETTEUR ===== #}
-        <div class="tm_invoice_head_info tm_mb10">
-          <table>
-            <tr>
-              <td>
-                <p class="tm_mb2"><b class="tm_primary_color">Facturé à :</b></p>
-                <p>
-                  {{ payment.rdv.client.nometprenom }}<br>
-                  {{ payment.rdv.client.telephone ?: '—' }}<br>
-                  {{ payment.rdv.client.email ?: '—' }}
-                </p>
-              </td>
-              <td class="tm_text_right">
-                <p class="tm_mb2"><b class="tm_primary_color">Émetteur :</b></p>
-                <p>
-                  {{ settings.companyName ?? 'Fyracare' }}<br>
-                  {{ settings.address ?: '—' }}<br>
-                  {{ settings.phone ?: '—' }}<br>
-                  {{ settings.email ?: '—' }}
-                </p>
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        {# ===== TABLE ===== #}
-        <div class="tm_table tm_style1 tm_mb30">
-          <div class="tm_round_border">
-            <div class="tm_table_responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th class="tm_width_4 tm_semi_bold tm_primary_color tm_gray_bg">Prestation</th>
-                    <th class="tm_width_6 tm_semi_bold tm_primary_color tm_gray_bg">Description</th>
-                    <th class="tm_width_2 tm_semi_bold tm_primary_color tm_gray_bg tm_text_right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="tm_width_4">
-                      {{ payment.rdv.prestation.libelle }}
-                      <br>
-                      <span style="display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 8px; margin-top: 5px; 
-                        {% if payment.isDeposit %}
-                          background: #d1ecf1; color: #0c5460;
-                        {% else %}
-                          background: #d4edda; color: #155724;
-                        {% endif %}
-                      ">
-                        {% if payment.isDeposit %}ACOMPTE{% else %}PAIEMENT FINAL{% endif %}
-                      </span>
-                    </td>
-                    <td class="tm_width_6">
-                      RDV du {{ payment.rdv.startAt|date('d/m/Y H:i') }} au {{ payment.rdv.endAt|date('H:i') }}
-                    </td>
-                    <td class="tm_width_2 tm_text_right">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {# ===== FOOTER WITH TOTALS ===== #}
-          <div class="tm_invoice_footer">
-            <table>
-              <tr>
-                <td class="tm_left_footer">
-                  <p class="tm_mb2"><b class="tm_primary_color">Info paiement :</b></p>
-                  <p class="tm_m0">
-                    Méthode : {{ payment.methode }}<br>
-                    Encaissé par : {{ payment.receivedBy ? payment.receivedBy.fullname : '—' }}<br>
-                    Montant de ce paiement : {{ payment.amount|number_format(0, ',', ' ') }} MRU
-                  </p>
-                  
-                  {# Statut du paiement #}
-                  <p class="tm_mb2" style="margin-top: 10px;"><b class="tm_primary_color">Statut de la prestation :</b></p>
-                  <p class="tm_m0" style="font-size: 8px;">
-                    Prix total : {{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU<br>
-                    Total payé : <b>{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</b><br>
-                    Reste à payer : <b style="{% if payment.rdv.remainingAmount > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">
-                      {{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
-                    </b>
-                  </p>
-                  
-                  {# Badge du statut #}
-                  <div style="margin-top: 10px;">
-                    <span style="display: inline-block; padding: 5px 10px; border-radius: 3px; font-size: 9px; font-weight: bold;
-                      {% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
-                        background: #d4edda; color: #155724;
-                      {% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
-                        background: #fff3cd; color: #856404;
-                      {% else %}
-                        background: #e2e3e5; color: #383d41;
-                      {% endif %}
-                    ">
-                      {% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
-                        ✓ PAIEMENT COMPLET
-                      {% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
-                        ⏱ PAIEMENT PARTIEL
-                      {% else %}
-                        ✗ NON PAYÉ
-                      {% endif %}
-                    </span>
-                  </div>
-                </td>
-                <td class="tm_right_footer">
-                  <table>
-                    <tbody>
-                      <tr>
-                        <td class="tm_width_3 tm_primary_color tm_border_none tm_bold">Sous-total</td>
-                        <td class="tm_width_3 tm_primary_color tm_text_right tm_border_none tm_bold">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
-                      </tr>
-                      <tr>
-                        <td class="tm_width_3 tm_primary_color tm_border_none tm_pt0">Taxe <span class="tm_ternary_color">(0%)</span></td>
-                        <td class="tm_width_3 tm_primary_color tm_text_right tm_border_none tm_pt0">+0 MRU</td>
-                      </tr>
-                      <tr class="tm_border_top tm_border_bottom">
-                        <td class="tm_width_3 tm_border_top_0 tm_bold tm_f10 tm_primary_color">Total</td>
-                        <td class="tm_width_3 tm_border_top_0 tm_bold tm_f10 tm_primary_color tm_text_right">{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-            </table>
+  <table class="header">
+    <tr>
+      <td style="width:62%">
+        {% if logoDataUri %}<img class="logo" src="{{ logoDataUri }}" alt="Logo">{% endif %}
+        <div class="brand">
+          <h1>Fyracare</h1>
+          {% if settings.address %}<div class="muted">{{ settings.address }}</div>{% endif %}
+          <div class="muted small">
+            {% if settings.phone %}Tél. {{ settings.phone }}{% endif %}
+            {% if settings.email %} · {{ settings.email }}{% endif %}
           </div>
         </div>
+      </td>
+      <td class="right" style="width:38%">
+        <div class="label">Reçu de paiement</div>
+        <div class="receipt-title">{{ shortReference }}</div>
+        <div class="muted">{{ payment.paidAt|date('d/m/Y à H:i') }}</div>
+        <div class="method">{{ methodLabel }}</div>
+      </td>
+    </tr>
+  </table>
 
-        {# ===== NOTES ===== #}
-        {% if payment.notes %}
-          <div class="tm_round_border_box">
-            <p class="tm_mb5"><b class="tm_primary_color">Notes :</b></p>
-            <p class="tm_m0">{{ payment.notes }}</p>
-          </div>
-        {% endif %}
+  <table class="party">
+    <tr>
+      <td style="width:50%">
+        <div class="label">Client</div>
+        <h2>{{ payment.rdv.client.nometprenom }}</h2>
+        {% if payment.rdv.client.telephone %}<div class="muted">{{ payment.rdv.client.telephone }}</div>{% endif %}
+        {% if payment.rdv.client.email %}<div class="muted">{{ payment.rdv.client.email }}</div>{% endif %}
+      </td>
+      <td class="right" style="width:50%">
+        <div class="label">Prestation</div>
+        <h2>{{ payment.rdv.prestation.libelle }}</h2>
+        <div class="muted">Rendez-vous du {{ payment.rdv.startAt|date('d/m/Y') }}</div>
+        <div class="muted">{{ payment.rdv.startAt|date('H:i') }} – {{ payment.rdv.endAt|date('H:i') }}</div>
+      </td>
+    </tr>
+  </table>
 
-        {# ===== FOOTER MESSAGE ===== #}
-        <div style="margin-top: 30px; text-align: center; color: #666; font-size: 9px; line-height: 1.6em;">
-          <p class="tm_m0">Merci pour votre confiance</p>
-          <p class="tm_m0">Reçu généré le {{ "now"|date('d/m/Y') }} à {{ "now"|date('H:i') }}</p>
-        </div>
-
-      </div>
-    </div>
+  <div class="amount">
+    <table><tr>
+      <td>
+        <div class="amount-label">Montant versé</div>
+        <div class="amount-value">{{ payment.amount|number_format(0, ',', ' ') }} <span style="font-size:10px;font-weight:normal">MRU</span></div>
+      </td>
+      <td class="amount-type"><span>{{ payment.isDeposit ? 'Acompte' : 'Paiement final' }}</span></td>
+    </tr></table>
   </div>
+
+  <div class="summary">
+    <table>
+      <tr>
+        <td style="width:68%">
+          <table class="summary-lines">
+            <tr><td class="muted">Prix total de la prestation</td><td class="summary-value"><strong>{{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU</strong></td></tr>
+            <tr><td class="muted">Total payé sur ce rendez-vous</td><td class="summary-value"><strong>{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</strong></td></tr>
+            <tr><td class="muted">Reste à payer</td><td class="summary-value"><strong>{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</strong></td></tr>
+          </table>
+        </td>
+        <td class="status">
+          {% if payment.cancelled %}
+            <span class="status-badge danger">Paiement annulé</span>
+          {% elseif payment.rdv.remainingAmount <= 0 %}
+            <span class="status-badge success">Payé intégralement</span>
+          {% else %}
+            <span class="status-badge warning">Paiement partiel</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  {% if payment.notes %}<div class="note"><div class="label">Note de paiement</div><div>{{ payment.notes }}</div></div>{% endif %}
+
+  <table class="footer">
+    <tr>
+      <td style="width:55%">
+        <strong>Merci pour votre confiance.</strong>
+        <div class="muted small">Encaissement enregistré par {{ payment.receivedBy ? payment.receivedBy.fullname : 'utilisateur historique non identifié' }}.</div>
+      </td>
+      <td class="right" style="width:45%">
+        <div class="label">Référence technique</div>
+        <div class="technical">{{ payment.receiptNumber }}</div>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

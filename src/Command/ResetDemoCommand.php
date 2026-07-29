@@ -124,7 +124,8 @@ final class ResetDemoCommand extends Command
         $settings = (new CompanySettings())
             ->setPhone('+222 45 00 00 00')
             ->setEmail('contact@demo.fyracare.test')
-            ->setAddress('Centre de démonstration — données fictives');
+            ->setAddress('Centre de démonstration — données fictives')
+            ->setCashClosureEnforcementStartDate(new \DateTimeImmutable('today'));
         $this->em->persist($settings);
 
         $categories = [];

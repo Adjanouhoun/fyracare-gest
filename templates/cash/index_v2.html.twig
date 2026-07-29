@@ -1,0 +1,227 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Caisse quotidienne{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .cash-balance-card { background: linear-gradient(135deg, #163a5f, #2563a5); color: #fff; border: 0; }
+  .cash-balance-value { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 750; letter-spacing: -.04em; }
+  .cash-state { border-radius: 999px; padding: .45rem .8rem; font-weight: 700; font-size: .78rem; }
+  .cash-kpi { border: 1px solid var(--vz-border-color); box-shadow: 0 2px 8px rgba(15, 23, 42, .04); }
+  .cash-kpi-value { font-size: 1.35rem; font-weight: 700; }
+  .movement-icon { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .movement-cancelled { opacity: .65; text-decoration: line-through; }
+  .cash-filter .btn.active { color: #fff; background: var(--vz-primary); border-color: var(--vz-primary); }
+  @media (max-width: 767.98px) {
+    .cash-journal-table thead { display: none; }
+    .cash-journal-table tr { display: block; padding: .75rem; border-bottom: 1px solid var(--vz-border-color); }
+    .cash-journal-table td { display: flex; justify-content: space-between; border: 0; padding: .25rem 0; white-space: normal; }
+    .cash-journal-table td::before { content: attr(data-label); color: var(--vz-secondary-color); font-size: .8rem; margin-right: 1rem; }
+  }
+</style>
+{% endblock %}
+
+{% block page_header %}
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <div>
+          <h4 class="mb-sm-0"><i class="ri-safe-2-line me-2"></i>Caisse quotidienne</h4>
+          <p class="text-muted mb-0">Solde physique, mouvements et clôture de la journée</p>
+        </div>
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Tableau de bord</a></li>
+          <li class="breadcrumb-item active">Caisse</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  {% if pendingCashClosure %}
+    <div class="alert alert-danger d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 shadow-sm">
+      <div>
+        <div class="fw-bold"><i class="ri-alarm-warning-line me-1"></i>Clôture en attente</div>
+        <div>
+          La journée du {{ pendingCashClosure|date('d/m/Y') }} doit être clôturée avant toute nouvelle opération financière.
+        </div>
+      </div>
+      <a class="btn btn-danger flex-shrink-0" href="{{ path('cash_close', {date: pendingCashClosure|date('Y-m-d')}) }}">
+        Traiter la clôture
+      </a>
+    </div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
+        <div>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <h3 class="mb-0">Caisse du {{ day|date('d/m/Y') }}</h3>
+            {% if todayClosure %}
+              <span class="cash-state bg-success-subtle text-success"><i class="ri-lock-line me-1"></i>Clôturée</span>
+            {% elseif pendingCashClosure and pendingCashClosure|date('Y-m-d') == day|date('Y-m-d') %}
+              <span class="cash-state bg-danger-subtle text-danger"><i class="ri-error-warning-line me-1"></i>En retard</span>
+            {% else %}
+              <span class="cash-state bg-info-subtle text-info"><i class="ri-lock-unlock-line me-1"></i>Ouverte</span>
+            {% endif %}
+          </div>
+          {% if todayClosure %}
+            <p class="text-muted mb-0">
+              Clôturée à {{ todayClosure.closedAt|date('H:i') }}
+              {% if todayClosure.closedBy %}par {{ todayClosure.closedBy.fullname }}{% endif %}
+            </p>
+          {% else %}
+            <p class="text-muted mb-0">Les mouvements sont présentés du plus récent au plus ancien.</p>
+          {% endif %}
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <form method="get" class="d-flex gap-2">
+            <input type="date" name="d" class="form-control" value="{{ day|date('Y-m-d') }}" aria-label="Date de caisse">
+            <button class="btn btn-soft-primary"><i class="ri-search-line"></i></button>
+          </form>
+          {% if not todayClosure and isToday and not pendingCashClosure %}
+            <a class="btn btn-outline-danger" href="{{ path('cash_expense_new') }}"><i class="ri-subtract-line me-1"></i>Dépense</a>
+            {% if is_granted('ROLE_MANAGER') %}
+              <a class="btn btn-outline-primary" href="{{ path('cash_deposit') }}"><i class="ri-add-line me-1"></i>Apport</a>
+            {% endif %}
+            <a class="btn btn-danger" href="{{ path('cash_close') }}"><i class="ri-lock-line me-1"></i>Clôturer</a>
+          {% endif %}
+          {% if todayClosure and is_granted('ROLE_MANAGER') %}
+            <a class="btn btn-success" href="{{ path('cash_closure_show', {id: todayClosure.id}) }}">Voir la clôture</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-5">
+      <div class="card cash-balance-card h-100">
+        <div class="card-body p-4">
+          <div class="text-white-50 text-uppercase fw-semibold mb-2">Solde théorique en caisse</div>
+          <div class="cash-balance-value">{{ balance|number_format(0, ',', ' ') }} <small class="fs-5 fw-normal">MRU</small></div>
+          <hr class="border-white border-opacity-25">
+          <div class="d-flex justify-content-between mb-2"><span>Entrées espèces brutes</span><strong>+{{ totalInPayments|number_format(0, ',', ' ') }}</strong></div>
+          <div class="d-flex justify-content-between mb-2"><span>Remboursements espèces</span><strong>−{{ totalOutRefunds|number_format(0, ',', ' ') }}</strong></div>
+          <div class="d-flex justify-content-between border-top border-white border-opacity-25 pt-2 mb-2"><span>Espèces nettes de la journée</span><strong>{{ netCashMovements|number_format(0, ',', ' ') }}</strong></div>
+          <div class="d-flex justify-content-between mb-2"><span>Apports physiques</span><strong>+{{ totalInInjections|number_format(0, ',', ' ') }}</strong></div>
+          <div class="d-flex justify-content-between"><span>Dépenses physiques</span><strong>−{{ totalOutExpenses|number_format(0, ',', ' ') }}</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-7">
+      <div class="card cash-kpi h-100 mb-0">
+        <div class="card-body p-4 d-flex flex-column justify-content-center">
+          <div class="d-flex align-items-center gap-2 text-uppercase text-muted fw-semibold mb-2">
+            <i class="ri-line-chart-line fs-4 text-info"></i>
+            Encaissements théoriques
+          </div>
+          <div class="cash-balance-value text-dark">{{ commercialReceipts|number_format(0, ',', ' ') }} <small class="fs-5 fw-normal">MRU</small></div>
+          <p class="text-muted mb-4">Paiements actuellement valides enregistrés à cette date, tous modes confondus.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="rounded bg-success-subtle p-3">
+                <div class="text-success mb-1"><i class="ri-cash-line me-1"></i>Espèces valides</div>
+                <div class="fs-4 fw-bold text-success">{{ cashValidPayments|number_format(0, ',', ' ') }} MRU</div>
+                <small class="text-muted">Pris en compte dans la caisse physique</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="rounded bg-info-subtle p-3">
+                <div class="text-info mb-1"><i class="ri-smartphone-line me-1"></i>Mobile valide</div>
+                <div class="fs-4 fw-bold text-info">{{ mobilePayments|number_format(0, ',', ' ') }} MRU</div>
+                <small class="text-muted">Hors solde et clôture de caisse</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-3">
+        <div>
+          <h5 class="card-title mb-1"><i class="ri-file-list-3-line me-1"></i>Journal des mouvements</h5>
+          <p class="text-muted mb-0">Une vue unique de toutes les opérations de la journée.</p>
+        </div>
+        <div class="cash-filter d-flex flex-wrap gap-1">
+          {% set filters = {
+            '': 'Tous',
+            'cash': 'Espèces',
+            'mobile': 'Mobile',
+            'injection': 'Apports',
+            'expense': 'Dépenses',
+            'refund': 'Remboursements'
+          } %}
+          {% for key, label in filters %}
+            <a class="btn btn-sm btn-outline-primary {{ filter == key ? 'active' : '' }}"
+               href="{{ path('cash_index', {d: day|date('Y-m-d'), type: key}) }}">{{ label }}</a>
+          {% endfor %}
+          {% if is_granted('ROLE_MANAGER') %}
+            <a class="btn btn-sm btn-outline-secondary {{ filter == 'cancelled' ? 'active' : '' }}"
+               href="{{ path('cash_index', {d: day|date('Y-m-d'), type: 'cancelled'}) }}">Annulés</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 cash-journal-table">
+          <thead class="table-light">
+            <tr>
+              <th>Heure</th>
+              <th>Nature</th>
+              <th>Détail</th>
+              <th>Utilisateur</th>
+              <th class="text-end">Impact caisse</th>
+              <th class="text-end">Encaissement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in journal %}
+              {% set color = item.kind == 'cash' ? 'success' : (item.kind == 'mobile' ? 'info' : (item.kind == 'expense' ? 'danger' : (item.kind == 'refund' ? 'warning' : (item.kind == 'cancelled' ? 'secondary' : 'primary')))) %}
+              <tr class="{{ item.cancelled ? 'movement-cancelled' : '' }}">
+                <td data-label="Heure"><strong>{{ item.date|date('H:i') }}</strong></td>
+                <td data-label="Nature">
+                  <span class="badge bg-{{ color }}-subtle text-{{ color }}">{{ item.nature }}</span>
+                  {% if item.kind == 'mobile' %}<small class="text-muted d-block mt-1">Hors caisse physique</small>{% endif %}
+                </td>
+                <td data-label="Détail">
+                  <div>{{ item.detail }}</div>
+                  {% if item.reference %}<small class="text-muted">{{ item.reference }}</small>{% endif %}
+                </td>
+                <td data-label="Utilisateur">
+                  {{ item.user ?: 'Auteur non disponible (historique)' }}
+                </td>
+                <td data-label="Impact caisse" class="text-end fw-bold {{ item.cashImpact > 0 ? 'text-success' : (item.cashImpact < 0 ? 'text-danger' : 'text-muted') }}">
+                  {{ item.cashImpact > 0 ? '+' : '' }}{{ item.cashImpact|number_format(0, ',', ' ') }} MRU
+                </td>
+                <td data-label="Encaissement" class="text-end fw-bold {{ item.commercialImpact > 0 ? 'text-success' : 'text-muted' }}">
+                  {{ item.commercialImpact > 0 ? '+' : '' }}{{ item.commercialImpact|number_format(0, ',', ' ') }} MRU
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-5"><i class="ri-inbox-line fs-1 d-block mb-2"></i>Aucune opération pour ce filtre.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if journal.getTotalItemCount > 20 %}
+      <div class="card-footer">{{ knp_pagination_render(journal) }}</div>
+    {% endif %}
+  </div>
+
+  {% if is_granted('ROLE_MANAGER') %}
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a class="btn btn-soft-secondary" href="{{ path('cash_closures') }}"><i class="ri-history-line me-1"></i>Historique des clôtures</a>
+      <a class="btn btn-soft-primary" href="{{ path('cash_reports', {period: 'day', date: day|date('Y-m-d')}) }}">Rapport journalier</a>
+      <a class="btn btn-soft-primary" href="{{ path('cash_reports', {period: 'month', month: month, year: year}) }}">Rapport mensuel</a>
+      <a class="btn btn-soft-primary" href="{{ path('cash_reports', {period: 'year', year: year}) }}">Rapport annuel</a>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
+<html lang="fr" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
 <head>
     <meta charset="utf-8" />
-    <title>Fyracare | Gestion</title>
+    <title>{% block title %}Gestion{% endblock %} | Fyracare</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- App favicon -->
@@ -25,6 +25,27 @@
         body, button, input, select, textarea,
         h1, h2, h3, h4, h5, h6 {
             font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 767.98px) {
+            .table-responsive > .table {
+                min-width: 720px;
+            }
+            .page-title-box {
+                align-items: flex-start !important;
+                gap: .75rem;
+            }
+            .page-title-right {
+                width: 100%;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+            .btn {
+                min-height: 40px;
+            }
         }
     </style>
     
@@ -65,7 +86,7 @@
                         </div>
                         <div class="col-sm-6">
                             <div class="text-sm-end d-none d-sm-block">
-                                Design & Develop by Amadou Adjanouhoun
+                                Conception et développement : Amadou Adjanouhoun
                             </div>
                         </div>
                     </div>

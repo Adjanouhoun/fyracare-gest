@@ -1,0 +1,273 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Rapports de caisse{% endblock %}
+
+{% block page_header %}
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <div>
+          <h4 class="mb-sm-0"><i class="ri-bar-chart-box-line me-2"></i>Rapports de caisse</h4>
+          <p class="text-muted mb-0">Analyse journalière, mensuelle ou annuelle des mouvements.</p>
+        </div>
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="{{ path('cash_index') }}">Caisse</a></li>
+          <li class="breadcrumb-item active">Rapports</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label">Période</label>
+          <select name="period" class="form-select" id="report-period">
+            <option value="day" {{ period == 'day' ? 'selected' : '' }}>Journalière</option>
+            <option value="month" {{ period == 'month' ? 'selected' : '' }}>Mensuelle</option>
+            <option value="year" {{ period == 'year' ? 'selected' : '' }}>Annuelle</option>
+          </select>
+        </div>
+        <div class="col-lg-2 col-md-4 report-date-field">
+          <label class="form-label">Date</label>
+          <input type="date" name="date" class="form-control" value="{{ from|date('Y-m-d') }}">
+        </div>
+        <div class="col-lg-2 col-md-4 report-month-field">
+          <label class="form-label">Mois</label>
+          <select name="month" class="form-select">
+            {% set months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'] %}
+            {% for label in months %}<option value="{{ loop.index }}" {{ from|date('n') == loop.index ? 'selected' : '' }}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-2 col-md-4 report-year-field">
+          <label class="form-label">Année</label>
+          <input type="number" name="year" min="2000" max="2100" class="form-control" value="{{ from|date('Y') }}">
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label">Nature</label>
+          <select name="nature" class="form-select" id="report-nature">
+            <option value="all" {{ nature == 'all' ? 'selected' : '' }}>Tous les mouvements</option>
+            <option value="entries" {{ nature == 'entries' ? 'selected' : '' }}>Encaissements</option>
+            <option value="injections" {{ nature == 'injections' ? 'selected' : '' }}>Apports de fonds</option>
+            <option value="expenses" {{ nature == 'expenses' ? 'selected' : '' }}>Dépenses</option>
+            <option value="refunds" {{ nature == 'refunds' ? 'selected' : '' }}>Remboursements</option>
+          </select>
+        </div>
+        <div class="col-lg-2 col-md-4 report-category-field">
+          <label class="form-label">Catégorie de dépense</label>
+          <select name="category" class="form-select">
+            <option value="">Toutes les catégories</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" {{ selectedCategory and selectedCategory.id == category.id ? 'selected' : '' }}>
+                {{ category.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-2 col-md-4 report-method-field">
+          <label class="form-label">Mode d’encaissement</label>
+          <select name="method" class="form-select">
+            <option value="all" {{ paymentMethod == 'all' ? 'selected' : '' }}>Tous</option>
+            <option value="ESPECES" {{ paymentMethod == 'ESPECES' ? 'selected' : '' }}>Espèces</option>
+            <option value="MOBILE" {{ paymentMethod == 'MOBILE' ? 'selected' : '' }}>Mobile</option>
+          </select>
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <button class="btn btn-primary w-100"><i class="ri-search-line me-1"></i>Analyser</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <h5 class="mb-0">Rapport {{ period == 'day' ? 'journalier' : (period == 'month' ? 'mensuel' : 'annuel') }}</h5>
+      <span class="text-muted">
+        Période analysée : {{ periodLabel }}
+        {% if selectedCategory %} · Catégorie : {{ selectedCategory.name }}{% endif %}
+      </span>
+    </div>
+    <a href="{{ path('cash_index', {d: to|date('Y-m-d')}) }}" class="btn btn-soft-secondary">Retour à la caisse</a>
+  </div>
+
+  {% if nature == 'entries' %}
+  <div class="row g-3 mb-3">
+    {% set paymentCards = [
+      {label:'Tous les encaissements', value:totals.entriesAll, color:'dark'},
+      {label:'Espèces', value:totals.entriesCash, color:'success'},
+      {label:'Mobile', value:totals.entriesMobile, color:'info'},
+      {label:'Paiements mobiles annulés', value:cancelledMobile, color:'warning'}
+    ] %}
+    {% for card in paymentCards %}
+      <div class="col-xl-3 col-md-6">
+        <div class="card h-100"><div class="card-body">
+          <div class="text-muted mb-1">{{ card.label }}</div>
+          <div class="fs-5 fw-bold text-{{ card.color }}">{{ card.value|number_format(0, ',', ' ') }} MRU</div>
+        </div></div>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="alert alert-info border-0">
+    <i class="ri-information-line me-1"></i>
+    Les paiements mobiles participent aux encaissements commerciaux, mais jamais au solde de la caisse physique.
+    Une annulation mobile dans Fyracare ne constitue pas une preuve de remboursement par l’opérateur.
+  </div>
+  {% else %}
+  <div class="row g-3 mb-4">
+    {% set cards = [
+      {label:'Entrées espèces brutes', value:totals.entries, color:'success', sign:'+'},
+      {label:'Apports physiques', value:totals.injections, color:'primary', sign:'+'},
+      {label:'Dépenses physiques', value:totals.expenses, color:'danger', sign:'−'},
+      {label:'Remboursements espèces', value:totals.refunds, color:'warning', sign:'−'},
+      {label:'Flux net physique', value:totals.net, color:totals.net < 0 ? 'danger' : 'dark', sign:''}
+    ] %}
+    {% for card in cards %}
+      <div class="col-xl col-md-4 col-6">
+        <div class="card h-100"><div class="card-body">
+          <div class="text-muted mb-1">{{ card.label }}</div>
+          <div class="fs-5 fw-bold text-{{ card.color }}">{{ card.sign }}{{ card.value|number_format(0, ',', ' ') }} MRU</div>
+        </div></div>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0">Évolution des mouvements — {{ periodLabel }}</h5>
+    </div>
+    <div class="card-body">
+      <div id="cash-report-chart" style="min-height: 350px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-1">Détail des opérations</h5>
+      <p class="text-muted mb-0">
+        {{ nature == 'entries' ? paymentJournal.getTotalItemCount : journal.getTotalItemCount }}
+        opération(s), de la plus récente à la plus ancienne.
+      </p>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          {% if nature == 'entries' %}
+          <thead class="table-light">
+            <tr><th>Date et heure</th><th>Client / prestation</th><th>Mode</th><th>Référence</th><th>Utilisateur</th><th class="text-end">Montant</th></tr>
+          </thead>
+          <tbody>
+            {% for payment in paymentJournal %}
+              <tr>
+                <td>{{ payment.paidAt|date('d/m/Y H:i') }}</td>
+                <td>
+                  <div class="fw-medium">{{ payment.rdv and payment.rdv.client ? payment.rdv.client.nometprenom : 'Client non disponible' }}</div>
+                  <small class="text-muted">{{ payment.rdv and payment.rdv.prestation ? payment.rdv.prestation.libelle : 'Prestation non disponible' }}</small>
+                </td>
+                <td>
+                  <span class="badge {{ payment.methode == 'MOBILE' ? 'bg-info-subtle text-info' : 'bg-success-subtle text-success' }}">
+                    {{ payment.methode == 'MOBILE' ? 'Mobile' : 'Espèces' }}
+                  </span>
+                </td>
+                <td>{{ payment.receiptNumber ?: '—' }}</td>
+                <td>{{ payment.receivedBy ? payment.receivedBy.fullname : 'Auteur non disponible (historique)' }}</td>
+                <td class="text-end fw-bold text-success">+{{ payment.amount|number_format(0, ',', ' ') }} MRU</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-5">Aucun encaissement valide sur cette période.</td></tr>
+            {% endfor %}
+          </tbody>
+          {% else %}
+          <thead class="table-light">
+            <tr><th>Date et heure</th><th>Nature</th><th>Détail</th><th>Utilisateur</th><th class="text-end">Montant</th></tr>
+          </thead>
+          <tbody>
+            {% for movement in journal %}
+              {% set isPayment = movement.type == constant('App\\Entity\\CashMovement::IN') and movement.source == constant('App\\Entity\\CashMovement::SRC_PAYMENT') %}
+              {% set isExpense = movement.source == constant('App\\Entity\\CashMovement::SRC_EXPENSE') %}
+              {% set isRefund = movement.source == constant('App\\Entity\\CashMovement::SRC_PAYMENT_REVERSAL') %}
+              {% set label = isPayment ? 'Encaissement' : (isExpense ? 'Dépense' : (isRefund ? 'Remboursement' : 'Apport')) %}
+              {% set color = isPayment ? 'success' : (isExpense ? 'danger' : (isRefund ? 'warning' : 'primary')) %}
+              {% set actionUser = movement.createdBy ?: (movement.payment ? movement.payment.receivedBy : null) %}
+              <tr>
+                <td>{{ movement.createdAt|date('d/m/Y H:i') }}</td>
+                <td><span class="badge bg-{{ color }}-subtle text-{{ color }}">{{ label }}</span></td>
+                <td>
+                  {{ movement.notes ?: '—' }}
+                  {% if movement.category %}<small class="text-muted d-block">{{ movement.category.name }}</small>{% endif %}
+                </td>
+                <td>{{ actionUser ? actionUser.fullname : 'Auteur non disponible (historique)' }}</td>
+                <td class="text-end fw-bold text-{{ movement.type == constant('App\\Entity\\CashMovement::IN') ? 'success' : 'danger' }}">
+                  {{ movement.type == constant('App\\Entity\\CashMovement::IN') ? '+' : '−' }}{{ movement.amount|number_format(0, ',', ' ') }} MRU
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-5">Aucune opération sur cette période.</td></tr>
+            {% endfor %}
+          </tbody>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+    {% if nature == 'entries' and paymentJournal.getTotalItemCount > 25 %}
+      <div class="card-footer">{{ knp_pagination_render(paymentJournal) }}</div>
+    {% elseif nature != 'entries' and journal.getTotalItemCount > 25 %}
+      <div class="card-footer">{{ knp_pagination_render(journal) }}</div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const period = document.getElementById('report-period');
+  const nature = document.getElementById('report-nature');
+  const refreshPeriodFields = () => {
+    const value = period.value;
+    document.querySelector('.report-date-field').classList.toggle('d-none', value !== 'day');
+    document.querySelector('.report-month-field').classList.toggle('d-none', value !== 'month');
+    document.querySelector('.report-year-field').classList.toggle('d-none', value === 'day');
+  };
+  period.addEventListener('change', refreshPeriodFields);
+  refreshPeriodFields();
+  const refreshCategoryField = () => {
+    document.querySelector('.report-category-field').classList.toggle('d-none', nature.value !== 'expenses');
+    document.querySelector('.report-method-field').classList.toggle('d-none', nature.value !== 'entries');
+  };
+  nature.addEventListener('change', refreshCategoryField);
+  refreshCategoryField();
+
+  const allSeries = {
+    entries: { name: 'Entrées espèces brutes', data: {{ series.entries|json_encode|raw }} },
+    injections: { name: 'Apports physiques', data: {{ series.injections|json_encode|raw }} },
+    expenses: { name: 'Dépenses physiques', data: {{ series.expenses|json_encode|raw }} },
+    refunds: { name: 'Remboursements espèces', data: {{ series.refunds|json_encode|raw }} }
+  };
+  const selectedNature = {{ nature|json_encode|raw }};
+  const paymentMethod = {{ paymentMethod|json_encode|raw }};
+  let chartSeries;
+  if (selectedNature === 'entries') {
+    const paymentSeries = {
+      ESPECES: { name: 'Espèces', data: {{ (series.cash ?? [])|json_encode|raw }} },
+      MOBILE: { name: 'Mobile', data: {{ (series.mobile ?? [])|json_encode|raw }} }
+    };
+    chartSeries = paymentMethod === 'all' ? Object.values(paymentSeries) : [paymentSeries[paymentMethod]];
+  } else {
+    chartSeries = selectedNature === 'all' ? Object.values(allSeries) : [allSeries[selectedNature]];
+  }
+
+  new ApexCharts(document.querySelector('#cash-report-chart'), {
+    chart: { type: 'bar', height: 350, stacked: false, toolbar: { show: false } },
+    series: chartSeries,
+    xaxis: { categories: {{ chartLabels|json_encode|raw }} },
+    colors: ['#0ab39c', '#405189', '#f06548', '#f7b84b'],
+    dataLabels: { enabled: false },
+    yaxis: { labels: { formatter: value => Intl.NumberFormat('fr-FR').format(value) } },
+    tooltip: { y: { formatter: value => Intl.NumberFormat('fr-FR').format(value) + ' MRU' } },
+    noData: { text: 'Aucune donnée sur la période' }
+  }).render();
+});
+</script>
+{% endblock %}

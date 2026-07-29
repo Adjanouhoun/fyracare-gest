@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Form\PaymentType;
 use App\Repository\PaymentRepository;
 use App\Service\PaymentProcessor;
+use App\Service\PaymentShareLinkBuilder;
 use App\Service\CancellationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
@@ -153,19 +154,21 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Payment $payment): Response
+    public function show(Payment $payment, PaymentShareLinkBuilder $shareLinkBuilder): Response
     {
         return $this->render('payment/show.html.twig', [
             'payment' => $payment,
             'rdv'     => $payment->getRdv(),
+            'shareLinks' => $shareLinkBuilder->build($payment),
         ]);
     }
 
     #[Route('/{id}/receipt', name: 'receipt', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function receipt(Payment $payment): Response
+    public function receipt(Payment $payment, PaymentShareLinkBuilder $shareLinkBuilder): Response
     {
         return $this->render('payment/receipt.html.twig', [
             'payment' => $payment,
+            'shareLinks' => $shareLinkBuilder->build($payment),
         ]);
     }
 
@@ -205,8 +208,8 @@ class PaymentController extends AbstractController
 
         // --- construit un Data URI pour le logo (fiable avec Dompdf)
         $logoDataUri = null;
-        if ($s->getLogoInvoicePath()) {
-            $abs = $this->getParameter('kernel.project_dir').'/public/'.$s->getLogoInvoicePath();
+        if ($settings->getLogoInvoicePath()) {
+            $abs = $this->getParameter('kernel.project_dir').'/public/'.$settings->getLogoInvoicePath();
             if (is_file($abs)) {
                 $mime = @mime_content_type($abs) ?: 'image/png';
                 $b64  = base64_encode(file_get_contents($abs));

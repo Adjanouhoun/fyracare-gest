@@ -1,5 +1,5 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Détail RDV | Velzon{% endblock %}
+{% block title %}Détail du rendez-vous{% endblock %}
 
 {% block page_header %}
 	<div class="row">
@@ -15,7 +15,7 @@
 				<div class="page-title-right">
 					<ol class="breadcrumb m-0">
 						<li class="breadcrumb-item">
-							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+							<a href="{{ path('admin_dashboard') }}">Tableau de bord</a>
 						</li>
 						<li class="breadcrumb-item">
 							<a href="{{ path('app_rdv_all') }}">Rendez-vous</a>
@@ -148,12 +148,23 @@
 						<div class="d-flex flex-wrap gap-2">
 							{% set labels = {'CONFIRME':'Confirmer', 'HONORE':'Marquer honoré', 'ABSENT':'Marquer absent'} %}
 							{% set colors = {'CONFIRME':'primary', 'HONORE':'success', 'ABSENT':'warning'} %}
+							{% set explanations = {
+								'CONFIRME':'Le client a confirmé sa venue.',
+								'HONORE':'La prestation a été réalisée. Ce statut alimentera le chiffre d’affaires réalisé.',
+								'ABSENT':'Le client ne s’est pas présenté. Ce statut alimentera le taux d’absence.'
+							} %}
+							{% set confirmations = {
+								'CONFIRME':'Confirmer que le client a validé sa venue ?',
+								'HONORE':'Confirmer que la prestation a bien été réalisée ? Ce choix sera comptabilisé comme honoré.',
+								'ABSENT':'Confirmer que le client ne s’est pas présenté ? Ce choix sera comptabilisé comme une absence.'
+							} %}
 							{% for targetStatus in allowedTransitions %}
-								<form method="post" action="{{ path('app_rdv_status', {id: rdv.id, status: targetStatus}) }}">
+								<form method="post" class="border rounded p-2" action="{{ path('app_rdv_status', {id: rdv.id, status: targetStatus}) }}">
 									<input type="hidden" name="_token" value="{{ csrf_token('rdv_status_' ~ rdv.id ~ '_' ~ targetStatus) }}">
-									<button class="btn btn-{{ colors[targetStatus] }}" onclick="return confirm('Confirmer ce changement d’état ?');">
+									<button class="btn btn-{{ colors[targetStatus] }}" onclick="return confirm({{ confirmations[targetStatus]|json_encode|raw }});">
 										{{ labels[targetStatus] }}
 									</button>
+									<div class="small text-muted mt-1">{{ explanations[targetStatus] }}</div>
 								</form>
 							{% endfor %}
 						</div>

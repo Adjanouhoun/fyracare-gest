@@ -2,7 +2,6 @@
 // src/Controller/ProfileController.php
 namespace App\Controller;
 
-use App\Form\ProfileType;
 use App\Form\ChangePasswordType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,21 +13,13 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/account')]
 class ProfileController extends AbstractController
 {
-    #[Route('', name: 'account_profile', methods: ['GET','POST'])]
-    public function profile(Request $req, EntityManagerInterface $em): Response
+    #[Route('', name: 'account_profile', methods: ['GET'])]
+    public function profile(): Response
     {
         $user = $this->getUser();
         if (!$user) { return $this->redirectToRoute('app_login'); }
 
-        $form = $this->createForm(ProfileType::class, $user);
-        $form->handleRequest($req);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Profil mis à jour.');
-        }
-
-        return $this->render('profile/index.html.twig', ['form' => $form]);
+        return $this->render('profile/index.html.twig', ['user' => $user]);
     }
 
     #[Route('/password', name: 'account_password', methods: ['GET','POST'])]

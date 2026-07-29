@@ -1,0 +1,356 @@
+{% extends 'layouts/main.html.twig' %}
+
+{% block title %}Guide utilisateur{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .guide-hero { background: linear-gradient(135deg, #174a7e, #327fba); color: #fff; }
+  .guide-nav { position: sticky; top: 82px; max-height: calc(100vh - 105px); overflow-y: auto; }
+  .guide-section { scroll-margin-top: 90px; }
+  .guide-step { display: flex; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid #eef1f5; }
+  .guide-step:last-child { border-bottom: 0; }
+  .guide-step-number { width: 30px; height: 30px; min-width: 30px; display: grid; place-items: center; border-radius: 50%; background: #e8f2fb; color: #1769aa; font-weight: 700; }
+  .guide-role { font-size: .75rem; }
+  .guide-workflow { background: #f8fafc; border-left: 4px solid #299cdb; }
+  .guide-warning { background: #fff8e7; border-left: 4px solid #f7b84b; }
+  .guide-preview { border: 1px solid #dfe5ec; border-radius: .6rem; overflow: hidden; background: #fff; }
+  .guide-preview-bar { height: 28px; background: #edf1f5; display: flex; align-items: center; gap: 5px; padding: 0 10px; }
+  .guide-preview-dot { width: 7px; height: 7px; border-radius: 50%; background: #bdc6d0; }
+  .guide-preview-body { padding: 1rem; }
+  .guide-preview-row { height: 10px; background: #e9edf2; border-radius: 5px; margin-top: .55rem; }
+  .guide-preview-row.short { width: 55%; }
+  .guide-preview-row.medium { width: 78%; }
+  .guide-search-empty { display: none; }
+  @media print {
+    .app-menu, .navbar-header, .footer, .guide-actions, .guide-nav, .vertical-overlay { display: none !important; }
+    .main-content { margin-left: 0 !important; }
+    .guide-section { break-inside: avoid; }
+  }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="card guide-hero border-0">
+  <div class="card-body p-lg-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <span class="badge bg-white text-primary mb-2">Aide accessible à tous les profils</span>
+        <h3 class="text-white mb-2"><i class="ri-book-open-line me-2"></i>Guide utilisateur Fyracare</h3>
+        <p class="mb-0 text-white-50">Procédures, droits, workflows et bonnes pratiques de toutes les rubriques.</p>
+      </div>
+      <div class="guide-actions d-flex gap-2">
+        <button type="button" class="btn btn-light" onclick="window.print()"><i class="ri-printer-line me-1"></i> Imprimer / PDF</button>
+        <a href="{{ path('admin_dashboard') }}" class="btn btn-outline-light">Retour au tableau de bord</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block body %}
+{% set reception = '<span class="badge bg-info-subtle text-info guide-role">Réception–Caisse et supérieur</span>' %}
+{% set manager = '<span class="badge bg-primary-subtle text-primary guide-role">Manager et supérieur</span>' %}
+{% set admin = '<span class="badge bg-danger-subtle text-danger guide-role">Administrateur</span>' %}
+{% set all = '<span class="badge bg-success-subtle text-success guide-role">Tous les profils connectés</span>' %}
+
+<div class="row g-4">
+  <aside class="col-xl-3 guide-actions">
+    <div class="card guide-nav">
+      <div class="card-body">
+        <label for="guide-search" class="form-label fw-semibold">Rechercher dans le guide</label>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="ri-search-line"></i></span>
+          <input id="guide-search" class="form-control" type="search" placeholder="Ex. client, clôture…">
+        </div>
+        <nav class="nav nav-pills flex-column gap-1" aria-label="Sommaire du guide">
+          <a class="nav-link" href="#demarrage">1. Prise en main</a>
+          <a class="nav-link" href="#dashboard">2. Tableau de bord</a>
+          <a class="nav-link" href="#clients">3. Clients</a>
+          <a class="nav-link" href="#prestations">4. Prestations</a>
+          <a class="nav-link" href="#rdv">5. Rendez-vous</a>
+          <a class="nav-link" href="#agenda">6. Agenda</a>
+          <a class="nav-link" href="#paiements">7. Paiements</a>
+          <a class="nav-link" href="#caisse">8. Caisse</a>
+          <a class="nav-link" href="#rapports">9. Rapports et statistiques</a>
+          <a class="nav-link" href="#administration">10. Administration</a>
+          <a class="nav-link" href="#profil">11. Profil et sécurité</a>
+          <a class="nav-link" href="#roles">12. Droits par profil</a>
+          <a class="nav-link" href="#incidents">13. Incidents courants</a>
+        </nav>
+      </div>
+    </div>
+  </aside>
+
+  <div class="col-xl-9">
+    <div id="guide-no-result" class="alert alert-info guide-search-empty">Aucune rubrique ne correspond à votre recherche.</div>
+
+    <section id="demarrage" class="card guide-section" data-guide="connexion démarrage navigation menu accueil">
+      <div class="card-header"><h4 class="card-title mb-0">1. Prise en main</h4></div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-lg-7">
+            <h5>Se connecter</h5>
+            <div class="guide-step"><span class="guide-step-number">1</span><div>Ouvrez l’adresse de l’application dans votre navigateur.</div></div>
+            <div class="guide-step"><span class="guide-step-number">2</span><div>Saisissez votre adresse e-mail professionnelle et votre mot de passe.</div></div>
+            <div class="guide-step"><span class="guide-step-number">3</span><div>Cliquez sur <strong>Se connecter</strong>. Les menus visibles dépendent automatiquement de votre rôle.</div></div>
+            <div class="guide-step"><span class="guide-step-number">4</span><div>Utilisez le menu de gauche pour changer de rubrique et votre nom en haut à droite pour accéder au compte ou vous déconnecter.</div></div>
+            {% if app.environment == 'demo' %}
+              <div class="guide-workflow rounded p-3 mt-3">
+                <strong>Apprentissage en démonstration :</strong> déconnectez-vous, choisissez Réception–Caisse, Manager ou Administrateur sur l’écran de connexion, puis testez le parcours correspondant. Toutes les données de cet environnement sont fictives et séparées de la base réelle.
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-lg-5">
+            <div class="guide-preview" aria-label="Aperçu anonymisé de l’écran de connexion">
+              <div class="guide-preview-bar"><span class="guide-preview-dot"></span><span class="guide-preview-dot"></span><span class="guide-preview-dot"></span></div>
+              <div class="guide-preview-body text-center">
+                <i class="ri-hospital-line fs-1 text-primary"></i><h6>Fyracare</h6>
+                <div class="guide-preview-row"></div><div class="guide-preview-row"></div>
+                <div class="btn btn-sm btn-primary mt-3 w-100 disabled">Se connecter</div>
+                <small class="text-muted d-block mt-2">Aperçu sans donnée réelle</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-warning mt-3 mb-0"><strong>Important :</strong> ne partagez jamais votre mot de passe. Verrouillez ou déconnectez la session avant de quitter le poste.</div>
+      </div>
+    </section>
+
+    <section id="dashboard" class="card guide-section" data-guide="tableau bord alertes indicateurs rendez-vous confirmer absent">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">2. Tableau de bord</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <p>Le tableau de bord est la page de contrôle quotidien. Il présente les rendez-vous du jour, les alertes de confirmation et les informations adaptées au rôle.</p>
+        <h6>Routine recommandée à l’ouverture</h6>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Consultez les alertes et les rendez-vous à confirmer.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Ouvrez chaque rendez-vous nécessitant une action et vérifiez son état.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Contrôlez les rendez-vous du jour et les éventuelles clôtures de caisse en attente.</div></div>
+        <div class="guide-workflow rounded p-3 mt-3"><strong>Lecture des indicateurs :</strong> un rendez-vous annulé ou absent reste dans l’historique, mais il est distingué des prestations honorées et du chiffre d’affaires réellement encaissé.</div>
+      </div>
+    </section>
+
+    <section id="clients" class="card guide-section" data-guide="client nouveau enregistrer modifier rechercher téléphone email historique">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">3. Clients</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <h5>Enregistrer un client</h5>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Ouvrez <strong>Clients</strong> dans le menu.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Cliquez sur <strong>Nouveau client</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Renseignez au minimum le nom et les coordonnées nécessaires. Vérifiez l’orthographe et le numéro de téléphone.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Cliquez sur <strong>Enregistrer</strong>. Si le client existe déjà, revenez à la liste et utilisez la recherche pour éviter un doublon.</div></div>
+        <h5 class="mt-4">Consulter ou corriger une fiche</h5>
+        <p>Recherchez par nom, e-mail ou téléphone, puis utilisez <strong>Voir</strong> pour consulter ou <strong>Modifier</strong> pour corriger. La fiche permet de retrouver l’historique associé au client.</p>
+        <div class="guide-warning rounded p-3"><strong>Bonne pratique :</strong> recherchez toujours le téléphone avant de créer une nouvelle fiche. Ne supprimez pas un client possédant un historique ; corrigez sa fiche.</div>
+      </div>
+    </section>
+
+    <section id="prestations" class="card guide-section" data-guide="prestation tarif prix durée service ajouter modifier administrateur">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">4. Prestations</h4>{{ admin|raw }}</div>
+      <div class="card-body">
+        <p>Cette rubrique contient le catalogue utilisé lors de la création d’un rendez-vous.</p>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Ouvrez <strong>Prestations</strong>, puis cliquez sur <strong>Nouvelle prestation</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Saisissez un libellé clair, le prix et la durée attendue.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Enregistrez, puis vérifiez son apparition dans la liste et dans le formulaire de rendez-vous.</div></div>
+        <div class="alert alert-warning mt-3 mb-0">Avant de modifier un tarif, vérifiez l’impact opérationnel. Les rendez-vous et paiements historiques doivent conserver leur lecture comptable.</div>
+      </div>
+    </section>
+
+    <section id="rdv" class="card guide-section" data-guide="rendez-vous rdv planifié confirmé honoré absent annulé workflow autocomplétion client">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">5. Rendez-vous</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <h5>Créer un rendez-vous</h5>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Ouvrez <strong>Rendez-vous</strong>, puis <strong>Nouveau rendez-vous</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Dans le champ client, commencez à saisir le nom ou le téléphone puis sélectionnez la proposition d’autocomplétion.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Choisissez la prestation, la date, l’heure et ajoutez une note utile si nécessaire.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Enregistrez. En cas de chevauchement, corrigez l’horaire au lieu de forcer un doublon.</div></div>
+        <h5 class="mt-4">Workflow des statuts</h5>
+        <div class="guide-workflow rounded p-3">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="badge bg-info">Planifié</span><i class="ri-arrow-right-line"></i>
+            <span class="badge bg-primary">Confirmé</span><i class="ri-arrow-right-line"></i>
+            <span class="badge bg-success">Honoré</span>
+          </div>
+          <hr>
+          <p class="mb-1"><strong>Absent :</strong> le client ne s’est pas présenté. Ce statut alimente le taux d’absence.</p>
+          <p class="mb-0"><strong>Annulé :</strong> annulation administrative avec motif ; l’action est réservée à l’administrateur.</p>
+        </div>
+        <div class="alert alert-info mt-3 mb-0">Confirmez idéalement le rendez-vous dans la fenêtre configurée par l’administrateur. Ne marquez « Honoré » qu’après réalisation effective de la prestation.</div>
+      </div>
+    </section>
+
+    <section id="agenda" class="card guide-section" data-guide="agenda calendrier jour semaine rendez-vous planning">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">6. Agenda</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <p>L’agenda donne une vue calendrier des rendez-vous. Utilisez-le pour repérer les créneaux occupés et organiser la journée.</p>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Changez de période avec les commandes du calendrier.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Cliquez sur un rendez-vous pour ouvrir son détail.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Effectuez les changements de statut depuis la fiche du rendez-vous afin de conserver la traçabilité.</div></div>
+      </div>
+    </section>
+
+    <section id="paiements" class="card guide-section" data-guide="paiement encaissement espèces mobile reçu pdf partiel annulation remboursement whatsapp email partage joindre">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">7. Paiements</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <h5>Encaisser un rendez-vous</h5>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Ouvrez la fiche du rendez-vous et cliquez sur <strong>Payer</strong> ou <strong>Compléter le paiement</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Vérifiez le client, la prestation, le total déjà payé et le reste à payer.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Saisissez le montant et choisissez correctement <strong>Espèces</strong> ou <strong>Mobile</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Validez une seule fois, puis ouvrez le reçu pour l’imprimer ou l’enregistrer en PDF.</div></div>
+        <div class="guide-warning rounded p-3 mt-3"><strong>Espèces :</strong> augmente le solde physique de caisse. <strong>Mobile :</strong> apparaît dans les encaissements commerciaux mais reste hors du solde physique.</div>
+        <h5 class="mt-4">Comprendre le nouveau reçu</h5>
+        <p>Le reçu utilise une référence courte, par exemple <strong>REC-2026-000666</strong>. La référence technique complète reste inscrite en bas du document pour la traçabilité. Le montant versé est mis en évidence, puis le reçu présente le prix total, le cumul payé et le reste à payer.</p>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Depuis le détail du paiement, cliquez sur <strong>Reçu</strong>.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Vérifiez le client, le montant, la méthode et le statut du paiement.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Cliquez sur <strong>Télécharger / Imprimer</strong> pour ouvrir le PDF A5.</div></div>
+        <h5 class="mt-4">Partager par WhatsApp ou e-mail</h5>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Cliquez sur <strong>WhatsApp</strong> ou <strong>E-mail</strong> depuis le détail du paiement ou le reçu.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>L’application ouvre le service choisi avec le destinataire et un message préremplis.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Vérifiez toujours le numéro, l’adresse et le contenu avant de cliquer sur Envoyer.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Pour transmettre le document, téléchargez d’abord le PDF puis joignez-le manuellement dans WhatsApp ou votre logiciel de messagerie.</div></div>
+        <div class="alert alert-info mt-3"><strong>Aucun envoi automatique :</strong> Fyracare prépare le message mais ne l’envoie jamais. Si le téléphone ou l’e-mail manque dans la fiche client, le bouton correspondant est désactivé.</div>
+        <p class="mb-0">Un paiement peut être partiel. Une annulation comptable est réservée à l’administrateur et crée une contrepassation traçable ; elle ne doit jamais supprimer l’historique.</p>
+      </div>
+    </section>
+
+    <section id="caisse" class="card guide-section" data-guide="caisse solde physique dépense apport clôture journée oubliée espèces mobile remboursement">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">8. Caisse journalière</h4>{{ reception|raw }}</div>
+      <div class="card-body">
+        <h5>Comprendre les montants</h5>
+        <div class="table-responsive"><table class="table table-bordered align-middle">
+          <thead class="table-light"><tr><th>Indicateur</th><th>Signification</th></tr></thead>
+          <tbody>
+            <tr><td>Entrées espèces brutes</td><td>Total des encaissements physiques avant remboursement.</td></tr>
+            <tr><td>Espèces nettes</td><td>Entrées espèces brutes moins remboursements espèces.</td></tr>
+            <tr><td>Apports physiques</td><td>Fonds réellement ajoutés dans le tiroir-caisse.</td></tr>
+            <tr><td>Dépenses physiques</td><td>Argent effectivement sorti de la caisse.</td></tr>
+            <tr><td>Solde théorique physique</td><td>Espèces attendues dans la caisse. Les paiements mobiles en sont exclus.</td></tr>
+          </tbody>
+        </table></div>
+        <h5 class="mt-4">Enregistrer une dépense</h5>
+        <p>Cliquez sur <strong>Dépense</strong>, saisissez un montant positif, choisissez la catégorie, décrivez précisément l’achat et enregistrez. La sortie apparaîtra négativement dans le journal.</p>
+        <h5 class="mt-4">Faire un apport</h5>
+        <p>{{ manager|raw }} Cliquez sur <strong>Apport</strong> uniquement lorsque des espèces sont réellement déposées. Un paiement mobile ou bancaire ne doit pas être enregistré comme apport physique.</p>
+        <h5 class="mt-4">Clôturer une journée</h5>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Cliquez sur <strong>Clôturer</strong> puis recomptez les espèces réelles.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Comparez le solde compté au solde théorique affiché.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Saisissez le solde réel. En cas d’écart, indiquez obligatoirement une justification précise.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Validez la clôture définitive. La clôture reste consultable dans l’historique.</div></div>
+        <div class="alert alert-danger mt-3 mb-0"><strong>Journée oubliée :</strong> elle apparaît comme clôture en attente. Traitez-la avec son solde réel et une justification ; ne modifiez pas la date des opérations historiques.</div>
+      </div>
+    </section>
+
+    <section id="rapports" class="card guide-section" data-guide="rapport journalier mensuel annuel statistique kpi graphique catégorie dépenses filtre export">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">9. Rapports et statistiques</h4>{{ manager|raw }}</div>
+      <div class="card-body">
+        <p>Les rapports analysent les mouvements par jour, mois ou année. Les listes sont affichées de la plus récente à la plus ancienne.</p>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Choisissez la période : journalière, mensuelle ou annuelle.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Sélectionnez la nature : tous, encaissements, apports, dépenses ou remboursements.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Pour les dépenses, filtrez si nécessaire par catégorie. Pour les encaissements, choisissez Tous, Espèces ou Mobile.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Lisez les KPI avec leur périmètre : les encaissements commerciaux et le flux physique de caisse répondent à deux questions différentes.</div></div>
+        <div class="guide-warning rounded p-3 mt-3">Un graphique est une synthèse. Pour contrôler une anomalie, revenez toujours au détail des opérations et au journal de caisse.</div>
+      </div>
+    </section>
+
+    <section id="administration" class="card guide-section" data-guide="administration utilisateur actif inactif rôle paramètres confirmation catégorie dépense journal activité traçabilité logo application facture reçu">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">10. Administration</h4>{{ admin|raw }}</div>
+      <div class="card-body">
+        <h5>Utilisateurs</h5>
+        <p>Créez le compte, attribuez un seul rôle métier cohérent et choisissez son état actif/inactif. Désactivez un départ d’utilisateur au lieu d’effacer son historique. La réinitialisation de mot de passe doit être communiquée de manière confidentielle.</p>
+        <h5>Paramètres</h5>
+        <p>La page est organisée en trois zones : <strong>Coordonnées</strong>, <strong>Identité visuelle</strong> et <strong>Rendez-vous</strong>.</p>
+        <h6 class="mt-3">Modifier les coordonnées</h6>
+        <p>Renseignez le téléphone, l’e-mail et l’adresse de l’établissement. Ces informations sont reprises sur les reçus.</p>
+        <h6>Modifier les logos</h6>
+        <div class="guide-step"><span class="guide-step-number">1</span><div>Dans <strong>Identité visuelle</strong>, choisissez séparément le logo de l’application et le logo des reçus/factures.</div></div>
+        <div class="guide-step"><span class="guide-step-number">2</span><div>Utilisez un fichier PNG, JPG ou WEBP de 3 Mo maximum. Vérifiez l’aperçu avant d’enregistrer.</div></div>
+        <div class="guide-step"><span class="guide-step-number">3</span><div>Cliquez sur <strong>Enregistrer les paramètres</strong>. Laisser le champ vide conserve le logo actuel.</div></div>
+        <div class="guide-step"><span class="guide-step-number">4</span><div>Pour enlever volontairement un logo, cochez uniquement l’option de retrait correspondant à ce logo.</div></div>
+        <div class="guide-warning rounded p-3 mb-3"><strong>Logo de l’application :</strong> utilisé dans le menu. <strong>Logo des reçus et factures :</strong> utilisé sur le reçu à l’écran et dans le PDF. Si un fichier configuré est introuvable, le logo Fyracare par défaut est affiché.</div>
+        <h6>Régler les confirmations</h6>
+        <p>Définissez le nombre d’heures avant le rendez-vous pour déclencher l’alerte de confirmation, puis vérifiez son effet sur le tableau de bord.</p>
+        <h5>Catégories de dépenses</h5>
+        <p>Utilisez des catégories stables et explicites pour produire des rapports fiables. Évitez les doublons orthographiques.</p>
+        <h5>Journal d’activité</h5>
+        <p>Consultez qui a effectué une action et à quel moment. Les lignes historiques sans auteur identifié sont signalées comme telles et ne doivent pas être réattribuées arbitrairement.</p>
+      </div>
+    </section>
+
+    <section id="profil" class="card guide-section" data-guide="profil compte mot passe sécurité déconnexion">
+      <div class="card-header d-flex justify-content-between"><h4 class="card-title mb-0">11. Profil et sécurité</h4>{{ all|raw }}</div>
+      <div class="card-body">
+        <p><strong>Mon profil</strong> permet de consulter son identité, son e-mail, son rôle et l’état du compte. Le changement de mot de passe se fait depuis la fonction dédiée.</p>
+        <ul class="mb-0">
+          <li>Utilisez un mot de passe personnel, long et non réutilisé.</li>
+          <li>Ne laissez pas le navigateur enregistrer le mot de passe sur un poste partagé.</li>
+          <li>Déconnectez-vous en fin de service.</li>
+          <li>Signalez immédiatement toute action affichée sous votre nom que vous n’avez pas effectuée.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="roles" class="card guide-section" data-guide="rôle droits réception caisse manager administrateur matrice accès">
+      <div class="card-header"><h4 class="card-title mb-0">12. Droits par profil</h4></div>
+      <div class="card-body">
+        <div class="table-responsive"><table class="table table-striped table-bordered align-middle">
+          <thead class="table-light"><tr><th>Fonction</th><th>Réception–Caisse</th><th>Manager</th><th>Administrateur</th></tr></thead>
+          <tbody>
+            <tr><td>Tableau de bord, clients, RDV, agenda, paiements</td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+            <tr><td>Dépense et clôture journalière</td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+            <tr><td>Apports, historique et rapports de caisse</td><td>Non</td><td>Oui</td><td>Oui</td></tr>
+            <tr><td>Statistiques financières</td><td>Non</td><td>Oui</td><td>Oui</td></tr>
+            <tr><td>Prestations et catégories de dépenses</td><td>Non</td><td>Non</td><td>Oui</td></tr>
+            <tr><td>Utilisateurs, paramètres, journal d’activité</td><td>Non</td><td>Non</td><td>Oui</td></tr>
+            <tr><td>Consulter son profil et ce guide</td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+          </tbody>
+        </table></div>
+        <p class="text-muted mb-0">Les rôles sont hiérarchiques : un administrateur possède aussi les droits du manager et de la réception–caisse.</p>
+      </div>
+    </section>
+
+    <section id="incidents" class="card guide-section" data-guide="erreur incident accès refusé doublon paiement clôture solde support logo whatsapp email pièce jointe">
+      <div class="card-header"><h4 class="card-title mb-0">13. Incidents courants</h4></div>
+      <div class="card-body">
+        <div class="accordion" id="guide-incidents">
+          {% set incidents = {
+            'Je ne vois pas une rubrique':'Votre rôle ne possède probablement pas ce droit. Vérifiez votre profil puis contactez un administrateur.',
+            'Un message indique que l’accès est refusé':'Revenez au tableau de bord. Ne tentez pas de contourner le contrôle ; demandez la vérification de votre rôle.',
+            'J’ai cliqué deux fois sur un paiement':'Consultez immédiatement la liste des paiements. Ne créez pas une correction manuelle ; prévenez un administrateur pour une contrepassation traçable.',
+            'Le bouton WhatsApp ou e-mail est désactivé':'Ouvrez la fiche du client et complétez le téléphone ou l’adresse e-mail manquante, puis revenez au paiement.',
+            'Le PDF n’est pas joint au message':'Le partage est assisté. Téléchargez le PDF depuis le reçu, puis utilisez la fonction de pièce jointe de WhatsApp ou de votre messagerie.',
+            'Un logo ne s’affiche pas':'Ouvrez Paramètres puis Identité visuelle. Si un avertissement indique que le fichier est introuvable, importez un nouveau logo et enregistrez.',
+            'Le solde réel diffère du solde théorique':'Recomptez les espèces, contrôlez dépenses, remboursements et apports, puis clôturez avec le montant réel et une justification.',
+            'Une page affiche une erreur':'Notez l’heure, la rubrique, l’action réalisée et faites une capture sans donnée sensible. Revenez à l’écran précédent et transmettez ces éléments au support.'
+          } %}
+          {% for question, answer in incidents %}
+          <div class="accordion-item">
+            <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#incident-{{ loop.index }}">{{ question }}</button></h2>
+            <div id="incident-{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#guide-incidents"><div class="accordion-body">{{ answer }}</div></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const input = document.getElementById('guide-search');
+  const sections = Array.from(document.querySelectorAll('.guide-section'));
+  const empty = document.getElementById('guide-no-result');
+  if (!input) return;
+  input.addEventListener('input', function () {
+    const query = this.value.trim().toLocaleLowerCase('fr');
+    let visible = 0;
+    sections.forEach(function (section) {
+      const haystack = (section.dataset.guide + ' ' + section.textContent).toLocaleLowerCase('fr');
+      const match = !query || haystack.includes(query);
+      section.classList.toggle('d-none', !match);
+      if (match) visible++;
+    });
+    empty.style.display = visible ? 'none' : 'block';
+  });
+});
+</script>
+{% endblock %}

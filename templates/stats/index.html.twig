@@ -43,7 +43,7 @@
         <button type="button" class="btn btn-soft-secondary btn-print" onclick="window.print()">
           <i class="ri-printer-line me-1"></i> Imprimer
         </button>
-        <a href="{{ path('admin_dashboard') }}" class="btn btn-soft-primary">Dashboard</a>
+        <a href="{{ path('admin_dashboard') }}" class="btn btn-soft-primary">Tableau de bord</a>
       </div>
     </div>
   </div>
@@ -52,9 +52,9 @@
 
 {% block body %}
 {% set totalFinal = kpis.honores + kpis.absents + kpis.annules %}
-{% set tauxRealisation = kpis.rdv > 0 ? (kpis.honores / kpis.rdv * 100) : 0 %}
-{% set tauxAbsence = kpis.rdv > 0 ? (kpis.absents / kpis.rdv * 100) : 0 %}
-{% set tauxAnnulation = kpis.rdv > 0 ? (kpis.annules / kpis.rdv * 100) : 0 %}
+{% set tauxRealisation = totalFinal > 0 ? (kpis.honores / totalFinal * 100) : 0 %}
+{% set tauxAbsence = totalFinal > 0 ? (kpis.absents / totalFinal * 100) : 0 %}
+{% set tauxAnnulation = totalFinal > 0 ? (kpis.annules / totalFinal * 100) : 0 %}
 
 <div class="card stats-filter border-0 shadow-sm mb-4">
   <div class="card-body">
@@ -101,6 +101,7 @@
 <div class="alert alert-info border-0">
   <i class="ri-information-line me-1"></i>
   Les résultats d’activité utilisent la date prévue du rendez-vous. Les encaissements utilisent la date du paiement.
+  Les taux sont calculés uniquement sur les rendez-vous finalisés : honorés, absents ou annulés.
 </div>
 
 <ul class="nav nav-tabs nav-tabs-custom stats-tabs mb-4" role="tablist">
@@ -152,18 +153,21 @@
         <div class="card metric-card"><div class="card-body text-center">
           <p class="text-muted mb-1">Taux de réalisation</p>
           <div class="metric-value text-success">{{ tauxRealisation|round(1) }} %</div>
+          <small class="text-muted">{{ kpis.honores }} sur {{ totalFinal }} finalisés</small>
         </div></div>
       </div>
       <div class="col-md-4">
         <div class="card metric-card"><div class="card-body text-center">
           <p class="text-muted mb-1">Taux d’absence</p>
           <div class="metric-value text-secondary">{{ tauxAbsence|round(1) }} %</div>
+          <small class="text-muted">{{ kpis.absents }} sur {{ totalFinal }} finalisés</small>
         </div></div>
       </div>
       <div class="col-md-4">
         <div class="card metric-card"><div class="card-body text-center">
           <p class="text-muted mb-1">Taux d’annulation</p>
           <div class="metric-value text-danger">{{ tauxAnnulation|round(1) }} %</div>
+          <small class="text-muted">{{ kpis.annules }} sur {{ totalFinal }} finalisés</small>
         </div></div>
       </div>
     </div>
@@ -225,7 +229,7 @@
               <span>Paiements mobiles</span><strong>{{ kpis.mobile|number_format(0, ',', ' ') }} MRU</strong>
             </div>
             <div class="d-flex justify-content-between py-3">
-              <span>Flux net de caisse</span>
+              <span>Flux net de caisse physique</span>
               <strong class="{{ kpis.fluxCaisse < 0 ? 'text-danger' : 'text-success' }}">
                 {{ kpis.fluxCaisse|number_format(0, ',', ' ') }} MRU
               </strong>

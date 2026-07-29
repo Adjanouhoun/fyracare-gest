@@ -4,7 +4,7 @@ namespace App\Form;
 
 use App\Entity\CompanySettings;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\{EmailType,TelType,TextareaType,FileType,IntegerType};
+use Symfony\Component\Form\Extension\Core\Type\{CheckboxType,EmailType,TelType,TextareaType,FileType,IntegerType};
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -33,9 +33,11 @@ class CompanySettingsType extends AbstractType
                 'attr' => ['min' => 1, 'max' => 168],
             ])
           ->add('logoInvoiceFile', FileType::class, [
-                'label' => 'Logo Reçu(PNG/JPG)',
+                'label' => 'Nouveau logo des reçus et factures',
                 'mapped' => false,
                 'required' => false,
+                'help' => 'PNG, JPG ou WEBP — 3 Mo maximum. Format horizontal recommandé.',
+                'attr' => ['accept' => 'image/png,image/jpeg,image/webp'],
                 'constraints' => [
                     new Assert\Image(
                         maxSize: '3M',
@@ -44,10 +46,17 @@ class CompanySettingsType extends AbstractType
                     ),
                 ],
             ])
-        ->add('logoAppFile', FileType::class, [
-                'label' => 'Logo Application(PNG/JPG)',
+          ->add('removeLogoInvoice', CheckboxType::class, [
+                'label' => 'Retirer le logo actuel des reçus',
                 'mapped' => false,
                 'required' => false,
+            ])
+        ->add('logoAppFile', FileType::class, [
+                'label' => 'Nouveau logo de l’application',
+                'mapped' => false,
+                'required' => false,
+                'help' => 'PNG, JPG ou WEBP — 3 Mo maximum. Fond transparent recommandé.',
+                'attr' => ['accept' => 'image/png,image/jpeg,image/webp'],
                 'constraints' => [
                     new Assert\Image(
                         maxSize: '3M',
@@ -55,6 +64,11 @@ class CompanySettingsType extends AbstractType
                         mimeTypesMessage: 'Formats acceptés : PNG, JPG, WEBP.',
                     ),
                 ],
+            ])
+        ->add('removeLogoApp', CheckboxType::class, [
+                'label' => 'Retirer le logo actuel de l’application',
+                'mapped' => false,
+                'required' => false,
             ]);
     }
 

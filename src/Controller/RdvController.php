@@ -20,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -74,7 +75,8 @@ class RdvController extends AbstractController
                ->setParameter('qraw', '%'.$q.'%');
         }
 
-        $qb->orderBy('r.startAt', 'ASC');
+        // Les listes métier affichent toujours l'entrée la plus récente en premier.
+        $qb->orderBy('r.startAt', 'DESC');
 
         $pagination = $paginator->paginate(
             $qb,
@@ -183,6 +185,17 @@ class RdvController extends AbstractController
         
         $form = $this->createForm(RdvType::class, $rdv);
         $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            $selectedClientId = (int) $form->get('client_id')->getData();
+            $selectedClient = $selectedClientId > 0 ? $clientRepo->find($selectedClientId) : null;
+
+            if ($selectedClient) {
+                $rdv->setClient($selectedClient);
+            } else {
+                $form->get('client_id')->addError(new FormError('Sélectionnez un client dans les résultats proposés.'));
+            }
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             // Calcul automatique de endAt

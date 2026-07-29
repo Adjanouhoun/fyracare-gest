@@ -1,3 +1,0 @@
-{% if is_granted('ROLE_ADMIN') and not rdv.cancelled %}
-    <a href="{{ path('app_rdv_cancel_confirm', {'id': rdv.id}) }}" class="btn btn-warning">Annuler le rendez-vous</a>
-{% endif %}

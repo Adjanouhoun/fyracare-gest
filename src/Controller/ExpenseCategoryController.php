@@ -18,7 +18,8 @@ class ExpenseCategoryController extends AbstractController
     public function index(ExpenseCategoryRepository $repo): Response
     {
         return $this->render('cash/category_index.html.twig', [
-            'categories' => $repo->findBy([], ['name' => 'ASC']),
+            // Aucun champ de création n'existe sur les données historiques.
+            'categories' => $repo->findBy([], ['id' => 'DESC']),
         ]);
     }
 

@@ -26,29 +26,16 @@
             <div class="card-body p-5 text-center">
                 <!-- Icône -->
                 <div class="mb-4">
-                    <lord-icon
-                        src="https://cdn.lordicon.com/tdrtiskw.json"
-                        trigger="loop"
-                        colors="primary:#405189,secondary:#f06548"
-                        style="width:120px;height:120px">
-                    </lord-icon>
+                    <i class="{{ error.icon }} display-1 text-{{ error.color }}" aria-hidden="true"></i>
                 </div>
                 
                 <!-- Code et titre -->
                 <h1 class="display-2 text-{{ error.color }} fw-bold">{{ status_code }}</h1>
                 <h4 class="text-uppercase mb-3">{{ error.title }}</h4>
                 <p class="text-muted mb-4 fs-15">{{ error.message }}</p>
+                <p class="text-muted small">Référence : <strong>{{ reference }}</strong></p>
                 
                 <!-- Info utilisateur -->
-                {% if app.user %}
-                    <div class="alert alert-warning" role="alert">
-                        <strong>{{ app.user.email }}</strong> - 
-                        {% for role in app.user.roles %}
-                            <span class="badge bg-warning">{{ role }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                
                 <!-- Boutons -->
                 <div class="hstack gap-2 justify-content-center">
                     {% if show_back_button %}

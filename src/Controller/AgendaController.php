@@ -56,7 +56,7 @@ class AgendaController extends AbstractController
         ]);
     }
 
-    #[Route('/agenda/test', name:'agenda_test', methods: ['GET'])]
+    #[Route('/agenda/test', name:'agenda_test', methods: ['GET'], env: ['dev', 'test'])]
     public function test(): Response
     {
         return $this->render('agenda/test.html.twig');

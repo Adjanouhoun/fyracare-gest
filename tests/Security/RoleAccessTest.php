@@ -47,10 +47,12 @@ final class RoleAccessTest extends KernelTestCase
     public static function protectedPathProvider(): iterable
     {
         yield 'dashboard' => ['/dashboard', 'ROLE_RECEPTION_CAISSE'];
+        yield 'own read-only profile' => ['/account', 'ROLE_USER'];
+        yield 'user administration' => ['/user/6', 'ROLE_ADMIN'];
         yield 'appointment' => ['/rdv/12', 'ROLE_RECEPTION_CAISSE'];
         yield 'payment' => ['/payment/', 'ROLE_RECEPTION_CAISSE'];
         yield 'cash deposit' => ['/cash/deposit', 'ROLE_MANAGER'];
-        yield 'cash closure' => ['/cash/close', 'ROLE_MANAGER'];
+        yield 'cash closure' => ['/cash/close', 'ROLE_RECEPTION_CAISSE'];
         yield 'statistics' => ['/stats', 'ROLE_MANAGER'];
         yield 'settings' => ['/admin/settings/', 'ROLE_ADMIN'];
         yield 'activity log' => ['/admin/activity-log', 'ROLE_ADMIN'];

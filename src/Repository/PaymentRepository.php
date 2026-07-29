@@ -180,7 +180,7 @@ class PaymentRepository extends ServiceEntityRepository
             ->leftJoin('p.rdv','r')->addSelect('r')
             ->leftJoin('r.client','c')->addSelect('c')
             ->leftJoin('r.prestation','pr')->addSelect('pr')
-            ->orderBy('p.paidAt','ASC')
+            ->orderBy('p.paidAt','DESC')
             ->getQuery()->getResult();
     }
 

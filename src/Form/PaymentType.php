@@ -46,7 +46,7 @@ class PaymentType extends AbstractType
             // Notes (facultatif)
             ->add('notes',TextareaType::class, [
                 'label'    => 'Notes',
-                'required' => true,
+                'required' => false,
                 'attr'     => ['rows' => 4]
             ])
             // Date paiement (on met la valeur maintenant; champ masqué en Twig)

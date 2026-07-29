@@ -17,6 +17,7 @@ class CashMovementRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('m')
             ->select('COALESCE(SUM(m.amount),0)')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to);
 
         if ($type) {
@@ -34,6 +35,7 @@ class CashMovementRepository extends ServiceEntityRepository
         return (int) $this->createQueryBuilder('m')
             ->select('COALESCE(SUM(m.amount), 0)')
             ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :type')
             ->andWhere('m.source = :source')
             ->setParameter('from', $from)
@@ -53,6 +55,7 @@ class CashMovementRepository extends ServiceEntityRepository
         return (int) $this->createQueryBuilder('m')
             ->select('COALESCE(SUM(m.amount), 0)')
             ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :type')
             ->andWhere('m.source != :excludedSource')
             ->setParameter('from', $from)
@@ -67,6 +70,7 @@ class CashMovementRepository extends ServiceEntityRepository
     public function qbList(?\DateTimeImmutable $from = null, ?\DateTimeImmutable $to = null, ?string $type = null, ?string $source = null)
     {
         $qb = $this->createQueryBuilder('m')->orderBy('m.createdAt', 'DESC');
+        $qb->andWhere('m.deletedAt IS NULL');
         if ($from) $qb->andWhere('m.createdAt >= :f')->setParameter('f', $from);
         if ($to)   $qb->andWhere('m.createdAt <= :t')->setParameter('t', $to);
         if ($type)   $qb->andWhere('m.type = :tp')->setParameter('tp', $type);
@@ -93,6 +97,7 @@ class CashMovementRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :tIn')
             ->andWhere('m.source = :src')
             ->setParameter('f', $from)->setParameter('t', $to)
@@ -109,6 +114,7 @@ class CashMovementRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :tOut')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
@@ -124,8 +130,11 @@ class CashMovementRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
             ->andWhere('m.type = :tOut')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->orderBy('m.createdAt', 'DESC');
     }
 
@@ -137,8 +146,11 @@ class CashMovementRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
             ->andWhere('m.type = :tOut')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->orderBy('m.createdAt', 'DESC');
     }
 
@@ -165,7 +177,7 @@ class CashMovementRepository extends ServiceEntityRepository
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->setParameter('src', CashMovement::SRC_PAYMENT)
-            ->orderBy('m.createdAt', 'ASC')
+            ->orderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
     }
 
@@ -219,7 +231,7 @@ class CashMovementRepository extends ServiceEntityRepository
             ->andWhere('c.type = :t')->setParameter('t', $type)
             ->andWhere('c.createdAt BETWEEN :from AND :to')
             ->setParameter('from', $from)->setParameter('to', $to)
-            ->orderBy('c.createdAt', 'ASC')
+            ->orderBy('c.createdAt', 'DESC')
             ->getQuery()->getResult();
     }
 
@@ -262,8 +274,11 @@ class CashMovementRepository extends ServiceEntityRepository
             ->addSelect('SUM(m.amount) AS total')
             ->leftJoin('m.category', 'cat')
             ->andWhere('m.type = :out')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.createdAt BETWEEN :from AND :to')
             ->setParameter('out', CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->setParameter('uncat', 'Non catégorisée')

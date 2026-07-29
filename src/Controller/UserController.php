@@ -23,7 +23,9 @@ class UserController extends AbstractController
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         return $this->render('user/index.html.twig', [
-            'users' => $repo->findBy([], ['fullname' => 'ASC']),
+            // User n'a pas de date de création historique : l'identifiant auto-incrémenté
+            // est le seul indicateur rétrocompatible de l'ordre d'ajout.
+            'users' => $repo->findBy([], ['id' => 'DESC']),
         ]);
     }
 

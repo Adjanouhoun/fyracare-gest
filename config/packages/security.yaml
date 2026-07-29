@@ -20,6 +20,7 @@ security:
       lazy: true
       provider: app_user_provider
       user_checker: App\Security\UserChecker
+      access_denied_url: /access-denied
       form_login:
         login_path: app_login
         check_path: app_login
@@ -44,7 +45,8 @@ security:
     - { path: ^/prestation, roles: ROLE_ADMIN }
     - { path: ^/cash/categories, roles: ROLE_ADMIN }
     - { path: ^/cash/expense/new, roles: ROLE_RECEPTION_CAISSE }
-    - { path: ^/cash/(deposit|close|closures|closure|expenses|entries|injections), roles: ROLE_MANAGER }
+    - { path: ^/cash/close$, roles: ROLE_RECEPTION_CAISSE }
+    - { path: ^/cash/(deposit|closures|closure|expenses|entries|injections), roles: ROLE_MANAGER }
     - { path: ^/stats, roles: ROLE_MANAGER }
     - { path: ^/(dashboard|agenda|client|rdv|payment|cash), roles: ROLE_RECEPTION_CAISSE }
     - { path: ^/api, roles: ROLE_RECEPTION_CAISSE }

@@ -16,15 +16,23 @@
         <div>{{ from|date('d/m/Y H:i') }} → {{ to|date('d/m/Y H:i') }}</div>
       </div></div>
       <div class="card card-animate"><div class="card-body">
-        <div class="text-muted">Entrées</div>
+        <div class="text-muted">Entrées physiques totales</div>
         <div class="fs-22 fw-semibold">{{ totalIn|number_format(0,',',' ') }} MRU</div>
+        <small class="text-muted">
+          Espèces brutes {{ cashEntries|number_format(0,',',' ') }}
+          + apports {{ fundContributions|number_format(0,',',' ') }}
+        </small>
       </div></div>
       <div class="card card-animate"><div class="card-body">
-        <div class="text-muted">Sorties</div>
+        <div class="text-muted">Sorties physiques totales</div>
         <div class="fs-22 fw-semibold">{{ totalOut|number_format(0,',',' ') }} MRU</div>
+        <small class="text-muted">
+          Dépenses {{ expenses|number_format(0,',',' ') }}
+          + remboursements espèces {{ cashRefunds|number_format(0,',',' ') }}
+        </small>
       </div></div>
       <div class="card card-animate"><div class="card-body">
-        <div class="text-muted">Solde</div>
+        <div class="text-muted">Solde théorique physique</div>
         <div class="fs-22 fw-semibold">{{ balance|number_format(0,',',' ') }} MRU</div>
       </div></div>
     </div>
@@ -33,6 +41,9 @@
       <div class="card">
         <div class="card-body">
           <h5 class="mb-3">Valider la clôture</h5>
+          <div class="alert alert-info">
+            Vérifiez le comptage avant validation. Une clôture enregistrée reste dans l’historique et ne se modifie pas.
+          </div>
           {{ form_start(form) }}
             {% if isLate %}
               <div class="alert alert-warning">Cette journée est clôturée en retard. Le motif est obligatoire.</div>
@@ -67,7 +78,7 @@
             {{ form_errors(form.notes) }}
             <div class="form-text">Facultatif uniquement lorsque l’écart est nul.</div>
             <div class="mt-3 d-flex gap-2">
-              <button class="btn btn-soft-primary"><i class="ri-checkbox-circle-line"></i> Clôturer définitivement</button>
+              <button class="btn btn-danger"><i class="ri-lock-2-line"></i> Clôturer définitivement</button>
               <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">Annuler</a>
             </div>
           {{ form_end(form) }}
@@ -103,10 +114,11 @@
       counted.addEventListener('input', refreshVariance);
       formElement.addEventListener('submit', function (event) {
         const variance = refreshVariance();
-        if (variance !== 0 && !window.confirm(
-          'Le solde compté présente un écart de ' + variance.toLocaleString('fr-FR') +
-          ' MRU. Confirmez-vous cette clôture ?'
-        )) {
+        const message = variance !== 0
+          ? 'Le solde compté présente un écart de ' + variance.toLocaleString('fr-FR') +
+            ' MRU. Confirmez-vous la clôture définitive de cette journée ?'
+          : 'Le solde compté correspond au solde théorique. Confirmez-vous la clôture définitive de cette journée ?';
+        if (!window.confirm(message)) {
           event.preventDefault();
         }
       });
