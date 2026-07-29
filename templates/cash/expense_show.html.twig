@@ -17,9 +17,7 @@
         </li>
       </ul>
       <div class="mt-3 d-flex gap-2">
-        <a href="{{ path('cash_expense_edit', {id: expense.id}) }}" class="btn btn-soft-info">
-          <i class="ri-pencil-line"></i> Modifier
-        </a>
+        <span class="text-muted">Écriture non modifiable : en cas d’erreur, annulez-la puis créez une nouvelle dépense.</span>
         <a href="{{ path('cash_index') }}" class="btn btn-ghost-secondary">Retour</a>
       </div>
     </div>

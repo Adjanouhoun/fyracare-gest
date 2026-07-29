@@ -16,7 +16,8 @@ class PrestationRepository extends ServiceEntityRepository
     public function searchQb(?string $q, ?string $status = null)
     {
         $qb = $this->createQueryBuilder('p')
-            ->orderBy('p.libelle', 'ASC');
+            // Pas de createdAt dans le modèle historique : l'id préserve l'ordre d'ajout.
+            ->orderBy('p.id', 'DESC');
 
         if ($q !== null && $q !== '') {
             $qb->andWhere('LOWER(p.libelle) LIKE :q OR LOWER(p.description) LIKE :q')

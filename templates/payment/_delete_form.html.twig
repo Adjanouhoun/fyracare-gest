@@ -1,4 +1,8 @@
-<form method="post" action="{{ path('app_payment_delete', {'id': payment.id}) }}" onsubmit="return confirm('Are you sure you want to delete this item?');">
-    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ payment.id) }}">
-    <button class="btn">Delete</button>
-</form>
+{% if is_granted('ROLE_ADMIN') and not payment.cancelled %}
+    <form method="post" action="{{ path('app_payment_cancel', {'id': payment.id}) }}" onsubmit="return confirm('Confirmer l’annulation de ce paiement ? Une contrepassation sera créée en caisse.');">
+        <input type="hidden" name="_token" value="{{ csrf_token('cancel_payment_' ~ payment.id) }}">
+        <label for="payment-cancellation-reason" class="form-label">Motif obligatoire</label>
+        <textarea id="payment-cancellation-reason" name="reason" class="form-control mb-2" minlength="5" maxlength="1000" required></textarea>
+        <button class="btn btn-danger">Annuler le paiement</button>
+    </form>
+{% endif %}

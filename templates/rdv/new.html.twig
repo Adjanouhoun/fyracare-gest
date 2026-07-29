@@ -13,7 +13,11 @@
 {% block body %}
   <div class="card">
     <div class="card-body">
-      {% include 'rdv/_form.html.twig' with { form: form, button_label: 'Créer' } %}
+      {% include 'rdv/_form.html.twig' with {
+        form: form,
+        button_label: 'Créer',
+        allow_client_search: true
+      } only %}
     </div>
   </div>
 {% endblock %}

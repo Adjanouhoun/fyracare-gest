@@ -12,12 +12,15 @@ final class CashClosureFixtures extends Fixture implements DependentFixtureInter
     {
         // 5 clôtures “vides” (exemple : totalIn/out calculés avant en contrôleur dans la vraie vie)
         for ($i = 0; $i < 5; $i++) {
+            $day = new \DateTimeImmutable(sprintf('-%d days', $i));
             $cl = (new CashClosure())
-                ->setClosedAt(new \DateTimeImmutable(sprintf('-%d days', $i)))
+                ->setClosedAt($day)
+                ->setClosureDate($day)
                 ->setTotalIn(random_int(50000, 120000))
                 ->setTotalOut(random_int(5000, 40000))
                 ->setBalance(0);
             $cl->setBalance($cl->getTotalIn() - $cl->getTotalOut());
+            $cl->setCountedBalance($cl->getBalance())->setVariance(0);
 
             $em->persist($cl);
         }

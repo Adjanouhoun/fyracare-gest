@@ -1,7 +1,5 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Paiement #{{ payment.id }}
-	| Velzon
-{% endblock %}
+{% block title %}Paiement #{{ payment.id }}{% endblock %}
 
 {% block page_header %}
 	<div class="row">
@@ -17,7 +15,7 @@
 				<div class="page-title-right">
 					<ol class="breadcrumb m-0">
 						<li class="breadcrumb-item">
-							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
+							<a href="{{ path('admin_dashboard') }}">Tableau de bord</a>
 						</li>
 						<li class="breadcrumb-item active">Paiements</li>
 					</ol>
@@ -39,6 +37,24 @@
 							<i class="ri-printer-line"></i>
 							Reçu
 						</a>
+						{% if shareLinks.whatsapp %}
+							<a href="{{ shareLinks.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-success">
+								<i class="ri-whatsapp-line"></i> WhatsApp
+							</a>
+						{% else %}
+							<button type="button" class="btn btn-light" disabled title="Téléphone client indisponible">
+								<i class="ri-whatsapp-line"></i> WhatsApp
+							</button>
+						{% endif %}
+						{% if shareLinks.email %}
+							<a href="{{ shareLinks.email }}" class="btn btn-info">
+								<i class="ri-mail-send-line"></i> E-mail
+							</a>
+						{% else %}
+							<button type="button" class="btn btn-light" disabled title="E-mail client indisponible">
+								<i class="ri-mail-send-line"></i> E-mail
+							</button>
+						{% endif %}
 						<a href="{{ path('app_payment_index') }}" class="btn btn-ghost-secondary">Retour</a>
 					</div>
 				</div>
@@ -48,6 +64,18 @@
 {% endblock %}
 
 {% block body %}
+	<div class="alert alert-info d-flex align-items-start">
+		<i class="ri-information-line fs-4 me-2"></i>
+		<div><strong>Partage assisté :</strong> WhatsApp ou votre logiciel de messagerie s’ouvre avec un texte prérempli. Vérifiez le destinataire et le message avant l’envoi. Pour joindre le reçu, téléchargez d’abord le PDF depuis le bouton <strong>Reçu</strong>.</div>
+	</div>
+	{% if payment.cancelled %}
+		<div class="alert alert-danger">
+			<strong>Paiement annulé le {{ payment.cancelledAt|date('d/m/Y H:i') }}</strong>
+			{% if payment.cancelledBy %} par {{ payment.cancelledBy.fullname }}{% endif %}.<br>
+			<strong>Motif :</strong> {{ payment.cancellationReason }}<br>
+			Une contrepassation du même montant a été enregistrée en caisse.
+		</div>
+	{% endif %}
 	<div class="card">
 		<div class="card-body">
 			<div class="row g-3">
@@ -61,6 +89,9 @@
 					<strong>Montant :</strong>
 					{{ payment.amount|number_format(0, ',', ' ') }}
 					MRU</div>
+				<div class="col-md-4">
+					<strong>Encaissé par :</strong>
+					{{ payment.receivedBy ? payment.receivedBy.fullname : 'Information historique indisponible' }}</div>
 				<div class="col-md-4">
 					<strong>Client :</strong>
 					{{ rdv.client.nometprenom }}
@@ -81,4 +112,10 @@
 			</div>
 		</div>
 	</div>
+	{% if is_granted('ROLE_ADMIN') and not payment.cancelled %}
+		<div class="card border-danger">
+			<div class="card-header"><strong>Annulation comptable</strong></div>
+			<div class="card-body">{{ include('payment/_delete_form.html.twig') }}</div>
+		</div>
+	{% endif %}
 {% endblock %}

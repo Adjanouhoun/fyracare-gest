@@ -9,14 +9,34 @@
   
 
   <div class="col-md-6">
-    <label class="form-label">Client</label>
-    <input type="text"
-           class="form-control"
-           value="{{ _cli ? _cli.nometprenom ~ (_cli.telephone ? ' — ' ~ _cli.telephone : '') : '—' }}"
-           readonly>
-    {% if _cli %}
-      {{ form_widget(form.client_id, {'value': _cli.id}) }}
+    <label class="form-label" for="rdv-client-search">Client</label>
+    {{ form_widget(form.client_id, {
+      value: _cli ? _cli.id : form.client_id.vars.value,
+      attr: {'data-client-id': 'true'}
+    }) }}
+    {% if allow_client_search|default(false) %}
+      <div class="position-relative">
+        <input type="search"
+               id="rdv-client-search"
+               class="form-control"
+               value="{{ _cli ? _cli.nometprenom ~ (_cli.telephone ? ' — ' ~ _cli.telephone : '') : '' }}"
+               placeholder="Saisir le nom, le téléphone ou l’e-mail"
+               autocomplete="off"
+               aria-autocomplete="list"
+               aria-controls="rdv-client-results">
+        <div id="rdv-client-results"
+             class="list-group position-absolute start-0 end-0 shadow-sm d-none"
+             style="z-index: 1050; max-height: 240px; overflow-y: auto"
+             role="listbox"></div>
+      </div>
+      <div class="form-text">Saisissez au moins 2 caractères, puis choisissez le client proposé.</div>
+    {% else %}
+      <input type="text"
+             class="form-control"
+             value="{{ _cli ? _cli.nometprenom ~ (_cli.telephone ? ' — ' ~ _cli.telephone : '') : '—' }}"
+             readonly>
     {% endif %}
+    {{ form_errors(form.client_id) }}
   </div>
 
   {# --- Prestation (EntityType dans RdvType) --- #}
@@ -48,3 +68,82 @@
   </div>
 
 {{ form_end(form) }}
+
+{% if allow_client_search|default(false) %}
+  <script>
+    (() => {
+      const search = document.getElementById('rdv-client-search');
+      const results = document.getElementById('rdv-client-results');
+      const clientId = document.querySelector('[data-client-id="true"]');
+      const endpoint = {{ path('api_autocomplete_clients')|json_encode|raw }};
+      let timer;
+      let request;
+
+      const hideResults = () => {
+        results.replaceChildren();
+        results.classList.add('d-none');
+      };
+
+      search.addEventListener('input', () => {
+        clientId.value = '';
+        window.clearTimeout(timer);
+        if (request) {
+          request.abort();
+        }
+
+        const query = search.value.trim();
+        if (query.length < 2) {
+          hideResults();
+          return;
+        }
+
+        timer = window.setTimeout(async () => {
+          request = new AbortController();
+          try {
+            const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`, {
+              headers: {'Accept': 'application/json'},
+              signal: request.signal
+            });
+            if (!response.ok) {
+              throw new Error('Recherche indisponible');
+            }
+
+            const payload = await response.json();
+            results.replaceChildren();
+            for (const item of payload.results || []) {
+              const option = document.createElement('button');
+              option.type = 'button';
+              option.className = 'list-group-item list-group-item-action';
+              option.textContent = item.text;
+              option.setAttribute('role', 'option');
+              option.addEventListener('click', () => {
+                clientId.value = item.id;
+                search.value = item.text;
+                hideResults();
+              });
+              results.appendChild(option);
+            }
+
+            if (!results.childElementCount) {
+              const empty = document.createElement('div');
+              empty.className = 'list-group-item text-muted';
+              empty.textContent = 'Aucun client trouvé';
+              results.appendChild(empty);
+            }
+            results.classList.remove('d-none');
+          } catch (error) {
+            if (error.name !== 'AbortError') {
+              hideResults();
+            }
+          }
+        }, 250);
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!results.contains(event.target) && event.target !== search) {
+          hideResults();
+        }
+      });
+    })();
+  </script>
+{% endif %}

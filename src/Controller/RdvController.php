@@ -10,16 +10,22 @@ use App\Repository\RdvRepository;
 use App\Repository\ClientRepository;
 use App\Repository\PrestationRepository;
 use App\Service\AppointmentOverlapService;
+use App\Service\CancellationService;
+use App\Service\AppointmentStatusManager;
+use App\Entity\AppointmentStatusHistory;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/rdv')]
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 class RdvController extends AbstractController
 {
     public function __construct(
@@ -69,7 +75,8 @@ class RdvController extends AbstractController
                ->setParameter('qraw', '%'.$q.'%');
         }
 
-        $qb->orderBy('r.startAt', 'ASC');
+        // Les listes métier affichent toujours l'entrée la plus récente en premier.
+        $qb->orderBy('r.startAt', 'DESC');
 
         $pagination = $paginator->paginate(
             $qb,
@@ -179,6 +186,17 @@ class RdvController extends AbstractController
         $form = $this->createForm(RdvType::class, $rdv);
         $form->handleRequest($request);
 
+        if ($form->isSubmitted()) {
+            $selectedClientId = (int) $form->get('client_id')->getData();
+            $selectedClient = $selectedClientId > 0 ? $clientRepo->find($selectedClientId) : null;
+
+            if ($selectedClient) {
+                $rdv->setClient($selectedClient);
+            } else {
+                $form->get('client_id')->addError(new FormError('Sélectionnez un client dans les résultats proposés.'));
+            }
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             // Calcul automatique de endAt
             if ($rdv->getPrestation() && $rdv->getStartAt()) {
@@ -192,6 +210,7 @@ class RdvController extends AbstractController
                 $errorMessage = $this->overlapService->getOverlapErrorMessage($rdv);
                 $this->addFlash('danger', $errorMessage);
             } else {
+                $rdv->setPriceAtBooking((int) $rdv->getPrestation()?->getPrix());
                 $em->persist($rdv);
                 $em->flush();
                 $this->addFlash('success', 'Rendez-vous créé avec succès.');
@@ -206,20 +225,69 @@ class RdvController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_rdv_show', methods: ['GET'])]
-    public function show(Rdv $rdv): Response
+    public function show(Rdv $rdv, EntityManagerInterface $em, AppointmentStatusManager $statusManager): Response
     {
         return $this->render('rdv/show.html.twig', [
             'rdv' => $rdv,
+            'allowedTransitions' => $statusManager->allowedTransitions($rdv),
+            'statusHistory' => $em->getRepository(AppointmentStatusHistory::class)->findBy(
+                ['rdv' => $rdv],
+                ['changedAt' => 'DESC'],
+            ),
         ]);
+    }
+
+    #[Route('/{id}/status/{status}', name: 'app_rdv_status', methods: ['POST'])]
+    #[IsGranted('ROLE_RECEPTION_CAISSE')]
+    public function changeStatus(
+        Request $request,
+        Rdv $rdv,
+        string $status,
+        AppointmentStatusManager $statusManager,
+    ): Response {
+        if (!$this->isCsrfTokenValid(
+            'rdv_status_'.$rdv->getId().'_'.$status,
+            $request->request->getString('_token'),
+        )) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $statusManager->transition($rdv, $status, $user, $request->request->getString('note'));
+            $this->addFlash('success', 'Le statut du rendez-vous a été mis à jour.');
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        }
+
+        return $this->redirectToRoute('app_rdv_show', ['id' => $rdv->getId()]);
     }
 
     #[Route('/{id}/edit', name: 'app_rdv_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Rdv $rdv, EntityManagerInterface $em): Response
     {
+        $originalPrestationId = $rdv->getPrestation()?->getId();
         $form = $this->createForm(RdvType::class, $rdv);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $prestationChanged = $originalPrestationId !== $rdv->getPrestation()?->getId();
+            if ($prestationChanged && $rdv->getTotalPaid() > 0) {
+                $this->addFlash(
+                    'danger',
+                    'La prestation ne peut pas être changée après un paiement. Annulez d’abord les paiements concernés.',
+                );
+
+                return $this->redirectToRoute('app_rdv_show', ['id' => $rdv->getId()]);
+            }
+            if ($prestationChanged) {
+                $rdv->setPriceAtBooking((int) $rdv->getPrestation()?->getPrix());
+            }
+
             // Recalcul de endAt
             if ($rdv->getPrestation() && $rdv->getStartAt()) {
                 $duree = $rdv->getPrestation()->getDureeMin();
@@ -244,37 +312,36 @@ class RdvController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/delete-confirm', name: 'app_rdv_delete_confirm', methods: ['GET'])]
-    public function deleteConfirm(Rdv $rdv, EntityManagerInterface $em): Response
+    #[Route('/{id}/cancel-confirm', name: 'app_rdv_cancel_confirm', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function cancelConfirm(Rdv $rdv): Response
     {
-        $payments = $rdv->getPayments()->toArray();
-        $cashRepo = $em->getRepository(\App\Entity\CashMovement::class);
-        $cashMovements = $cashRepo->findByRdvId($rdv->getId());
-        
         return $this->render('rdv/delete_confirm.html.twig', [
             'rdv' => $rdv,
-            'payments' => $payments,
-            'cashMovements' => $cashMovements,
         ]);
     }
 
-    #[Route('/{id}', name: 'app_rdv_delete', methods: ['POST'])]
-    public function delete(Request $request, Rdv $rdv, EntityManagerInterface $em): Response
+    #[Route('/{id}/cancel', name: 'app_rdv_cancel', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function cancel(Request $request, Rdv $rdv, CancellationService $cancellationService): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$rdv->getId(), $request->request->get('_token'))) {
-            $cashRepo = $em->getRepository(\App\Entity\CashMovement::class);
-            $cashMovements = $cashRepo->findByRdvId($rdv->getId());
-            
-            foreach ($cashMovements as $movement) {
-                $em->remove($movement);
-            }
-            
-            $em->remove($rdv);
-            $em->flush();
-            
-            $this->addFlash('success', 'Rendez-vous, paiements et mouvements de caisse supprimés avec succès.');
+        if (!$this->isCsrfTokenValid('cancel_rdv_'.$rdv->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
         }
-        return $this->redirectToRoute('app_rdv_index');
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $cancellationService->cancelAppointment($rdv, $user, $request->request->getString('reason'));
+            $this->addFlash('success', 'Rendez-vous annulé. Son historique et ses paiements sont conservés.');
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        }
+
+        return $this->redirectToRoute('app_rdv_show', ['id' => $rdv->getId()]);
     }
 
     // ========== ROUTES API POUR LE CALENDRIER ==========
@@ -400,7 +467,8 @@ class RdvController extends AbstractController
                 return $this->json(['error' => 'Date de début requise'], 400);
             }
 
-            $rdv->setStatus($data['status'] ?? Rdv::S_PLANIFIE);
+            $rdv->setStatus(Rdv::S_PLANIFIE);
+            $rdv->setPriceAtBooking((int) $prestation->getPrix());
 
             if (!empty($data['notes'])) {
                 $rdv->setNotes($data['notes']);

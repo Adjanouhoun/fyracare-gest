@@ -6,6 +6,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
+use Symfony\Component\Routing\Annotation\Route;
 use Psr\Log\LoggerInterface;
 
 class ErrorController extends AbstractController
@@ -28,6 +29,7 @@ class ErrorController extends AbstractController
         
         $referer = $request->headers->get('referer');
         $currentUrl = $request->getUri();
+        $reference = strtoupper(bin2hex(random_bytes(4)));
         
         // Si le referer est la même page ou n'existe pas
         if ($referer === $currentUrl || !$referer) {
@@ -36,6 +38,7 @@ class ErrorController extends AbstractController
         
         // Logger l'erreur
         $this->logger->error('Erreur HTTP ' . $statusCode, [
+            'reference' => $reference,
             'url' => $currentUrl,
             'referer' => $referer,
             'user' => $this->getUser()?->getUserIdentifier() ?? 'anonymous',
@@ -50,10 +53,24 @@ class ErrorController extends AbstractController
             'status_text' => $statusText,
             'error' => $errorData,
             'suggestions' => $suggestions,
-            'exception' => $exception,
+            'reference' => $reference,
             'referer' => $referer,
             'show_back_button' => $this->shouldShowBackButton($referer)
         ]);
+    }
+
+    #[Route('/access-denied', name: 'app_access_denied', methods: ['GET'])]
+    public function accessDenied(): Response
+    {
+        return $this->render('error/show.html.twig', [
+            'status_code' => 403,
+            'status_text' => 'Forbidden',
+            'error' => $this->getErrorData(403),
+            'suggestions' => $this->getSuggestions(403),
+            'reference' => strtoupper(bin2hex(random_bytes(4))),
+            'referer' => $this->generateUrl('admin_dashboard'),
+            'show_back_button' => true,
+        ], new Response(status: 403));
     }
     
     private function getErrorData(int $statusCode): array

@@ -31,10 +31,9 @@ class DepositType extends AbstractType
             // SOURCE DES FONDS — obligatoire
             ->add('source', ChoiceType::class, [
                 'choices'     => [
-                    'Espèces'       => 'Cash',
-                    'Banque'        => 'Bank',
-                    'Mobile Money'  => 'Mobile',
-                    'Autre'         => 'Other',
+                    'Fond de caisse en espèces' => 'Cash',
+                    'Approvisionnement en espèces' => 'MANUAL',
+                    'Autre apport physique' => 'Other',
                 ],
                 'placeholder' => '— Sélectionner —',
                 'label'       => 'Source des fonds',

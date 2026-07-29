@@ -1,126 +1,196 @@
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Paramètres — Entreprise
+{% block title %}Paramètres de l’établissement{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .settings-nav { position: sticky; top: 82px; }
+  .settings-logo-preview { min-height: 150px; border: 1px dashed #cfd7e3; border-radius: .75rem; display: grid; place-items: center; background: #f8fafc; padding: 1.25rem; }
+  .settings-logo-preview img { max-width: 100%; max-height: 110px; object-fit: contain; }
+  .settings-section { scroll-margin-top: 90px; }
+  @media (max-width: 991.98px) { .settings-nav { position: static; } }
+</style>
 {% endblock %}
 
 {% block page_header %}
-	<div class="row">
-		<div class="col-12">
-			<div class="page-title-box d-sm-flex align-items-center justify-content-between">
-				<div>
-					<h4 class="mb-sm-0">
-						<i class="ri-settings-line"></i>
-						Paramètres de l’entreprise
-					</h4>
-					<p class="text-muted mb-0">Modifier</p>
-				</div>
-				<div class="page-title-right">
-					<ol class="breadcrumb m-0">
-						<li class="breadcrumb-item">
-							<a href="{{ path('admin_dashboard') }}">Dashboard</a>
-						</li>
-						<li class="breadcrumb-item active">Paramètres</li>
-					</ol>
-				</div> 
-			</div>
-		</div>
-	</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="row mb-3 pb-1">
-				<div class="d-flex align-items-center justify-content-between mb-3">
-					<div>
-						<h4 class="fs-16 mb-1">Paramètres de l’entreprise</h4>
-						<p class="text-muted mb-0">Téléphone, e-mail, adresse et logo</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="page-title-box d-sm-flex align-items-center justify-content-between">
+  <div>
+    <h4 class="mb-sm-0"><i class="ri-settings-3-line me-2 text-primary"></i>Paramètres de l’établissement</h4>
+    <p class="text-muted mb-0">Identité, logos et règles de fonctionnement</p>
+  </div>
+  <ol class="breadcrumb m-0">
+    <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Tableau de bord</a></li>
+    <li class="breadcrumb-item active">Paramètres</li>
+  </ol>
+</div>
 {% endblock %}
+
 {% block body %}
-	{% include 'partials/flashes.html.twig' %}
+{{ form_start(form, {attr: {enctype: 'multipart/form-data', id: 'settings-form'}}) }}
+<div class="row g-4">
+  <aside class="col-xl-3">
+    <div class="card settings-nav">
+      <div class="card-body">
+        <h5 class="card-title">Configuration</h5>
+        <nav class="nav nav-pills flex-column gap-1">
+          <a class="nav-link" href="#identity"><i class="ri-building-line me-2"></i>Coordonnées</a>
+          <a class="nav-link" href="#branding"><i class="ri-image-line me-2"></i>Identité visuelle</a>
+          <a class="nav-link" href="#appointments"><i class="ri-calendar-check-line me-2"></i>Rendez-vous</a>
+        </nav>
+        <hr>
+        <div class="alert alert-info small mb-0">
+          Les modifications s’appliquent immédiatement après enregistrement.
+          Laisser un champ de logo vide conserve le fichier actuel.
+        </div>
+      </div>
+    </div>
+  </aside>
 
-	<div class="row g-3">
-		<div class="col-lg-8">
-			<div class="card">
-				<div class="card-body">
-					{{ form_start(form, { attr: { enctype: 'multipart/form-data' } }) }}
+  <div class="col-xl-9">
+    <section id="identity" class="card settings-section">
+      <div class="card-header">
+        <h5 class="card-title mb-1">Coordonnées de l’établissement</h5>
+        <p class="text-muted mb-0">Ces informations apparaissent sur les reçus.</p>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form_label(form.phone, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+            <div class="input-group"><span class="input-group-text"><i class="ri-phone-line"></i></span>{{ form_widget(form.phone, {attr:{class:'form-control'}}) }}</div>
+            {{ form_errors(form.phone) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.email, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+            <div class="input-group"><span class="input-group-text"><i class="ri-mail-line"></i></span>{{ form_widget(form.email, {attr:{class:'form-control'}}) }}</div>
+            {{ form_errors(form.email) }}
+          </div>
+          <div class="col-12">
+            {{ form_label(form.address, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+            {{ form_widget(form.address, {attr:{class:'form-control', rows:3, placeholder:'Adresse complète de l’établissement'}}) }}
+            {{ form_errors(form.address) }}
+          </div>
+        </div>
+      </div>
+    </section>
 
-					<div class="row g-3">
-						<div class="col-md-6">
-							{{ form_label(form.phone, 'Téléphone', {label_attr:{class:'form-label'}}) }}
-							{{ form_widget(form.phone, {attr:{class:'form-control'}}) }}
-							{{ form_errors(form.phone) }}
-						</div>
-						<div class="col-md-6">
-							{{ form_label(form.email, 'E-mail', {label_attr:{class:'form-label'}}) }}
-							{{ form_widget(form.email, {attr:{class:'form-control'}}) }}
-							{{ form_errors(form.email) }}
-						</div>
-						<div class="col-12">
-							{{ form_label(form.address, 'Adresse', {label_attr:{class:'form-label'}}) }}
-							{{ form_widget(form.address, {attr:{class:'form-control', rows:3}}) }}
-							{{ form_errors(form.address) }}
-						</div>
-						<div class="col-12">
-							{{ form_label(form.logoInvoiceFile, 'Logo - Reçu (PNG/JPG)', {label_attr:{class:'form-label'}}) }}
-							{{ form_widget(form.logoInvoiceFile, {attr:{class:'form-control'}}) }}
-							{{ form_errors(form.logoInvoiceFile) }}
-						</div>
-						<div class="col-12">
-							{{ form_label(form.logoAppFile, 'Logo Application (PNG/JPG)', {label_attr:{class:'form-label'}}) }}
-							{{ form_widget(form.logoAppFile, {attr:{class:'form-control'}}) }}
-							{{ form_errors(form.logoAppFile) }}
-						</div>
-					</div>
+    <section id="branding" class="card settings-section">
+      <div class="card-header">
+        <h5 class="card-title mb-1">Identité visuelle</h5>
+        <p class="text-muted mb-0">Les deux logos ont des usages distincts.</p>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="border rounded-3 p-3 h-100">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div><h6 class="mb-1">Logo de l’application</h6><small class="text-muted">Menu latéral et navigation</small></div>
+                <span class="badge bg-primary-subtle text-primary">Application</span>
+              </div>
+              <div id="app-logo-preview" class="settings-logo-preview mb-3">
+                {% if logoAppPath %}
+                  <img src="{{ asset(logoAppPath) }}" alt="Logo actuel de l’application">
+                {% else %}
+                  <div class="text-center text-muted"><i class="ri-image-add-line fs-1"></i><div>Aucun logo d’application disponible</div></div>
+                {% endif %}
+              </div>
+              {{ form_label(form.logoAppFile, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+              {{ form_widget(form.logoAppFile, {attr:{class:'form-control', 'data-preview-target':'app-logo-preview'}}) }}
+              <div class="form-text">{{ form_help(form.logoAppFile) }}</div>
+              {{ form_errors(form.logoAppFile) }}
+              {% if settings.logoAppPath %}
+                <div class="form-check mt-3">{{ form_widget(form.removeLogoApp, {attr:{class:'form-check-input'}}) }} {{ form_label(form.removeLogoApp, null, {label_attr:{class:'form-check-label text-danger'}}) }}</div>
+              {% else %}
+                <div class="d-none">{{ form_widget(form.removeLogoApp) }}</div>
+              {% endif %}
+              {% if settings.logoAppPath and not hasConfiguredLogoApp %}
+                <div class="alert alert-warning py-2 mt-3 mb-0"><i class="ri-error-warning-line me-1"></i>Le fichier enregistré est introuvable. Le logo Fyracare par défaut est utilisé. Importez un nouveau fichier pour remplacer ce secours.</div>
+              {% endif %}
+            </div>
+          </div>
 
-					<div class="mt-3 d-flex gap-2">
-						<button class="btn btn-primary">
-							<i class="ri-save-2-line me-1"></i>
-							Enregistrer</button>
-						<a href="#" class="btn btn-ghost-secondary">Annuler</a>
-					</div>
-					{{ form_end(form) }}
-				</div>
-			</div>
-		</div>
+          <div class="col-lg-6">
+            <div class="border rounded-3 p-3 h-100">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div><h6 class="mb-1">Logo des reçus et factures</h6><small class="text-muted">Reçu à l’écran, impression et PDF</small></div>
+                <span class="badge bg-success-subtle text-success">Documents</span>
+              </div>
+              <div id="invoice-logo-preview" class="settings-logo-preview mb-3">
+                {% if logoInvoicePath %}
+                  <img src="{{ asset(logoInvoicePath) }}" alt="Logo actuel des reçus et factures">
+                {% else %}
+                  <div class="text-center text-muted"><i class="ri-file-paper-2-line fs-1"></i><div>Aucun logo de document disponible</div></div>
+                {% endif %}
+              </div>
+              {{ form_label(form.logoInvoiceFile, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+              {{ form_widget(form.logoInvoiceFile, {attr:{class:'form-control', 'data-preview-target':'invoice-logo-preview'}}) }}
+              <div class="form-text">{{ form_help(form.logoInvoiceFile) }}</div>
+              {{ form_errors(form.logoInvoiceFile) }}
+              {% if settings.logoInvoicePath %}
+                <div class="form-check mt-3">{{ form_widget(form.removeLogoInvoice, {attr:{class:'form-check-input'}}) }} {{ form_label(form.removeLogoInvoice, null, {label_attr:{class:'form-check-label text-danger'}}) }}</div>
+              {% else %}
+                <div class="d-none">{{ form_widget(form.removeLogoInvoice) }}</div>
+              {% endif %}
+              {% if settings.logoInvoicePath and not hasConfiguredLogoInvoice %}
+                <div class="alert alert-warning py-2 mt-3 mb-0"><i class="ri-error-warning-line me-1"></i>Le fichier enregistré est introuvable. Le logo Fyracare par défaut est utilisé sur les reçus et PDF. Importez un nouveau fichier pour remplacer ce secours.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-warning mt-3 mb-0"><i class="ri-information-line me-1"></i>Choisir un nouveau fichier remplace le logo correspondant uniquement après un enregistrement réussi. L’ancien fichier reste disponible en cas d’erreur.</div>
+      </div>
+    </section>
 
-		<div class="col-lg-4">
-			<div class="card">
-				<div class="card-header">
-					<h5 class="card-title mb-0">Aperçu</h5>
-				</div>
-				<div class="card-body">
-					<div class="mb-3 text-center">
-						{% if settings.logoAppPath %}
-							<img src="{{ asset(settings.logoAppPath) }}" alt="Logo" style="max-height:80px">
-						{% else %}
-							<div class="text-muted">Aucun logo du reçu</div>
-						{% endif %}
-					</div>
-					<div class="mb-3 text-center">
-						{% if settings.logoInvoicePath %}
-							<img src="{{ asset(settings.logoInvoicePath) }}" alt="Logo" style="max-height:80px">
-						{% else %}
-							<div class="text-muted">Aucun logo de l'application</div>
-						{% endif %}
-					</div>
-					<div class="d-grid gap-2">
-						<div class="d-flex justify-content-between">
-							<span class="text-muted">Téléphone</span>
-							<span class="fw-semibold">{{ settings.phone ?: '—' }}</span>
-						</div>
-						<div class="d-flex justify-content-between">
-							<span class="text-muted">E-mail</span>
-							<span class="fw-semibold">{{ settings.email ?: '—' }}</span>
-						</div>
-						<div>
-							<div class="text-muted mb-1">Adresse</div>
-							<div class="fw-semibold">{{ settings.address ?: '—' }}</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+    <section id="appointments" class="card settings-section">
+      <div class="card-header">
+        <h5 class="card-title mb-1">Règles des rendez-vous</h5>
+        <p class="text-muted mb-0">Réglage des alertes de confirmation.</p>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-start">
+          <div class="col-md-6">
+            {{ form_label(form.confirmationReminderHours, null, {label_attr:{class:'form-label fw-semibold'}}) }}
+            <div class="input-group"><span class="input-group-text"><i class="ri-time-line"></i></span>{{ form_widget(form.confirmationReminderHours, {attr:{class:'form-control'}}) }}<span class="input-group-text">heures</span></div>
+            <div class="form-text">{{ form_help(form.confirmationReminderHours) }}</div>
+            {{ form_errors(form.confirmationReminderHours) }}
+          </div>
+          <div class="col-md-6"><div class="alert alert-light border mb-0">Exemple : avec <strong>24 heures</strong>, un rendez-vous prévu demain entre dans la fenêtre de contrôle aujourd’hui.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="text-muted small"><i class="ri-shield-check-line me-1"></i>Aucune donnée historique n’est modifiée par ces paramètres.</div>
+        <div class="d-flex gap-2">
+          <a href="{{ path('admin_dashboard') }}" class="btn btn-light">Annuler</a>
+          <button class="btn btn-primary"><i class="ri-save-2-line me-1"></i>Enregistrer les paramètres</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{{ form_end(form) }}
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('input[type="file"][data-preview-target]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      const target = document.getElementById(this.dataset.previewTarget);
+      if (!file || !target || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        target.innerHTML = '';
+        const image = document.createElement('img');
+        image.src = event.target.result;
+        image.alt = 'Aperçu du nouveau logo';
+        target.appendChild(image);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+});
+</script>
 {% endblock %}

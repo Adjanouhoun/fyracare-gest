@@ -37,15 +37,24 @@
         {{ form_errors(form.roles) }}
       </div>
 
+      <div class="col-md-6">
+        <div class="form-check form-switch mt-4">
+          {{ form_widget(form.active, {'attr': {'class':'form-check-input'}}) }}
+          {{ form_label(form.active, null, {'label_attr': {'class':'form-check-label fw-semibold'}}) }}
+        </div>
+        <div class="form-text">{{ form_help(form.active) }}</div>
+        {{ form_errors(form.active) }}
+      </div>
+
       {# Mot de passe présent uniquement sur NEW (ou si votre FormType le met aussi sur edit) #}
-      {% if form.password is defined %}
+      {% if form.plainPassword is defined %}
         <div class="col-md-6">
           <label class="form-label">Mot de passe</label>
           <div class="input-group">
             <span class="input-group-text"><i class="ri-lock-2-line"></i></span>
-            {{ form_widget(form.password, {'attr': {'class':'form-control'}}) }}
+            {{ form_widget(form.plainPassword, {'attr': {'class':'form-control'}}) }}
           </div>
-          {{ form_errors(form.password) }}
+          {{ form_errors(form.plainPassword) }}
         </div>
       {% endif %}
     </div>

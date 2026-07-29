@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
+<html lang="fr" data-layout="vertical" data-topbar="light" data-sidebar="light" data-sidebar-size="lg" data-sidebar-image="none" data-preloader="disable" data-theme="default" data-theme-colors="withe">
 <head>
     <meta charset="utf-8" />
-    <title>Fyracare | Gestion</title>
+    <title>{% block title %}Gestion{% endblock %} | Fyracare</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- App favicon -->
@@ -17,12 +17,48 @@
     <!-- App Css-->
     <link href="{{ asset('velzon/css/app.min.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('velzon/css/custom.min.css') }}" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --vz-font-family-primary: system-ui, -apple-system, "Segoe UI", sans-serif;
+            --vz-font-family-secondary: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        body, button, input, select, textarea,
+        h1, h2, h3, h4, h5, h6 {
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 767.98px) {
+            .table-responsive > .table {
+                min-width: 720px;
+            }
+            .page-title-box {
+                align-items: flex-start !important;
+                gap: .75rem;
+            }
+            .page-title-right {
+                width: 100%;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+            .btn {
+                min-height: 40px;
+            }
+        }
+    </style>
     
     <!-- Block pour styles additionnels -->
     {% block stylesheets %}{% endblock %}
 </head>
 
 <body>
+    {% if app.environment == 'demo' %}
+        <div class="alert alert-danger rounded-0 text-center fw-semibold mb-0" role="alert">
+            ENVIRONNEMENT DE DÉMONSTRATION — toutes les informations affichées sont fictives
+        </div>
+    {% endif %}
     <div id="layout-wrapper">
         {% include 'partials/topbar.html.twig' %}
         {% include 'partials/sidebar.html.twig' %}
@@ -50,7 +86,7 @@
                         </div>
                         <div class="col-sm-6">
                             <div class="text-sm-end d-none d-sm-block">
-                                Design & Develop by Amadou Adjanouhoun
+                                Conception et développement : Amadou Adjanouhoun
                             </div>
                         </div>
                     </div>
@@ -59,32 +95,30 @@
         </div>
     </div>
 
-    <!-- ⚠️ ORDRE IMPORTANT DES SCRIPTS ⚠️ -->
-    
-    <!-- 1. jQuery EN PREMIER -->
-    
-    <!-- 2. Bootstrap -->
+    {# Le thème Velzon attend ce composant même lorsque les notifications ne sont
+       pas utilisées. Sa présence évite une erreur JavaScript globale. #}
+    <div id="removeNotificationModal" class="d-none" aria-hidden="true">
+        <button id="delete-notification" type="button"></button>
+        <button id="NotificationModalbtn-close" type="button"></button>
+    </div>
+
+    <!-- Bibliothèques locales communes -->
     <script src="{{ asset('velzon/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     
-    <!-- 3. Autres libs -->
     <script src="{{ asset('velzon/libs/simplebar/simplebar.min.js') }}"></script>
     <script src="{{ asset('velzon/libs/node-waves/waves.min.js') }}"></script>
     <script src="{{ asset('velzon/libs/feather-icons/feather.min.js') }}"></script>
     <script src="{{ asset('velzon/js/pages/plugins/lord-icon-2.1.0.js') }}"></script>
-    <script src="{{ asset('velzon/js/plugins.js') }}"></script>
     
-    <!-- 4. Charts -->
     <script src="{{ asset('velzon/libs/apexcharts/apexcharts.min.js') }}"></script>
     <script src="{{ asset('velzon/libs/jsvectormap/jsvectormap.min.js') }}"></script>
     <script src="{{ asset('velzon/libs/jsvectormap/maps/world-merc.js') }}"></script>
     <script src="{{ asset('velzon/libs/swiper/swiper-bundle.min.js') }}"></script>
     
-    <!-- 5. App JS -->
     <script src="{{ asset('velzon/js/pages/dashboard-ecommerce.init.js') }}"></script>
     <script src="{{ asset('velzon/js/app.js') }}"></script>
-    <script src="{{ asset('https://code.jquery.com/jquery-3.6.4.min.js') }}"></script>
     
-    <!-- 6. Block pour scripts additionnels (FullCalendar, etc.) -->
+    <!-- Scripts propres à chaque écran -->
     {% block javascripts %}{% endblock %}
 </body>
 </html>

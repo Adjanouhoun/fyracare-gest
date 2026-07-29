@@ -29,6 +29,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     private ?string $fonction = null;
 
+    #[ORM\Column]
+    private bool $isActive = true;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deactivatedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?self $deactivatedBy = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -121,6 +131,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->fonction = $fonction;
 
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
+        return $this;
+    }
+
+    public function getDeactivatedAt(): ?\DateTimeImmutable
+    {
+        return $this->deactivatedAt;
+    }
+
+    public function setDeactivatedAt(?\DateTimeImmutable $deactivatedAt): static
+    {
+        $this->deactivatedAt = $deactivatedAt;
+        return $this;
+    }
+
+    public function getDeactivatedBy(): ?self
+    {
+        return $this->deactivatedBy;
+    }
+
+    public function setDeactivatedBy(?self $deactivatedBy): static
+    {
+        $this->deactivatedBy = $deactivatedBy;
         return $this;
     }
 }

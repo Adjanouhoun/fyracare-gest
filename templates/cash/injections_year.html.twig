@@ -324,20 +324,20 @@
                     </td>
                     <td>{{ e.notes ?: '—' }}</td>
                     <td class="text-end">
+                      {% if is_granted('ROLE_ADMIN') %}
                       <h6 class="mb-0 text-warning fw-semibold">
                         +{{ e.amount|number_format(0,',',' ') }} MRU
                       </h6>
                     </td>
                     <td class="text-end">
-                      <a href="{{ path('cash_deposit_edit', {id: e.id}) }}" class="btn btn-sm btn-soft-info" title="Modifier">
-                        <i class="ri-pencil-line"></i>
-                      </a>
-                      <form method="post" action="{{ path('cash_deposit_delete', {id: e.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?');">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete_deposit_' ~ e.id) }}">
-                        <button type="submit" class="btn btn-sm btn-soft-danger" title="Supprimer">
-                          <i class="ri-delete-bin-line"></i>
+                      <form method="post" action="{{ path('cash_deposit_cancel', {id: e.id}) }}" class="d-inline-flex gap-1" onsubmit="return confirm('Annuler ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('cancel_deposit_' ~ e.id) }}">
+                        <input type="text" name="reason" class="form-control form-control-sm" minlength="5" maxlength="1000" placeholder="Motif" required>
+                        <button type="submit" class="btn btn-sm btn-soft-danger" title="Annuler">
+                          <i class="ri-close-circle-line"></i>
                         </button>
                       </form>
+                      {% endif %}
                     </td>
                   </tr>
                 {% else %}
@@ -389,7 +389,6 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const labels = {{ labels|json_encode|raw }};

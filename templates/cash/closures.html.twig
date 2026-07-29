@@ -13,16 +13,16 @@
           <thead class="table-light">
             <tr>
               <th>Date</th>
-              <th class="text-end">Entrées</th>
-              <th class="text-end">Sorties</th>
-              <th class="text-end">Solde</th>
+              <th class="text-end">Entrées physiques</th>
+              <th class="text-end">Sorties physiques</th>
+              <th class="text-end">Solde théorique</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
           {% for c in items %}
             <tr>
-              <td>{{ c.closedAt|date('d/m/Y H:i') }}</td>
+              <td>{{ c.closureDate|date('d/m/Y') }}<br><small class="text-muted">{{ c.closedAt|date('H:i') }}</small></td>
               <td class="text-end">{{ c.totalIn|number_format(0,',',' ') }}</td>
               <td class="text-end">{{ c.totalOut|number_format(0,',',' ') }}</td>
               <td class="text-end">{{ c.balance|number_format(0,',',' ') }}</td>

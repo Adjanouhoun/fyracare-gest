@@ -1,0 +1,88 @@
+{% extends 'layouts/main.html.twig' %}
+{% block title %}Journal d’activité{% endblock %}
+
+{% block page_header %}
+  <h4 class="fs-16 mb-1">Journal d’activité</h4>
+  <p class="text-muted mb-0">Traçabilité centralisée des actions sensibles.</p>
+{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-md-5">
+          <label class="form-label" for="activity-search">Rechercher</label>
+          <input id="activity-search" class="form-control" type="search" name="q" value="{{ q }}" placeholder="Auteur, reçu, motif, rendez-vous…">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="activity-category">Type d’action</label>
+          <select id="activity-category" class="form-select" name="category">
+            <option value="">Toutes les actions</option>
+            {% for value, label in {
+              PAYMENT: 'Encaissements',
+              CANCELLATION: 'Annulations',
+              CASH: 'Mouvements de caisse',
+              CLOSURE: 'Clôtures',
+              APPOINTMENT: 'Rendez-vous',
+              USER: 'Utilisateurs'
+            } %}
+              <option value="{{ value }}" {{ category == value ? 'selected' : '' }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1"><i class="ri-search-line"></i> Filtrer</button>
+          <a class="btn btn-light" href="{{ path('admin_activity_log_index') }}">Effacer</a>
+        </div>
+      </form>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <strong>{{ total }} action{{ total > 1 ? 's' : '' }}</strong>
+        <span class="badge bg-danger-subtle text-danger">Administrateurs uniquement</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Date et heure</th>
+              <th>Action</th>
+              <th>Détails</th>
+              <th>Auteur</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in events %}
+              <tr>
+                <td class="text-nowrap">{{ event.date|date('d/m/Y H:i:s') }}</td>
+                <td><span class="badge bg-primary-subtle text-primary">{{ event.title }}</span></td>
+                <td>{{ event.details }}</td>
+                <td>{{ event.actor }}</td>
+                <td class="text-end">
+                  {% if event.route %}
+                    <a class="btn btn-sm btn-light" href="{{ path(event.route, event.routeParams) }}">Voir</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-4">Aucune action ne correspond aux filtres.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if pageCount > 1 %}
+        <nav aria-label="Pagination du journal">
+          <ul class="pagination justify-content-end mb-0">
+            {% for number in 1..pageCount %}
+              <li class="page-item {{ number == page ? 'active' : '' }}">
+                <a class="page-link" href="{{ path('admin_activity_log_index', {page:number, category:category, q:q}) }}">{{ number }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -17,6 +17,7 @@ class CashMovementRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('m')
             ->select('COALESCE(SUM(m.amount),0)')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to);
 
         if ($type) {
@@ -25,10 +26,51 @@ class CashMovementRepository extends ServiceEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    public function sumBetweenByTypeAndSource(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        string $type,
+        string $source,
+    ): int {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COALESCE(SUM(m.amount), 0)')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->andWhere('m.deletedAt IS NULL')
+            ->andWhere('m.type = :type')
+            ->andWhere('m.source = :source')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('type', $type)
+            ->setParameter('source', $source)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function sumBetweenByTypeExcludingSource(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        string $type,
+        string $excludedSource,
+    ): int {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COALESCE(SUM(m.amount), 0)')
+            ->andWhere('m.createdAt BETWEEN :from AND :to')
+            ->andWhere('m.deletedAt IS NULL')
+            ->andWhere('m.type = :type')
+            ->andWhere('m.source != :excludedSource')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('type', $type)
+            ->setParameter('excludedSource', $excludedSource)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /** liste paginable/filtrable */
     public function qbList(?\DateTimeImmutable $from = null, ?\DateTimeImmutable $to = null, ?string $type = null, ?string $source = null)
     {
         $qb = $this->createQueryBuilder('m')->orderBy('m.createdAt', 'DESC');
+        $qb->andWhere('m.deletedAt IS NULL');
         if ($from) $qb->andWhere('m.createdAt >= :f')->setParameter('f', $from);
         if ($to)   $qb->andWhere('m.createdAt <= :t')->setParameter('t', $to);
         if ($type)   $qb->andWhere('m.type = :tp')->setParameter('tp', $type);
@@ -55,6 +97,7 @@ class CashMovementRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :tIn')
             ->andWhere('m.source = :src')
             ->setParameter('f', $from)->setParameter('t', $to)
@@ -71,6 +114,7 @@ class CashMovementRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.type = :tOut')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
@@ -86,8 +130,11 @@ class CashMovementRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
             ->andWhere('m.type = :tOut')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->orderBy('m.createdAt', 'DESC');
     }
 
@@ -99,8 +146,11 @@ class CashMovementRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('m')
             ->andWhere('m.createdAt BETWEEN :f AND :t')
             ->andWhere('m.type = :tOut')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->setParameter('tOut', \App\Entity\CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->orderBy('m.createdAt', 'DESC');
     }
 
@@ -127,7 +177,7 @@ class CashMovementRepository extends ServiceEntityRepository
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->setParameter('src', CashMovement::SRC_PAYMENT)
-            ->orderBy('m.createdAt', 'ASC')
+            ->orderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
     }
 
@@ -181,7 +231,7 @@ class CashMovementRepository extends ServiceEntityRepository
             ->andWhere('c.type = :t')->setParameter('t', $type)
             ->andWhere('c.createdAt BETWEEN :from AND :to')
             ->setParameter('from', $from)->setParameter('to', $to)
-            ->orderBy('c.createdAt', 'ASC')
+            ->orderBy('c.createdAt', 'DESC')
             ->getQuery()->getResult();
     }
 
@@ -193,10 +243,16 @@ class CashMovementRepository extends ServiceEntityRepository
             ->getQuery()->getSingleScalarResult();
     }
 
-    // Caisse actuelle (IN - OUT)
-    public function currentCash(): int {
-        $in  = $this->sumAll(\App\Entity\CashMovement::IN);
-        $out = $this->sumAll(\App\Entity\CashMovement::OUT);
+    /**
+     * Solde théorique d'une journée. La caisse repart à zéro chaque matin :
+     * aucun mouvement d'une autre date ne doit être reporté.
+     */
+    public function currentCash(?\DateTimeImmutable $day = null): int {
+        $day ??= new \DateTimeImmutable('today');
+        $from = $day->setTime(0, 0);
+        $to = $day->setTime(23, 59, 59);
+        $in = $this->sumBetween($from, $to, CashMovement::IN);
+        $out = $this->sumBetween($from, $to, CashMovement::OUT);
         return $in - $out;
     }
 
@@ -218,8 +274,11 @@ class CashMovementRepository extends ServiceEntityRepository
             ->addSelect('SUM(m.amount) AS total')
             ->leftJoin('m.category', 'cat')
             ->andWhere('m.type = :out')
+            ->andWhere('m.source = :srcExpense')
+            ->andWhere('m.deletedAt IS NULL')
             ->andWhere('m.createdAt BETWEEN :from AND :to')
             ->setParameter('out', CashMovement::OUT)
+            ->setParameter('srcExpense', CashMovement::SRC_EXPENSE)
             ->setParameter('from', $from)
             ->setParameter('to', $to)
             ->setParameter('uncat', 'Non catégorisée')
@@ -228,15 +287,15 @@ class CashMovementRepository extends ServiceEntityRepository
             ->getArrayResult();
     }
 
-    /**
-     * Trouve les mouvements de caisse liés à un RDV spécifique
-     * En se basant sur les notes qui contiennent "RDV #<id>"
-     */
+    /** Trouve les mouvements liés à un RDV, avec repli pour les données historiques. */
     public function findByRdvId(int $rdvId): array
     {
         return $this->createQueryBuilder('m')
-            ->where('m.notes LIKE :pattern')
+            ->leftJoin('m.payment', 'pay')
+            ->where('pay.rdv = :rdvId')
+            ->orWhere('(m.payment IS NULL AND m.notes LIKE :pattern)')
             ->andWhere('m.source = :src')
+            ->setParameter('rdvId', $rdvId)
             ->setParameter('pattern', '%RDV #'.$rdvId.'%')
             ->setParameter('src', CashMovement::SRC_PAYMENT)
             ->orderBy('m.createdAt', 'DESC')
@@ -253,20 +312,51 @@ class CashMovementRepository extends ServiceEntityRepository
             return [];
         }
 
-        $qb = $this->createQueryBuilder('m');
+        $qb = $this->createQueryBuilder('m')
+            ->leftJoin('m.payment', 'pay');
         $conditions = $qb->expr()->orX();
+        $conditions->add($qb->expr()->in('IDENTITY(pay.rdv)', ':rdvIds'));
         
         foreach ($rdvIds as $index => $rdvId) {
-            $conditions->add($qb->expr()->like('m.notes', ':pattern'.$index));
+            $legacyCondition = $qb->expr()->andX(
+                $qb->expr()->isNull('m.payment'),
+                $qb->expr()->like('m.notes', ':pattern'.$index),
+            );
+            $conditions->add($legacyCondition);
             $qb->setParameter('pattern'.$index, '%RDV #'.$rdvId.'%');
         }
 
         return $qb
             ->where($conditions)
             ->andWhere('m.source = :src')
+            ->setParameter('rdvIds', $rdvIds)
             ->setParameter('src', CashMovement::SRC_PAYMENT)
             ->orderBy('m.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /** @return \DateTimeImmutable[] */
+    public function findDistinctMovementDaysBetween(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $before,
+    ): array {
+        $rows = $this->createQueryBuilder('m')
+            ->select('m.createdAt')
+            ->andWhere('m.createdAt >= :from')
+            ->andWhere('m.createdAt < :before')
+            ->setParameter('from', $from->setTime(0, 0))
+            ->setParameter('before', $before->setTime(0, 0))
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        $days = [];
+        foreach ($rows as $row) {
+            $day = $row['createdAt']->setTime(0, 0);
+            $days[$day->format('Y-m-d')] = $day;
+        }
+
+        return array_values($days);
     }
 }

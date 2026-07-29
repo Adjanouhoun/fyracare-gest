@@ -8,8 +8,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/autocomplete', name: 'api_autocomplete_')]
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 class AutocompleteController extends AbstractController
 {
     #[Route('/clients', name: 'clients', methods: ['GET'])]

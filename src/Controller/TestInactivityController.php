@@ -9,7 +9,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class TestInactivityController extends AbstractController
 {
-    #[Route('/test-inactivity', name: 'app_test_inactivity')]
+    #[Route('/test-inactivity', name: 'app_test_inactivity', env: ['dev', 'test'])]
     #[IsGranted('ROLE_USER')]
     public function test(): Response
     {

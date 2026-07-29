@@ -9,16 +9,20 @@ use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Security\Core\Validator\Constraints\UserPassword;
 
 class ChangePasswordType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // Facultatif selon ton besoin (non mappé)
         $builder->add('currentPassword', PasswordType::class, [
-            'required' => false,
+            'required' => true,
             'mapped'   => false,
             'attr'     => ['autocomplete' => 'current-password'],
+            'constraints' => [
+                new Assert\NotBlank(message: 'Saisissez votre mot de passe actuel'),
+                new UserPassword(message: 'Le mot de passe actuel est incorrect'),
+            ],
         ]);
 
         $builder->add('plainPassword', RepeatedType::class, [

@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\PaymentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 class Payment
@@ -23,6 +24,7 @@ class Payment
     private ?Rdv $rdv = null;
 
     #[ORM\Column]
+    #[Assert\Positive(message: 'Le montant du paiement doit être strictement positif.')]
     private ?int $amount = null;
 
     #[ORM\Column(length: 255)]
@@ -31,7 +33,7 @@ class Payment
     #[ORM\Column]
     private ?\DateTimeImmutable $paidAt = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255, nullable: true, unique: true)]
     private ?string $receiptNumber = null;
 
     #[ORM\Column]
@@ -39,6 +41,20 @@ class Payment
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $receivedBy = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $cancelledAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $cancelledBy = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $cancellationReason = null;
 
     public function getId(): ?int
     {
@@ -122,10 +138,59 @@ class Payment
         return $this->notes;
     }
 
-    public function setNotes(string $notes): static
+    public function setNotes(?string $notes): static
     {
         $this->notes = $notes;
 
         return $this;
+    }
+
+    public function getReceivedBy(): ?User
+    {
+        return $this->receivedBy;
+    }
+
+    public function setReceivedBy(?User $receivedBy): static
+    {
+        $this->receivedBy = $receivedBy;
+        return $this;
+    }
+
+    public function getCancelledAt(): ?\DateTimeImmutable
+    {
+        return $this->cancelledAt;
+    }
+
+    public function setCancelledAt(?\DateTimeImmutable $cancelledAt): static
+    {
+        $this->cancelledAt = $cancelledAt;
+        return $this;
+    }
+
+    public function getCancelledBy(): ?User
+    {
+        return $this->cancelledBy;
+    }
+
+    public function setCancelledBy(?User $cancelledBy): static
+    {
+        $this->cancelledBy = $cancelledBy;
+        return $this;
+    }
+
+    public function getCancellationReason(): ?string
+    {
+        return $this->cancellationReason;
+    }
+
+    public function setCancellationReason(?string $cancellationReason): static
+    {
+        $this->cancellationReason = $cancellationReason;
+        return $this;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelledAt !== null;
     }
 }

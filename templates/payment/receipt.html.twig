@@ -1,221 +1,162 @@
-{# templates/payment/receipt.html.twig #}
 {% extends 'layouts/main.html.twig' %}
-{% block title %}Reçu
-	{{ payment.receiptNumber }}
-	| Fyracare
+{% set shortReference = 'REC-' ~ payment.paidAt|date('Y') ~ '-' ~ '%06d'|format(payment.id) %}
+{% set methodLabel = payment.methode == constant('App\\Entity\\Payment::M_MOBILE') ? 'Paiement mobile' : 'Espèces' %}
+
+{% block title %}Reçu {{ shortReference }}{% endblock %}
+
+{% block stylesheets %}
+<style>
+  .receipt-sheet { max-width: 920px; margin: 0 auto; border: 0; }
+  .receipt-brand-logo { width: 82px; height: 82px; object-fit: contain; }
+  .receipt-reference { letter-spacing: .04em; }
+  .receipt-amount { background: linear-gradient(135deg, #196aa6, #299cdb); color: #fff; border-radius: 1rem; padding: 1.5rem; }
+  .receipt-amount-value { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1; font-weight: 750; }
+  .receipt-label { color: #7b8794; font-size: .75rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  .receipt-summary { background: #f8fafc; border-radius: .75rem; }
+  .receipt-technical { overflow-wrap: anywhere; }
+  @media print {
+    header#page-topbar, .app-menu, .footer, .layout-rightside, .d-print-none, .vertical-overlay { display: none !important; }
+    .main-content, .page-content, .container-fluid { margin: 0 !important; padding: 0 !important; }
+    .receipt-sheet { max-width: none; box-shadow: none !important; }
+    body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
 {% endblock %}
 
 {% block page_header %}
-	<div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-		<div>
-			<h4 class="fs-16 mb-1">Reçu de paiement</h4>
-			<p class="text-muted mb-0">N°
-				{{ payment.receiptNumber }}</p>
-		</div>
-		<div class="d-print-none">
-			<a href="{{ path('app_payment_receipt_pdf', { id: payment.id }) }}" class="btn btn-primary">
-				<i class="ri-printer-line align-middle me-1"></i>
-				Imprimer (PDF)
-			</a>
-			<a href="{{ path('app_rdv_show', { id: payment.rdv.id }) }}" class="btn btn-ghost-secondary">Voir le RDV</a>
-		</div>
-	</div>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 d-print-none">
+  <div>
+    <h4 class="mb-1">Reçu de paiement</h4>
+    <p class="text-muted mb-0">{{ shortReference }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ path('app_payment_receipt_pdf', {id: payment.id}) }}" class="btn btn-primary">
+      <i class="ri-file-pdf-2-line me-1"></i>Télécharger / Imprimer
+    </a>
+    {% if shareLinks.whatsapp %}
+      <a href="{{ shareLinks.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-success">
+        <i class="ri-whatsapp-line me-1"></i>WhatsApp
+      </a>
+    {% else %}
+      <button type="button" class="btn btn-light" disabled title="Téléphone client indisponible"><i class="ri-whatsapp-line me-1"></i>WhatsApp</button>
+    {% endif %}
+    {% if shareLinks.email %}
+      <a href="{{ shareLinks.email }}" class="btn btn-info"><i class="ri-mail-send-line me-1"></i>E-mail</a>
+    {% else %}
+      <button type="button" class="btn btn-light" disabled title="E-mail client indisponible"><i class="ri-mail-send-line me-1"></i>E-mail</button>
+    {% endif %}
+    <a href="{{ path('app_rdv_show', {id: payment.rdv.id}) }}" class="btn btn-light">Voir le rendez-vous</a>
+  </div>
+</div>
 {% endblock %}
 
 {% block body %}
-	<div class="card">
-		<div class="card-body">
-			{# --- ENTÊTE: Logo + Coordonnées + Meta reçu --- #}
-			<div class="row align-items-center mb-4">
-				<div class="col-sm-6 d-flex align-items-center gap-3">
-					{% if app_settings.get().logoInvoicePath %}
-						<img src="{{ asset(app_settings.get().logoInvoicePath) }}" alt="Logo" style="height:48px">
-					{% else %}
-						<div class="avatar-md">
-							<span class="avatar-title bg-primary-subtle text-primary rounded fs-22">F</span>
-						</div>
-					{% endif %}
-					<div>
-						<h5 class="mb-1">Fyracare</h5>
-						<div class="text-muted small">
-							{{ app_settings.get().address ?: '—' }}<br>
-							Tél :
-							{{ app_settings.get().phone ?: '—' }}
-							— Email :
-							{{ app_settings.get().email ?: '—' }}
-						</div>
-					</div>
-				</div>
+<div class="alert alert-info d-print-none mx-auto" style="max-width:920px">
+  <i class="ri-information-line me-1"></i>
+  Le message est prérempli mais jamais envoyé automatiquement. Pour transmettre le document, téléchargez le PDF puis joignez-le manuellement dans WhatsApp ou votre messagerie.
+</div>
+<article class="card receipt-sheet shadow-sm">
+  <div class="card-body p-4 p-lg-5">
+    {% if payment.cancelled %}
+      <div class="alert alert-danger d-flex align-items-center">
+        <i class="ri-close-circle-line fs-3 me-2"></i>
+        <div><strong>PAIEMENT ANNULÉ</strong><br><span class="small">Ce reçu est conservé uniquement pour la traçabilité.</span></div>
+      </div>
+    {% endif %}
 
-				<div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
-					<div class="text-muted">Reçu n°</div>
-					<h4 class="mb-1">{{ payment.receiptNumber }}</h4>
-					<div class="text-muted">Payé le
-						{{ payment.paidAt|date('d/m/Y H:i') }}</div>
-					<div class="text-muted">Méthode :
-						<span class="fw-medium">{{ payment.methode }}</span>
-					</div>
-				</div>
-			</div>
+    <header class="row align-items-start g-4 pb-4 border-bottom">
+      <div class="col-md-7 d-flex align-items-center gap-3">
+        {% if app_settings.logoInvoicePath %}
+          <img class="receipt-brand-logo" src="{{ asset(app_settings.logoInvoicePath) }}" alt="Logo Fyracare">
+        {% endif %}
+        <div>
+          <h3 class="mb-1">Fyracare</h3>
+          {% if app_settings.get().address %}<div class="text-muted">{{ app_settings.get().address }}</div>{% endif %}
+          <div class="text-muted small mt-1">
+            {% if app_settings.get().phone %}Tél. {{ app_settings.get().phone }}{% endif %}
+            {% if app_settings.get().email %}<span class="mx-1">•</span>{{ app_settings.get().email }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5 text-md-end">
+        <div class="receipt-label">Reçu de paiement</div>
+        <h4 class="receipt-reference my-1">{{ shortReference }}</h4>
+        <div class="text-muted">{{ payment.paidAt|date('d/m/Y à H:i') }}</div>
+        <span class="badge bg-light text-dark border mt-2">{{ methodLabel }}</span>
+      </div>
+    </header>
 
-			{# --- LIGNES: Bill To + Détails RDV --- #}
-			<div class="row mb-4">
-				<div class="col-md-6">
-					<h6 class="text-uppercase text-muted mb-2">Client</h6>
-					<div class="fw-medium">{{ payment.rdv.client.nometprenom }}</div>
-					<div class="text-muted">{{ payment.rdv.client.telephone ?: '—' }}</div>
-					<div class="text-muted">{{ payment.rdv.client.email ?: '—' }}</div>
-				</div>
-				<div class="col-md-6 mt-3 mt-md-0 text-md-end">
-					<h6 class="text-uppercase text-muted mb-2">Rendez-vous</h6>
-					<div>Prestation :
-						<strong>{{ payment.rdv.prestation.libelle }}</strong>
-					</div>
-					<div>Début :
-						{{ payment.rdv.startAt|date('d/m/Y H:i') }}</div>
-					<div>Fin :
-						{{ payment.rdv.endAt|date('d/m/Y H:i') }}</div>
-				</div>
-			</div>
+    <div class="row g-4 py-4">
+      <section class="col-md-6">
+        <div class="receipt-label mb-2">Client</div>
+        <h5 class="mb-1">{{ payment.rdv.client.nometprenom }}</h5>
+        {% if payment.rdv.client.telephone %}<div class="text-muted">{{ payment.rdv.client.telephone }}</div>{% endif %}
+        {% if payment.rdv.client.email %}<div class="text-muted">{{ payment.rdv.client.email }}</div>{% endif %}
+      </section>
+      <section class="col-md-6 text-md-end">
+        <div class="receipt-label mb-2">Prestation</div>
+        <h5 class="mb-1">{{ payment.rdv.prestation.libelle }}</h5>
+        <div class="text-muted">Rendez-vous du {{ payment.rdv.startAt|date('d/m/Y') }}</div>
+        <div class="text-muted">{{ payment.rdv.startAt|date('H:i') }} – {{ payment.rdv.endAt|date('H:i') }}</div>
+      </section>
+    </div>
 
-			{# --- TABLEAU ARTICLES (1 ligne) + TOTALS --- #}
-			<div class="table-responsive mb-3">
-				<table class="table table-bordered mb-0">
-					<thead class="table-light">
-						<tr>
-							<th style="width: 70%">Description</th>
-							<th class="text-end" style="width: 30%">Montant (MRU)</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>
-								{{ payment.rdv.prestation.libelle }}
-								<div class="text-muted small">
-									RDV du
-									{{ payment.rdv.startAt|date('d/m/Y H:i') }}
-									—
-									{{ payment.rdv.endAt|date('H:i') }}
-								</div>
-								{# Indication du type de paiement #}
-								<div class="mt-2">
-									{% if payment.isDeposit %}
-										<span class="badge bg-info">Acompte</span>
-									{% else %}
-										<span class="badge bg-success">Paiement final</span>
-									{% endif %}
-								</div>
-							</td>
-							<td class="text-end">{{ payment.amount|number_format(0, ',', ' ') }}</td>
-						</tr>
-					</tbody>
-					<tfoot>
-						<tr>
-							<th class="text-end">Montant du paiement</th>
-							<th class="text-end">{{ payment.amount|number_format(0, ',', ' ') }}</th>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
+    <section class="receipt-amount mb-4">
+      <div class="row align-items-center g-3">
+        <div class="col-sm-7">
+          <div class="text-white-50 text-uppercase fw-semibold small">Montant versé</div>
+          <div class="receipt-amount-value mt-2">{{ payment.amount|number_format(0, ',', ' ') }} <span class="fs-5 fw-normal">MRU</span></div>
+        </div>
+        <div class="col-sm-5 text-sm-end">
+          <span class="badge bg-white text-primary fs-6">{{ payment.isDeposit ? 'Acompte' : 'Paiement final' }}</span>
+        </div>
+      </div>
+    </section>
 
-			{# --- STATUT DU PAIEMENT --- #}
-			<div class="card bg-light border mb-3">
-				<div class="card-body">
-					<div class="row">
-						<div class="col-md-6">
-							<h6 class="text-uppercase text-muted mb-3">Statut du paiement</h6>
-							<div class="d-flex justify-content-between mb-2">
-								<span>Prix total de la prestation :</span>
-								<strong>{{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU</strong>
-							</div>
-							<div class="d-flex justify-content-between mb-2">
-								<span>Total payé (cumulé) :</span>
-								<strong class="text-success">{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</strong>
-							</div>
-							<div class="d-flex justify-content-between mb-2">
-								<span>Reste à payer :</span>
-								<strong class="{{ payment.rdv.remainingAmount > 0 ? 'text-danger' : 'text-success' }}">
-									{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU
-								</strong>
-							</div>
-						</div>
-						<div class="col-md-6 d-flex align-items-center justify-content-center">
-							{% if payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PAYE') %}
-								<div class="text-center">
-									<div class="avatar-lg mx-auto mb-2">
-										<span class="avatar-title bg-success-subtle text-success rounded-circle fs-22">
-											<i class="ri-checkbox-circle-line"></i>
-										</span>
-									</div>
-									<h5 class="text-success mb-0">Paiement complet</h5>
-									<p class="text-muted small mb-0">La prestation est entièrement payée</p>
-								</div>
-							{% elseif payment.rdv.paymentStatus == constant('App\\Entity\\Rdv::PS_PARTIEL') %}
-								<div class="text-center">
-									<div class="avatar-lg mx-auto mb-2">
-										<span class="avatar-title bg-warning-subtle text-warning rounded-circle fs-22">
-											<i class="ri-time-line"></i>
-										</span>
-									</div>
-									<h5 class="text-warning mb-0">Paiement partiel</h5>
-									<p class="text-muted small mb-0">{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU reste à payer</p>
-								</div>
-							{% else %}
-								<div class="text-center">
-									<div class="avatar-lg mx-auto mb-2">
-										<span class="avatar-title bg-secondary-subtle text-secondary rounded-circle fs-22">
-											<i class="ri-error-warning-line"></i>
-										</span>
-									</div>
-									<h5 class="text-secondary mb-0">Non payé</h5>
-									<p class="text-muted small mb-0">Aucun paiement enregistré</p>
-								</div>
-							{% endif %}
-						</div>
-					</div>
-				</div>
-			</div>
+    <section class="receipt-summary p-3 p-md-4 mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-7">
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Prix total de la prestation</span>
+            <strong>{{ payment.rdv.totalAmount|number_format(0, ',', ' ') }} MRU</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-bottom">
+            <span class="text-muted">Total payé sur ce rendez-vous</span>
+            <strong>{{ payment.rdv.totalPaid|number_format(0, ',', ' ') }} MRU</strong>
+          </div>
+          <div class="d-flex justify-content-between pt-2">
+            <span class="text-muted">Reste à payer</span>
+            <strong class="{{ payment.rdv.remainingAmount > 0 ? 'text-danger' : 'text-success' }}">{{ payment.rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</strong>
+          </div>
+        </div>
+        <div class="col-md-5 text-center">
+          {% if payment.cancelled %}
+            <i class="ri-close-circle-line fs-1 text-danger"></i><h5 class="text-danger mb-0">Paiement annulé</h5>
+          {% elseif payment.rdv.remainingAmount <= 0 %}
+            <i class="ri-checkbox-circle-line fs-1 text-success"></i><h5 class="text-success mb-0">Payé intégralement</h5>
+          {% else %}
+            <i class="ri-time-line fs-1 text-warning"></i><h5 class="text-warning mb-0">Paiement partiel</h5>
+          {% endif %}
+        </div>
+      </div>
+    </section>
 
-			{# --- NOTES (si présentes) --- #}
-			{% if payment.notes %}
-				<div class="alert alert-secondary bg-secondary-subtle text-secondary border-0">
-					<div class="fw-semibold mb-1 text-uppercase small">Notes</div>
-					<div class="text-body">{{ payment.notes }}</div>
-				</div>
-			{% endif %}
+    {% if payment.notes %}
+      <section class="alert alert-light border"><div class="receipt-label mb-1">Note de paiement</div>{{ payment.notes }}</section>
+    {% endif %}
 
-			{# --- PIED DE PAGE --- #}
-			<div class="mt-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between">
-				<div class="small text-muted">Merci pour votre confiance.</div>
-				<div class="small text-muted">Reçu généré le
-					{{ "now"|date('d/m/Y H:i') }}</div>
-			</div>
-		</div>
-	</div>
-
-	<style>
-		@media print {
-			header#page-topbar,
-			.app-menu,
-			.footer,
-			.layout-rightside,
-			.d-print-none {
-				display: none !important;
-			}
-			.main-content,
-			.page-content,
-			.container-fluid {
-				margin: 0 !important;
-				padding: 0 !important;
-			}
-			.card {
-				box-shadow: none !important;
-				border: 0 !important;
-			}
-			body {
-				-webkit-print-color-adjust: exact;
-				print-color-adjust: exact;
-			}
-		}
-	</style>
+    <footer class="pt-3 border-top">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-7">
+          <div class="fw-semibold">Merci pour votre confiance.</div>
+          <div class="small text-muted">Encaissement enregistré par {{ payment.receivedBy ? payment.receivedBy.fullname : 'utilisateur historique non identifié' }}.</div>
+        </div>
+        <div class="col-md-5 text-md-end">
+          <div class="receipt-label">Référence technique</div>
+          <div class="small text-muted receipt-technical">{{ payment.receiptNumber }}</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+</article>
 {% endblock %}

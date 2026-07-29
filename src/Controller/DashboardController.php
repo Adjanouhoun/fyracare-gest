@@ -2,22 +2,44 @@
 namespace App\Controller;
 
 use App\Entity\Rdv;
+use App\Repository\AppointmentStatusHistoryRepository;
 use App\Repository\RdvRepository;
 use App\Repository\PaymentRepository;
+use App\Service\SettingsProvider;
+use App\Service\CashPeriodGuard;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 final class DashboardController extends AbstractController
 {
     #[Route('/dashboard', name: 'admin_dashboard', methods: ['GET'])]
-    public function index(RdvRepository $rdvRepo, PaymentRepository $payRepo): Response
+    public function index(
+        RdvRepository $rdvRepo,
+        AppointmentStatusHistoryRepository $statusHistoryRepo,
+        PaymentRepository $payRepo,
+        SettingsProvider $settingsProvider,
+        CashPeriodGuard $cashPeriodGuard,
+    ): Response
     {
         $tz = new \DateTimeZone(\date_default_timezone_get());
 
         // Aujourd'hui
         $todayStart = (new \DateTimeImmutable('today', $tz))->setTime(0,0,0);
         $todayEnd   = (new \DateTimeImmutable('today', $tz))->setTime(23,59,59);
+        $now = new \DateTimeImmutable('now', $tz);
+        $reminderHours = $settingsProvider->get()->getConfirmationReminderHours();
+        $confirmationDeadline = $now->modify(sprintf('+%d hours', $reminderHours));
+        $awaitingConfirmation = $rdvRepo->findAwaitingConfirmation($now, $confirmationDeadline, 5);
+        $awaitingConfirmationCount = $rdvRepo->countAwaitingConfirmation($now, $confirmationDeadline);
+        $overdueUnresolved = $rdvRepo->findOverdueUnresolved($now, 5);
+        $overdueUnresolvedCount = $rdvRepo->countOverdueUnresolved($now);
+        $partiallyPaidRdvs = $rdvRepo->findPartiallyPaid(5);
+        $partiallyPaidCount = $rdvRepo->countPartiallyPaid();
+        $statusChangesToday = $statusHistoryRepo->countNewStatusesBetween($todayStart, $todayEnd);
+        $canViewFinancials = $this->isGranted('ROLE_MANAGER');
 
         // KPIs du jour
         $kpis = [
@@ -26,12 +48,14 @@ final class DashboardController extends AbstractController
             'annules'   => $rdvRepo->countByStatusBetween(Rdv::S_ANNULE,   $todayStart, $todayEnd),
             'confirmes' => $rdvRepo->countByStatusBetween(Rdv::S_CONFIRME, $todayStart, $todayEnd),
             'absents'   => $rdvRepo->countByStatusBetween(Rdv::S_ABSENT,   $todayStart, $todayEnd),
-            'caToday'   => $payRepo->sumRevenueBetween($todayStart, $todayEnd),
+            'aConfirmer' => $awaitingConfirmationCount,
+            'enRetard' => $overdueUnresolvedCount,
+            'paiementsACompleter' => $partiallyPaidCount,
         ];
 
         // 30 jours glissants (CA)
         $from30 = $todayStart->modify('-29 days');
-        $map30  = $payRepo->revenueByDayBetween($from30, $todayEnd);
+        $map30  = $canViewFinancials ? $payRepo->revenueByDayBetween($from30, $todayEnd) : [];
         $labels30 = [];
         $values30 = [];
         for ($i=0; $i<30; $i++) {
@@ -58,40 +82,18 @@ final class DashboardController extends AbstractController
             $statusWeek[$s] = $rdvRepo->countByStatusBetween($s, $weekStart, $weekEnd);
         }
 
-        // Top prestations par CA sur le mois en cours
-        $monthStart = $todayStart->modify('first day of this month')->setTime(0,0,0);
-        $monthEnd   = $todayStart->modify('last day of this month')->setTime(23,59,59);
-        $topRows    = $payRepo->topPrestationsRevenueBetween($monthStart, $monthEnd, 8);
-        $topLabels  = array_column($topRows, 'libelle');
-        $topValues  = array_map(fn($r) => (int) $r['total'], $topRows);
-
-        // RDV Récents
+        // Prochains rendez-vous à traiter, plutôt qu'un historique peu actionnable.
         $recentRdvs = $rdvRepo->createQueryBuilder('r')
             ->leftJoin('r.client', 'c')->addSelect('c')
             ->leftJoin('r.prestation', 'p')->addSelect('p')
-            ->orderBy('r.startAt', 'DESC')
+            ->andWhere('r.startAt >= :now')
+            ->andWhere('r.status IN (:activeStatuses)')
+            ->setParameter('now', $now)
+            ->setParameter('activeStatuses', [Rdv::S_PLANIFIE, Rdv::S_CONFIRME])
+            ->orderBy('r.startAt', 'ASC')
             ->setMaxResults(10)
             ->getQuery()
             ->getResult();
-
-        // Statistiques additionnelles
-        $additionalStats = [
-            'tauxConfirmation' => $kpis['rdv'] > 0 
-                ? round((($kpis['confirmes'] + $kpis['honores']) / $kpis['rdv']) * 100, 1)
-                : 0,
-            
-            'tauxConversion' => $kpis['rdv'] > 0 
-                ? round(($kpis['honores'] / $kpis['rdv']) * 100, 1)
-                : 0,
-            
-            'caMoyenParRdv' => $kpis['honores'] > 0
-                ? round($kpis['caToday'] / $kpis['honores'], 0)
-                : 0,
-        ];
-
-        // ✅ Rendez-vous partiellement payés
-        $partiallyPaidRdvs = $rdvRepo->findPartiallyPaid(5);
-        $partiallyPaidCount = $rdvRepo->countPartiallyPaid();
 
         return $this->render('dashboard/index.html.twig', [
             'from'                => $todayStart,
@@ -100,12 +102,15 @@ final class DashboardController extends AbstractController
             'labels30'            => $labels30,
             'values30'            => $values30,
             'statusWeek'          => $statusWeek,
-            'topLabels'           => $topLabels,
-            'topValues'           => $topValues,
             'recentRdvs'          => $recentRdvs,
-            'additionalStats'     => $additionalStats,
             'partiallyPaidRdvs'   => $partiallyPaidRdvs,
             'partiallyPaidCount'  => $partiallyPaidCount,
+            'reminderHours'       => $reminderHours,
+            'awaitingConfirmation'=> $awaitingConfirmation,
+            'overdueUnresolved'   => $overdueUnresolved,
+            'pendingCashClosure'  => $cashPeriodGuard->findOldestPendingDate($todayStart),
+            'canViewFinancials'   => $canViewFinancials,
+            'statusChangesToday' => $statusChangesToday,
         ]);
     }
 }

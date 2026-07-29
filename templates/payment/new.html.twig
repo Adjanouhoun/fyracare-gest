@@ -1,407 +1,337 @@
-{# templates/payment/new.html.twig #}
 {% extends 'layouts/main.html.twig' %}
 
-{% block title %}Paiement | Velzon{% endblock %}
+{% block title %}Encaisser un paiement{% endblock %}
+
+{% block stylesheets %}
+  <style>
+    .payment-hero { background: linear-gradient(135deg, #174a7e, #276da7); color: #fff; }
+    .payment-kpi { border-right: 1px solid rgba(255,255,255,.22); }
+    .payment-kpi:last-child { border-right: 0; }
+    .payment-method { cursor: pointer; border: 2px solid #e5e9f0; border-radius: .65rem; transition: .15s ease; }
+    .payment-method:hover { border-color: #9cbde0; transform: translateY(-1px); }
+    .payment-method:has(input:checked) { border-color: #299cdb; background: #eef7fd; box-shadow: 0 0 0 3px rgba(41,156,219,.1); }
+    .payment-method input { position: absolute; opacity: 0; pointer-events: none; }
+    .payment-amount { font-size: 1.7rem; font-weight: 700; }
+    .payment-shortcut.active { color: #fff; background: #299cdb; border-color: #299cdb; }
+    .payment-review { background: #f5f8fb; border: 1px solid #dce5ee; }
+    .payment-safety { border-left: 4px solid #299cdb; }
+    .note-preset { border-style: dashed; }
+    .note-preset:hover { border-style: solid; }
+    @media (max-width: 767.98px) {
+      .payment-kpi { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.18); }
+      .payment-kpi:last-child { border-bottom: 0; }
+    }
+  </style>
+{% endblock %}
 
 {% block page_header %}
-  <h4 class="fs-16 mb-1">Paiement du rendez-vous</h4>
-  <p class="text-muted mb-0">Le rendez-vous et la prestation sont affichés et non modifiables.</p>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      <h4 class="fs-16 mb-1"><i class="ri-secure-payment-line me-1"></i> Encaisser un paiement</h4>
+      <p class="text-muted mb-0">Vérifiez le dossier, choisissez le montant et confirmez le mode d’encaissement.</p>
+    </div>
+    <a class="btn btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}">
+      <i class="ri-arrow-left-line me-1"></i> Retour au rendez-vous
+    </a>
+  </div>
 {% endblock %}
 
 {% block body %}
   {% include 'partials/flashes.html.twig' %}
 
-  {# Informations de paiement #}
-  <div class="alert alert-info">
-    <h5>Informations de paiement</h5>
-    <ul class="mb-0">
-        <li><strong>Montant total :</strong> {{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU</li>
-        {% if rdv.totalPaid > 0 %}
-            <li><strong>Déjà payé :</strong> {{ rdv.totalPaid|number_format(0, ',', ' ') }} MRU</li>
-        {% endif %}
-        <li><strong>Reste à payer :</strong> <span class="text-danger">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</span></li>
-    </ul>
-</div>
-
-  <div class="row">
-    {# --------- COL GAUCHE : Résumé RDV --------- #}
-    <div class="col-lg-7">
-      <div class="card card-animate">
-        <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <h5 class="mb-0">Résumé du rendez-vous</h5>
-            <a class="btn btn-sm btn-soft-secondary" href="{{ path('app_rdv_show', {id: rdv.id}) }}">
-              <i class="ri-eye-line align-middle"></i> Voir la fiche RDV
-            </a>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Client</div>
-              <div class="fw-medium">{{ rdv.client.nometprenom }}</div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Téléphone</div>
-              <div class="fw-medium">{{ rdv.client.telephone }}</div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Prestation</div>
-              <div class="fw-medium">{{ rdv.prestation.libelle }}</div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Prix</div>
-              <div class="fw-bold">{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU</div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Début</div>
-              <div class="fw-medium">{{ rdv.startAt|date('d/m/Y H:i') }}</div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Fin</div>
-              <div class="fw-medium">{{ rdv.endAt|date('d/m/Y H:i') }}</div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="form-label text-muted mb-0">Statut</div>
-              <div class="fw-medium">{{ rdv.status }}</div>
-            </div>
+  <div class="card payment-hero border-0">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <div>
+          <div class="text-white-50 text-uppercase fs-12 mb-1">Dossier à encaisser</div>
+          <h3 class="text-white mb-1">{{ rdv.client.nometprenom }}</h3>
+          <div class="text-white-50">
+            {{ rdv.prestation.libelle }} · {{ rdv.startAt|date('d/m/Y à H:i') }}
           </div>
         </div>
+        <span class="badge bg-white text-primary fs-13">RDV n° {{ rdv.id }}</span>
       </div>
-    </div>
-
-    {# --------- COL DROITE : Formulaire paiement --------- #}
-    <div class="col-lg-5">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="mb-3">Enregistrer le paiement</h5>
-
-          {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'id': 'payment-form'}}) }}
-
-          {# --- Montant avec boutons de pourcentage --- #}
-          <div class="mb-3">
-            <label class="form-label">
-              Montant à verser <span class="text-danger">*</span>
-            </label>
-            <small class="text-muted d-block mb-2">
-              Cliquez sur un bouton pour sélectionner le montant (Maximum : {{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU)
-            </small>
-
-            {# Boutons de raccourci pourcentage #}
-            <div class="btn-group w-100 mb-2" role="group" aria-label="Raccourcis pourcentage">
-              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="25">
-                <strong>25%</strong>
-                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.25)|number_format(0, ',', ' ') }}</small>
-              </button>
-              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="50">
-                <strong>50%</strong>
-                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.50)|number_format(0, ',', ' ') }}</small>
-              </button>
-              <button type="button" class="btn btn-outline-primary percentage-btn" data-percentage="75">
-                <strong>75%</strong>
-                <small class="d-block" style="font-size: 0.7rem;">{{ (rdv.remainingAmount * 0.75)|number_format(0, ',', ' ') }}</small>
-              </button>
-              <button type="button" class="btn btn-outline-success percentage-btn" data-percentage="100">
-                <strong>100%</strong>
-                <small class="d-block" style="font-size: 0.7rem;">{{ rdv.remainingAmount|number_format(0, ',', ' ') }}</small>
-              </button>
-            </div>
-
-            {# Champ montant (readonly pour affichage) #}
-            <div class="input-group">
-              <span class="input-group-text"><i class="ri-cash-line"></i></span>
-              <input type="text" 
-                     class="form-control form-control-lg text-center fw-bold"
-                     id="payment-amount-display"
-                     readonly
-                     placeholder="Sélectionnez un pourcentage"
-                     style="background-color: #f3f6f9; font-size: 1.5rem;">
-              <span class="input-group-text">MRU</span>
-            </div>
-
-            {# Champ réel caché pour le formulaire Symfony #}
-            {% if form.amount is defined %}
-              <div style="display: none;">
-                {{ form_widget(form.amount) }}
-              </div>
-              {{ form_errors(form.amount) }}
-            {% endif %}
-            
-            {# Affichage du type de paiement détecté #}
-            <div class="mt-2">
-              <small id="payment-type-indicator" class="text-muted">
-                <i class="ri-information-line"></i> 
-                Cliquez sur un bouton ci-dessus pour sélectionner le montant
-              </small>
-            </div>
-          </div>
-
-          {# --- Méthode (UI boutons → pilote les radios réelles) --- #}
-          <div class="mb-3">
-            <label class="form-label">Méthode de paiement</label>
-
-            {% if form.methode is defined %}
-              <div class="d-none">
-                {{ form_row(form.methode) }}
-              </div>
-
-              <div class="row g-2">
-                <div class="col-6">
-                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-especes" checked>
-                  <label class="btn btn-outline-dark w-100" for="m-especes"
-                         onclick="(function(){var r0=document.getElementById('{{ form.methode.vars.id }}_0'); if(r0){r0.checked=true;r0.dispatchEvent(new Event('change',{bubbles:true}));}})();">
-                    <i class="ri-wallet-3-line me-1"></i> Espèces
-                  </label>
-                </div>
-                <div class="col-6">
-                  <input class="btn-check" type="radio" name="payment_methode_fake" id="m-mobile">
-                  <label class="btn btn-outline-dark w-100" for="m-mobile"
-                         onclick="(function(){var r1=document.getElementById('{{ form.methode.vars.id }}_1'); if(r1){r1.checked=true;r1.dispatchEvent(new Event('change',{bubbles:true}));}})();">
-                    <i class="ri-smartphone-line me-1"></i> Mobile
-                  </label>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          {# --- Notes (OPTIONNEL) --- #}
-          <div class="mb-3">
-            <label class="form-label">Notes <small class="text-muted">(optionnel)</small></label>
-            {% if form.notes is defined %}
-              {{ form_widget(form.notes, {
-                attr: {
-                  rows: 3,
-                  placeholder: 'Ajouter des notes sur ce paiement...'
-                }
-              }) }}
-              {{ form_errors(form.notes) }}
-            {% else %}
-              <textarea class="form-control" rows="3" placeholder="Ajouter des notes sur ce paiement..."></textarea>
-            {% endif %}
-          </div>
-
-          {# --- paidAt caché --- #}
-          <div class="d-none">
-            {% if form.paidAt is defined %}
-              {{ form_row(form.paidAt) }}
-            {% endif %}
-          </div>
-
-          {# --- Autres champs restants (CSRF…) --- #}
-          {{ form_rest(form) }}
-
-          <div class="mt-3 d-flex gap-2">
-            <button type="submit" class="btn btn-success" id="submit-payment-btn">
-              <i class="ri-check-line"></i> Valider le paiement
-            </button>
-            <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-ghost-secondary">Annuler</a>
-          </div>
-
-          {{ form_end(form) }}
+      <div class="row g-0">
+        <div class="col-md-4 payment-kpi py-2 pe-md-4">
+          <div class="text-white-50 fs-12 text-uppercase">Prix total</div>
+          <div class="fs-4 fw-semibold">{{ rdv.totalAmount|number_format(0, ',', ' ') }} <small>MRU</small></div>
+        </div>
+        <div class="col-md-4 payment-kpi py-2 px-md-4">
+          <div class="text-white-50 fs-12 text-uppercase">Déjà encaissé</div>
+          <div class="fs-4 fw-semibold">{{ rdv.totalPaid|number_format(0, ',', ' ') }} <small>MRU</small></div>
+        </div>
+        <div class="col-md-4 payment-kpi py-2 ps-md-4">
+          <div class="text-white-50 fs-12 text-uppercase">Reste à payer</div>
+          <div class="fs-3 fw-bold">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} <small>MRU</small></div>
         </div>
       </div>
     </div>
   </div>
 
-  {# JavaScript pour gérer les boutons de pourcentage #}
+  {{ form_start(form, {attr: {id: 'payment-form', novalidate: 'novalidate'}}) }}
+  <div class="row g-4">
+    <div class="col-xl-7">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="card-title mb-1">1. Montant du versement</h5>
+          <p class="text-muted mb-0">Le paiement complet est proposé par défaut. Vous pouvez saisir un acompte libre.</p>
+        </div>
+        <div class="card-body">
+          <label class="form-label" for="{{ form.amount.vars.id }}">Montant à encaisser <span class="text-danger">*</span></label>
+          <div class="input-group input-group-lg mb-2">
+            <span class="input-group-text"><i class="ri-money-dollar-circle-line"></i></span>
+            {{ form_widget(form.amount, {
+              attr: {
+                class: 'form-control payment-amount',
+                min: 1,
+                max: rdv.remainingAmount,
+                step: 1,
+                inputmode: 'numeric',
+                autocomplete: 'off'
+              }
+            }) }}
+            <span class="input-group-text fw-semibold">MRU</span>
+          </div>
+          {{ form_errors(form.amount) }}
+          <div id="amount-feedback" class="alert alert-success py-2 mb-3" aria-live="polite"></div>
+
+          <div class="d-flex flex-wrap gap-2 mb-4" aria-label="Montants rapides">
+            {% for percentage in [25, 50, 75] %}
+              {% set shortcutAmount = (rdv.remainingAmount * percentage / 100)|round(0, 'common') %}
+              <button type="button" class="btn btn-outline-primary payment-shortcut" data-amount="{{ shortcutAmount }}">
+                {{ percentage }} % · {{ shortcutAmount|number_format(0, ',', ' ') }}
+              </button>
+            {% endfor %}
+            <button type="button" class="btn btn-outline-primary payment-shortcut active" data-amount="{{ rdv.remainingAmount }}">
+              Solde complet · {{ rdv.remainingAmount|number_format(0, ',', ' ') }}
+            </button>
+          </div>
+
+          <h5 class="mb-3">2. Mode d’encaissement</h5>
+          <div class="row g-3">
+            {% for choice in form.methode %}
+              {% set isCash = choice.vars.value == 'ESPECES' %}
+              <div class="col-md-6">
+                <label class="payment-method d-block h-100 p-3" for="{{ choice.vars.id }}">
+                  {{ form_widget(choice) }}
+                  <div class="d-flex align-items-start gap-3">
+                    <span class="avatar-sm flex-shrink-0">
+                      <span class="avatar-title rounded-circle {{ isCash ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info' }}">
+                        <i class="{{ isCash ? 'ri-wallet-3-line' : 'ri-smartphone-line' }} fs-4"></i>
+                      </span>
+                    </span>
+                    <div>
+                      <strong class="d-block fs-15">{{ choice.vars.label }}</strong>
+                      <small class="text-muted">
+                        {{ isCash
+                          ? 'Entre dans le solde physique de la caisse.'
+                          : 'Enregistré comme recette, hors caisse physique.' }}
+                      </small>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+          {{ form_errors(form.methode) }}
+
+          <div id="method-warning" class="alert alert-info payment-safety mt-3 mb-0">
+            <strong>Espèces :</strong> ce montant augmentera le solde théorique physique de la caisse.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">3. Vérification finale</h5>
+        </div>
+        <div class="card-body">
+          <div class="payment-review rounded p-3 mb-3">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Client</span><strong class="text-end">{{ rdv.client.nometprenom }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Montant</span><strong id="review-amount" class="text-primary">{{ rdv.remainingAmount|number_format(0, ',', ' ') }} MRU</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Mode</span><strong id="review-method">Espèces</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Après paiement</span><strong id="review-balance">Soldé</strong>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <label class="form-label mb-0" for="{{ form.notes.vars.id }}">
+              Note de traçabilité <span class="text-muted">(facultatif)</span>
+            </label>
+            <span class="badge bg-light text-muted"><i class="ri-lock-line me-1"></i>Usage interne</span>
+          </div>
+          <p id="note-help" class="small text-muted mt-1 mb-2">
+            Ajoutez uniquement une information utile au contrôle du paiement.
+          </p>
+          <div class="d-flex flex-wrap gap-1 mb-2" aria-label="Suggestions de note">
+            <button type="button" class="btn btn-sm btn-soft-secondary note-preset" data-note="Paiement reçu sans incident.">Reçu sans incident</button>
+            <button type="button" class="btn btn-sm btn-soft-secondary note-preset" data-note="Acompte convenu avec le client.">Acompte convenu</button>
+            <button type="button" class="btn btn-sm btn-soft-info note-preset" data-note="Référence mobile : " data-mobile-only>Référence mobile</button>
+          </div>
+          {{ form_widget(form.notes, {
+            attr: {
+              rows: 4,
+              maxlength: 500,
+              placeholder: 'Ex. référence de transaction ou précision nécessaire au contrôle…',
+              'aria-describedby': 'note-help note-counter'
+            }
+          }) }}
+          <div class="d-flex justify-content-between mt-1">
+            <small class="text-muted"><i class="ri-shield-user-line me-1"></i>Ne saisissez ni mot de passe, ni code secret, ni donnée médicale.</small>
+            <small id="note-counter" class="text-muted">0 / 500</small>
+          </div>
+          {{ form_errors(form.notes) }}
+
+          <div class="d-none">{{ form_row(form.paidAt) }}</div>
+          {{ form_rest(form) }}
+
+          <div class="alert alert-warning mt-3 mb-3">
+            <i class="ri-error-warning-line me-1"></i>
+            Vérifiez le montant et le mode : après validation, toute correction devra être tracée par une annulation comptable.
+          </div>
+          <button type="submit" id="submit-payment-btn" class="btn btn-success btn-lg w-100">
+            <i class="ri-shield-check-line me-1"></i>
+            Confirmer l’encaissement
+          </button>
+          <a href="{{ path('app_rdv_show', {id: rdv.id}) }}" class="btn btn-link text-muted w-100 mt-2">Abandonner sans enregistrer</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h6 class="mb-3"><i class="ri-file-list-3-line me-1"></i> Rendez-vous vérifié</h6>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted">Téléphone</span><span>{{ rdv.client.telephone ?: 'Non renseigné' }}</span></div>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted">Début</span><span>{{ rdv.startAt|date('d/m/Y H:i') }}</span></div>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted">Fin</span><span>{{ rdv.endAt|date('d/m/Y H:i') }}</span></div>
+          <div class="d-flex justify-content-between"><span class="text-muted">Statut</span><span class="badge bg-light text-dark">{{ rdv.status }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{ form_end(form) }}
+
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-  // Constantes
-  const remainingAmount = {{ rdv.remainingAmount }};
-  const displayInput = document.getElementById('payment-amount-display');
-  
-  // Trouver le champ amount généré par Symfony (peut avoir un ID différent)
-  const realInput = document.querySelector('input[name*="[amount]"]');
-  
-  const indicator = document.getElementById('payment-type-indicator');
-  const percentageButtons = document.querySelectorAll('.percentage-btn');
-  const submitBtn = document.getElementById('submit-payment-btn');
+    document.addEventListener('DOMContentLoaded', function () {
+      const remaining = {{ rdv.remainingAmount }};
+      const amountInput = document.getElementById('{{ form.amount.vars.id }}');
+      const feedback = document.getElementById('amount-feedback');
+      const reviewAmount = document.getElementById('review-amount');
+      const reviewMethod = document.getElementById('review-method');
+      const reviewBalance = document.getElementById('review-balance');
+      const methodWarning = document.getElementById('method-warning');
+      const submitButton = document.getElementById('submit-payment-btn');
+      const shortcuts = document.querySelectorAll('.payment-shortcut');
+      const methods = document.querySelectorAll('input[name="{{ form.methode.vars.full_name }}"]');
+      const formElement = document.getElementById('payment-form');
+      const notesInput = document.getElementById('{{ form.notes.vars.id }}');
+      const noteCounter = document.getElementById('note-counter');
+      const notePresets = document.querySelectorAll('.note-preset');
+      const mobileNotePreset = document.querySelector('[data-mobile-only]');
 
-  // Debug: afficher l'ID du champ trouvé
-  console.log('Real input found:', realInput);
-  if (realInput) {
-    console.log('Real input ID:', realInput.id);
-    console.log('Real input name:', realInput.name);
-  }
-
-  // Variable pour stocker le montant sélectionné
-  let selectedAmount = 0;
-
-  // Fonction pour formater les montants avec espaces
-  function formatAmount(amount) {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  }
-
-  // Fonction pour mettre à jour l'indicateur de type de paiement
-  function updatePaymentIndicator(amount) {
-    if (!indicator) return;
-    if (amount === 0) {
-      indicator.innerHTML = '<i class="ri-information-line"></i> Cliquez sur un bouton ci-dessus pour sélectionner le montant';
-      indicator.className = 'text-muted';
-    } else if (amount > remainingAmount) {
-      indicator.innerHTML = '<i class="ri-error-warning-line"></i> Le montant dépasse le reste à payer (' + formatAmount(remainingAmount) + ' MRU)';
-      indicator.className = 'text-danger';
-    } else if (amount === remainingAmount) {
-      indicator.innerHTML = '<i class="ri-check-circle-line"></i> <strong>Paiement final</strong> - Le rendez-vous sera marqué comme entièrement payé';
-      indicator.className = 'text-success';
-    } else {
-      const percentage = Math.round((amount / remainingAmount) * 100);
-      indicator.innerHTML = '<i class="ri-coins-line"></i> <strong>Acompte</strong> de ' + formatAmount(amount) + ' MRU (' + percentage + '%) - Reste : ' + formatAmount(remainingAmount - amount) + ' MRU';
-      indicator.className = 'text-warning';
-    }
-  }
-
-  // Gestionnaire pour les boutons de pourcentage
-  percentageButtons.forEach(function(button) {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-
-      const percentage = parseInt(this.getAttribute('data-percentage'));
-      const calculatedAmount = Math.round((remainingAmount * percentage) / 100);
-
-      // Stocker le montant
-      selectedAmount = calculatedAmount;
-
-      // Mettre à jour l'affichage
-      if (displayInput) {
-        displayInput.value = formatAmount(calculatedAmount);
+      function formatAmount(value) {
+        return Math.max(0, Number(value) || 0).toLocaleString('fr-FR');
       }
 
-      // Mettre à jour le champ réel du formulaire
-      if (realInput) {
-        realInput.value = calculatedAmount;  // <-- Ici on met à jour le champ Symfony
+      function updateSummary() {
+        const amount = Number.parseInt(amountInput.value, 10) || 0;
+        const balance = remaining - amount;
+        const valid = amount > 0 && amount <= remaining;
+
+        reviewAmount.textContent = formatAmount(amount) + ' MRU';
+        submitButton.disabled = !valid;
+
+        shortcuts.forEach(function (button) {
+          button.classList.toggle('active', Number(button.dataset.amount) === amount);
+        });
+
+        if (amount <= 0) {
+          feedback.className = 'alert alert-danger py-2 mb-3';
+          feedback.textContent = 'Saisissez un montant strictement positif.';
+          reviewBalance.textContent = 'Montant invalide';
+          reviewBalance.className = 'text-danger';
+        } else if (amount > remaining) {
+          feedback.className = 'alert alert-danger py-2 mb-3';
+          feedback.textContent = 'Le montant dépasse le reste à payer de ' + formatAmount(remaining) + ' MRU.';
+          reviewBalance.textContent = 'Dépassement interdit';
+          reviewBalance.className = 'text-danger';
+        } else if (balance === 0) {
+          feedback.className = 'alert alert-success py-2 mb-3';
+          feedback.textContent = 'Paiement final : le rendez-vous sera entièrement soldé.';
+          reviewBalance.textContent = 'Soldé';
+          reviewBalance.className = 'text-success';
+        } else {
+          feedback.className = 'alert alert-warning py-2 mb-3';
+          feedback.textContent = 'Acompte : il restera ' + formatAmount(balance) + ' MRU à payer.';
+          reviewBalance.textContent = formatAmount(balance) + ' MRU restant';
+          reviewBalance.className = 'text-warning';
+        }
       }
 
-      // Mettre à jour l'indicateur
-      updatePaymentIndicator(calculatedAmount);
+      function updateMethod() {
+        const selected = document.querySelector('input[name="{{ form.methode.vars.full_name }}"]:checked');
+        const mobile = selected && selected.value === 'MOBILE';
+        reviewMethod.textContent = mobile ? 'Mobile' : 'Espèces';
+        methodWarning.className = 'alert payment-safety mt-3 mb-0 ' + (mobile ? 'alert-info' : 'alert-success');
+        methodWarning.innerHTML = mobile
+          ? '<strong>Mobile :</strong> recette informative hors solde physique. Vérifiez la confirmation sur le terminal du client.'
+          : '<strong>Espèces :</strong> ce montant augmentera le solde théorique physique de la caisse.';
+        mobileNotePreset.classList.toggle('d-none', !mobile);
+        notesInput.placeholder = mobile
+          ? 'Ex. référence de transaction mobile ou précision nécessaire au contrôle…'
+          : 'Ex. précision utile sur la remise d’espèces…';
+      }
 
-      // Effet visuel sur le bouton cliqué
-      percentageButtons.forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.backgroundColor = '';
-        btn.style.color = '';
-        btn.style.borderColor = '';
+      function updateNoteCounter() {
+        const length = notesInput.value.length;
+        noteCounter.textContent = length + ' / 500';
+        noteCounter.className = length >= 450 ? 'text-warning fw-semibold' : 'text-muted';
+      }
+
+      shortcuts.forEach(function (button) {
+        button.addEventListener('click', function () {
+          amountInput.value = button.dataset.amount;
+          updateSummary();
+          amountInput.focus();
+        });
+      });
+      amountInput.addEventListener('input', updateSummary);
+      methods.forEach(function (method) { method.addEventListener('change', updateMethod); });
+      notePresets.forEach(function (button) {
+        button.addEventListener('click', function () {
+          const addition = button.dataset.note;
+          const separator = notesInput.value.trim() === '' ? '' : '\n';
+          notesInput.value = (notesInput.value + separator + addition).slice(0, 500);
+          updateNoteCounter();
+          notesInput.focus();
+          notesInput.setSelectionRange(notesInput.value.length, notesInput.value.length);
+        });
+      });
+      notesInput.addEventListener('input', updateNoteCounter);
+
+      formElement.addEventListener('submit', function (event) {
+        const amount = Number.parseInt(amountInput.value, 10) || 0;
+        if (amount <= 0 || amount > remaining) {
+          event.preventDefault();
+          updateSummary();
+          amountInput.focus();
+          return;
+        }
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Enregistrement…';
       });
 
-      this.classList.add('active');
-
-      // Changer la couleur du bouton actif
-      if (percentage === 100) {
-        this.style.backgroundColor = '#198754';
-        this.style.color = 'white';
-        this.style.borderColor = '#198754';
-      } else {
-        this.style.backgroundColor = '#0d6efd';
-        this.style.color = 'white';
-        this.style.borderColor = '#0d6efd';
-      }
-
-      // Animation du champ d'affichage
-      if (displayInput) {
-        displayInput.classList.add('border-primary', 'border-3');
-        setTimeout(function() {
-          displayInput.classList.remove('border-primary', 'border-3');
-        }, 500);
-      }
+      updateSummary();
+      updateMethod();
+      updateNoteCounter();
     });
-  });
-
-  // Validation avant soumission
-  const form = document.getElementById('payment-form');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      console.log('Form submit - realInput:', realInput);
-      console.log('Form submit - realInput.value:', realInput ? realInput.value : 'null');
-      console.log('Form submit - selectedAmount:', selectedAmount);
-      
-      if (!realInput) {
-        e.preventDefault();
-        alert('Erreur : champ de montant introuvable. Veuillez recharger la page.');
-        return false;
-      }
-      
-      if (!realInput.value || realInput.value === '' || realInput.value === '0') {
-        e.preventDefault();
-        alert('Veuillez sélectionner un montant à payer en cliquant sur un des boutons.');
-        return false;
-      }
-
-      const amount = parseInt(realInput.value);
-      if (isNaN(amount) || amount <= 0) {
-        e.preventDefault();
-        alert('Veuillez sélectionner un montant valide.');
-        return false;
-      }
-      
-      if (amount > remainingAmount) {
-        e.preventDefault();
-        alert('Le montant saisi (' + formatAmount(amount) + ' MRU) dépasse le reste à payer (' + formatAmount(remainingAmount) + ' MRU).');
-        return false;
-      }
-    });
-  }
-});
-
   </script>
-
-  {# CSS personnalisé #}
-  <style>
-    .percentage-btn {
-      font-weight: 600;
-      transition: all 0.3s ease;
-      padding: 0.75rem 0.5rem;
-    }
-    
-    .percentage-btn strong {
-      display: block;
-      font-size: 1.1rem;
-    }
-    
-    .percentage-btn small {
-      opacity: 0.8;
-      font-weight: normal;
-    }
-    
-    .percentage-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .percentage-btn.active {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    
-    #payment-amount-display {
-      cursor: default;
-      user-select: none;
-    }
-    
-    #payment-amount-display:focus {
-      outline: none;
-      box-shadow: none;
-    }
-    
-    .border-primary {
-      border-color: #0d6efd !important;
-      animation: pulse 0.5s ease-in-out;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-    }
-    
-    #payment-type-indicator {
-      font-size: 0.9rem;
-      padding: 0.5rem;
-      border-radius: 0.25rem;
-      display: block;
-    }
-    
-    #payment-type-indicator i {
-      margin-right: 0.25rem;
-    }
-  </style>
 {% endblock %}

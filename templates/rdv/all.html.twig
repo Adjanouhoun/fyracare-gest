@@ -153,7 +153,7 @@
 									</td>
 									<td>
 										<span class="fw-medium">{{ rdv.prestation.libelle }}</span><br>
-										<small class="text-muted">{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU</small>
+										<small class="text-muted">{{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU</small>
 									</td>
 									<td>{{ _self.status_badge(rdv.status) }}</td>
 									<td>{{ _self.payment_badge(rdv) }}</td>

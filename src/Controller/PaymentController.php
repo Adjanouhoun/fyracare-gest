@@ -4,9 +4,12 @@ namespace App\Controller;
 
 use App\Entity\Payment;
 use App\Entity\Rdv;
+use App\Entity\User;
 use App\Form\PaymentType;
-use App\Entity\CashMovement;
 use App\Repository\PaymentRepository;
+use App\Service\PaymentProcessor;
+use App\Service\PaymentShareLinkBuilder;
+use App\Service\CancellationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,8 +19,10 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Service\SettingsProvider;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/payment', name: 'app_payment_')]
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 class PaymentController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -96,7 +101,7 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/new/{rdv}', name: 'new', methods: ['GET','POST'])]
-    public function new(Request $request, Rdv $rdv, EntityManagerInterface $em): Response
+    public function new(Request $request, Rdv $rdv, PaymentProcessor $paymentProcessor): Response
     {
         // Vérifier si le paiement est déjà complet
         if ($rdv->isFullyPaid()) {
@@ -114,70 +119,32 @@ class PaymentController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $amount = $payment->getAmount();
-            $remainingAmount = $rdv->getRemainingAmount();
-
-            // Vérifier que le montant ne dépasse pas le montant restant
-            if ($amount > $remainingAmount) {
-                $this->addFlash('error', sprintf(
-                    'Le montant saisi (%d MRU) dépasse le montant restant à payer (%d MRU).',
-                    $amount,
-                    $remainingAmount
-                ));
-                return $this->render('payment/new.html.twig', [
-                    'rdv'  => $rdv,
-                    'form' => $form,
-                ]);
+            $user = $this->getUser();
+            if (!$user instanceof User) {
+                throw $this->createAccessDeniedException();
             }
 
-            $payment->setPaidAt(new \DateTimeImmutable());
-            
-            // Déterminer si c'est un acompte ou le paiement final
-            $isDeposit = $amount < $remainingAmount;
-            $payment->setIsDeposit($isDeposit);
+            try {
+                $paymentProcessor->process($payment, $rdv, $user);
 
-            $em->persist($payment);
+                $message = $payment->isDeposit()
+                    ? sprintf(
+                        'Acompte de %d MRU enregistré. Reste à payer : %d MRU',
+                        $payment->getAmount(),
+                        $rdv->getRemainingAmount(),
+                    )
+                    : 'Paiement final enregistré avec succès.';
 
-            // Mettre à jour le statut de paiement du rendez-vous
-            $rdv->addPayment($payment);
-            $rdv->updatePaymentStatus();
-            
-            // Si le paiement est complet, marquer le rendez-vous comme honoré
-            if ($rdv->isFullyPaid()) {
-                $rdv->setStatus(Rdv::S_HONORE);
+                $this->addFlash('success', $message);
+                return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
+            } catch (\DomainException $exception) {
+                $this->addFlash('danger', $exception->getMessage());
+            } catch (\Throwable) {
+                $this->addFlash(
+                    'danger',
+                    'Le paiement n’a pas été enregistré. Aucune écriture de caisse n’a été créée.',
+                );
             }
-
-            // Premier flush pour obtenir l'ID
-            $em->flush();
-
-            // Générer le numéro de reçu = date du jour + ID
-            $todayStr = (new \DateTimeImmutable())->format('dmY');
-            $payment->setReceiptNumber(sprintf('%s-%d', $todayStr, $payment->getId()));
-
-            // Créer le mouvement de caisse (seulement pour le montant versé)
-            $mv = new CashMovement();
-            $mv->setType(CashMovement::IN)
-                ->setAmount($payment->getAmount())
-                ->setSource(CashMovement::SRC_PAYMENT)
-                ->setNotes(sprintf(
-                    '%s RDV #%d – %s (Total payé: %d/%d MRU)',
-                    $isDeposit ? 'Acompte' : 'Paiement final',
-                    $rdv->getId(),
-                    $rdv->getPrestation()->getLibelle(),
-                    $rdv->getTotalPaid(),
-                    $rdv->getTotalAmount()
-                ));
-            $em->persist($mv);
-            
-            // Second flush pour enregistrer le reçu et le mouvement de caisse
-            $em->flush();
-
-            $message = $isDeposit 
-                ? sprintf('Acompte de %d MRU enregistré. Reste à payer : %d MRU', $amount, $rdv->getRemainingAmount())
-                : 'Paiement final enregistré avec succès.';
-            
-            $this->addFlash('success', $message);
-            return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
         } 
 
         return $this->render('payment/new.html.twig', [
@@ -187,38 +154,50 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Payment $payment): Response
+    public function show(Payment $payment, PaymentShareLinkBuilder $shareLinkBuilder): Response
     {
         return $this->render('payment/show.html.twig', [
             'payment' => $payment,
             'rdv'     => $payment->getRdv(),
+            'shareLinks' => $shareLinkBuilder->build($payment),
         ]);
     }
 
     #[Route('/{id}/receipt', name: 'receipt', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function receipt(Payment $payment): Response
+    public function receipt(Payment $payment, PaymentShareLinkBuilder $shareLinkBuilder): Response
     {
         return $this->render('payment/receipt.html.twig', [
             'payment' => $payment,
+            'shareLinks' => $shareLinkBuilder->build($payment),
         ]);
     }
 
-    #[Route('/{id}/delete', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function delete(Request $request, Payment $payment, EntityManagerInterface $em): Response
+    #[Route('/{id}/cancel', name: 'cancel', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function cancel(Request $request, Payment $payment, CancellationService $cancellationService): Response
     {
-        if ($this->isCsrfTokenValid('delete_payment_'.$payment->getId(), $request->request->get('_token'))) {
-            $rdv = $payment->getRdv();
-            
-            $em->remove($payment);
-            $em->flush();
-            
-            // Mettre à jour le statut de paiement du rendez-vous après suppression
-            if ($rdv) {
-                $rdv->updatePaymentStatus();
-                $em->flush();
-            }
+        if (!$this->isCsrfTokenValid('cancel_payment_'.$payment->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
         }
-        return $this->redirectToRoute('app_payment_index');
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $cancellationService->cancelPayment($payment, $user, $request->request->getString('reason'));
+            $this->addFlash(
+                'success',
+                'Paiement annulé. Une contrepassation a été enregistrée en caisse et l’historique est conservé.',
+            );
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        } catch (\Throwable) {
+            $this->addFlash('danger', 'L’annulation a échoué. Aucune écriture comptable partielle n’a été créée.');
+        }
+
+        return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
     }
 
      
@@ -229,8 +208,8 @@ class PaymentController extends AbstractController
 
         // --- construit un Data URI pour le logo (fiable avec Dompdf)
         $logoDataUri = null;
-        if ($s->getLogoInvoicePath()) {
-            $abs = $this->getParameter('kernel.project_dir').'/public/'.$s->getLogoInvoicePath();
+        if ($settings->getLogoInvoicePath()) {
+            $abs = $this->getParameter('kernel.project_dir').'/public/'.$settings->getLogoInvoicePath();
             if (is_file($abs)) {
                 $mime = @mime_content_type($abs) ?: 'image/png';
                 $b64  = base64_encode(file_get_contents($abs));

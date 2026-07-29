@@ -233,9 +233,6 @@
                       <a href="{{ path('cash_expense_show', {id: e.id}) }}" class="btn btn-sm btn-soft-info" title="Voir">
                         <i class="ri-eye-line"></i>
                       </a>
-                      <a href="{{ path('cash_expense_edit', {id: e.id}) }}" class="btn btn-sm btn-soft-primary" title="Modifier">
-                        <i class="ri-pencil-line"></i>
-                      </a>
                     </td>
                   </tr>
                 {% else %}
@@ -287,7 +284,6 @@
 {% endblock %}
 
 {% block javascripts %}
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const labels = {{ labels|json_encode|raw }};

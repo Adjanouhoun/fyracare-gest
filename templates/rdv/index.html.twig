@@ -23,6 +23,19 @@
 	{% endif %}
 {% endmacro %}
 
+{% macro weekday(date) %}
+	{% set weekdays = {
+		1: 'Lundi',
+		2: 'Mardi',
+		3: 'Mercredi',
+		4: 'Jeudi',
+		5: 'Vendredi',
+		6: 'Samedi',
+		7: 'Dimanche'
+	} %}
+	{{ weekdays[date|date('N')] }}
+{% endmacro %}
+
 {% block page_header %}
 	<div class="row">
 		<div class="col-12">
@@ -133,7 +146,7 @@
 									<td>
 										<span class="fw-medium">{{ rdv.startAt ? rdv.startAt|date('d/m/Y') : '—' }}</span>
 										{% if rdv.startAt %}
-											<br><small class="text-muted">{{ rdv.startAt|date('l') }}</small>
+											<br><small class="text-muted">{{ _self.weekday(rdv.startAt) }}</small>
 										{% endif %}
 									</td>
 									<td>
@@ -157,7 +170,7 @@
 									</td>
 									<td>
 										<span class="fw-medium">{{ rdv.prestation.libelle }}</span><br>
-										<small class="text-muted">{{ rdv.prestation.prix|number_format(0, ',', ' ') }} MRU</small>
+										<small class="text-muted">{{ rdv.totalAmount|number_format(0, ',', ' ') }} MRU</small>
 									</td>
 									<td>{{ _self.status_badge(rdv.status) }}</td>
 									<td class="text-center">

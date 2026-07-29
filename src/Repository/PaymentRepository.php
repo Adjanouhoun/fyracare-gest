@@ -20,6 +20,7 @@ class PaymentRepository extends ServiceEntityRepository
     {
         return (float) $this->createQueryBuilder('p')
             ->select('COALESCE(SUM(p.amount), 0)')
+            ->andWhere('p.cancelledAt IS NULL')
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -29,6 +30,7 @@ class PaymentRepository extends ServiceEntityRepository
         return (int)($this->createQueryBuilder('p')
             ->select('COALESCE(SUM(p.amount),0)')
             ->andWhere('p.paidAt BETWEEN :f AND :t')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('f',$from)->setParameter('t',$to)
             ->getQuery()->getSingleScalarResult());
     }
@@ -54,6 +56,7 @@ class PaymentRepository extends ServiceEntityRepository
         $rows = $this->createQueryBuilder('p')
             ->select('p.paidAt, p.amount')
             ->andWhere('p.paidAt BETWEEN :f AND :t')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('f', $from)
             ->setParameter('t', $to)
             ->orderBy('p.paidAt', 'ASC')
@@ -89,6 +92,7 @@ class PaymentRepository extends ServiceEntityRepository
             ->select('p.libelle AS libelle, SUM(pay.amount) AS total')
             ->join('pay.rdv','r')
             ->join('r.prestation','p')
+            ->andWhere('pay.cancelledAt IS NULL')
             ->groupBy('p.id')
             ->orderBy('total','DESC')
             ->setMaxResults($limit);
@@ -105,8 +109,30 @@ class PaymentRepository extends ServiceEntityRepository
         return (int) ($this->createQueryBuilder('p')
             ->select('COALESCE(SUM(p.amount),0)')
             ->andWhere('p.paidAt BETWEEN :f AND :t')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->getQuery()->getSingleScalarResult() ?? 0);
+    }
+
+    /** @return array<string, int> */
+    public function sumByMethodBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $rows = $this->createQueryBuilder('p')
+            ->select('p.methode AS methode, SUM(p.amount) AS total')
+            ->andWhere('p.paidAt BETWEEN :from AND :to')
+            ->andWhere('p.cancelledAt IS NULL')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->groupBy('p.methode')
+            ->getQuery()
+            ->getArrayResult();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $totals[(string) $row['methode']] = (int) $row['total'];
+        }
+
+        return $totals;
     }
 
     /** CA indexé par jour 'Y-m-d' entre 2 dates (inclus) */
@@ -114,6 +140,7 @@ class PaymentRepository extends ServiceEntityRepository
     {
         $rows = $this->createQueryBuilder('p')
             ->andWhere('p.paidAt BETWEEN :f AND :t')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->orderBy('p.paidAt', 'ASC')
             ->getQuery()->getResult();
@@ -137,6 +164,7 @@ class PaymentRepository extends ServiceEntityRepository
             ->join('p.rdv', 'r')
             ->join('r.prestation', 'pr')
             ->andWhere('p.paidAt BETWEEN :f AND :t')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('f', $from)->setParameter('t', $to)
             ->groupBy('pr.id')
             ->orderBy('total', 'DESC')
@@ -147,11 +175,12 @@ class PaymentRepository extends ServiceEntityRepository
     public function findBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array {
         return $this->createQueryBuilder('p')
             ->andWhere('p.paidAt BETWEEN :from AND :to')
+            ->andWhere('p.cancelledAt IS NULL')
             ->setParameter('from', $from)->setParameter('to', $to)
             ->leftJoin('p.rdv','r')->addSelect('r')
             ->leftJoin('r.client','c')->addSelect('c')
             ->leftJoin('r.prestation','pr')->addSelect('pr')
-            ->orderBy('p.paidAt','ASC')
+            ->orderBy('p.paidAt','DESC')
             ->getQuery()->getResult();
     }
 

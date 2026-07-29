@@ -15,6 +15,7 @@ use App\Repository\PaymentRepository;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/client')]
+#[IsGranted('ROLE_RECEPTION_CAISSE')]
 final class ClientController extends AbstractController
 {
 
@@ -135,28 +136,23 @@ final class ClientController extends AbstractController
     )]
     public function delete(Request $request, Client $client, EntityManagerInterface $entityManager): Response
     {
-    if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->request->get('_token'))) {
-        // Récupérer tous les RDV du client pour supprimer leurs cash movements
-        $rdvIds = [];
-        foreach ($client->getRdvs() as $rdv) {
-            $rdvIds[] = $rdv->getId();
+        if (!$this->isCsrfTokenValid('delete'.$client->getId(), $request->request->get('_token'))) {
+            $this->addFlash('warning', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_client_index');
         }
-        
-        // Supprimer les mouvements de caisse liés
-        $cashRepo = $entityManager->getRepository(\App\Entity\CashMovement::class);
-        $cashMovements = $cashRepo->findByRdvIds($rdvIds);
-        
-        foreach ($cashMovements as $movement) {
-            $entityManager->remove($movement);
+
+        if (!$client->getRdvs()->isEmpty()) {
+            $this->addFlash(
+                'danger',
+                'Ce client possède un historique de rendez-vous ou de paiements et ne peut pas être supprimé.',
+            );
+            return $this->redirectToRoute('app_client_show', ['id' => $client->getId()]);
         }
-        
-        // Ensuite supprimer le client (les RDV et paiements seront supprimés automatiquement via CASCADE)
+
         $entityManager->remove($client);
         $entityManager->flush();
-        $this->addFlash('success', 'Client, rendez-vous, paiements et mouvements de caisse supprimés avec succès.');
-    } else {
-        $this->addFlash('warning', '⚠️ Jeton CSRF invalide, suppression annulée.');
+        $this->addFlash('success', 'Client sans historique supprimé avec succès.');
+
+        return $this->redirectToRoute('app_client_index');
     }
-    return $this->redirectToRoute('app_client_index');
-}
 }
