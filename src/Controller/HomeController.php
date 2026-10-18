@@ -13,7 +13,7 @@ class HomeController extends AbstractController
     {
         // Si connecté, aller au dashboard
         if ($this->getUser()) {
-            return $this->redirectToRoute('app_dashboard');
+            return $this->redirectToRoute('admin_dashboard');
         }
 
         // Sinon, aller au login
