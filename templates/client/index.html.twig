@@ -47,10 +47,16 @@
 						</div>
 					</form>
 
-					<a href="{{ path('app_client_new') }}" class="btn btn-primary">
-						<i class="ri-add-circle-line align-middle me-1"></i>
-						Nouveau client
-					</a>
+					<div class="d-flex gap-2">
+						{% if is_granted('ROLE_MANAGER') %}
+							<a href="{{ path('app_client_ranking') }}" class="btn btn-soft-primary">
+								<i class="ri-trophy-line align-middle me-1"></i>Classement clients
+							</a>
+						{% endif %}
+						<a href="{{ path('app_client_new') }}" class="btn btn-primary">
+							<i class="ri-add-circle-line align-middle me-1"></i>Nouveau client
+						</a>
+					</div>
 				</div>
 			</div>
 		</div>
