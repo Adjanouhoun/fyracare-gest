@@ -94,11 +94,13 @@ final class TemplateContractTest extends TestCase
         $payment = file_get_contents(dirname(__DIR__, 2).'/templates/payment/new.html.twig');
         $closure = file_get_contents(dirname(__DIR__, 2).'/templates/cash/close.html.twig');
         $expense = file_get_contents(dirname(__DIR__, 2).'/templates/cash/new_expense.html.twig');
+        $cashIndex = file_get_contents(dirname(__DIR__, 2).'/templates/cash/index_v2.html.twig');
         $paymentType = file_get_contents(dirname(__DIR__, 2).'/src/Form/PaymentType.php');
 
         self::assertIsString($payment);
         self::assertIsString($closure);
         self::assertIsString($expense);
+        self::assertIsString($cashIndex);
         self::assertIsString($paymentType);
         self::assertStringNotContainsString('console.log', $payment);
         self::assertStringContainsString('data-amount="{{ rdv.remainingAmount }}"', $payment);
@@ -110,6 +112,12 @@ final class TemplateContractTest extends TestCase
         self::assertStringContainsString('clôture définitive', $closure);
         self::assertStringContainsString('cash-expense-form', $expense);
         self::assertStringContainsString('Enregistrer la dépense', $expense);
+        self::assertStringContainsString('data-bs-target="#cashExpenseModal"', $cashIndex);
+        self::assertStringContainsString('cash-expense-modal-form', $cashIndex);
+        self::assertStringContainsString('Enregistrer une sortie d’argent', $cashIndex);
+        self::assertStringContainsString('data-bs-target="#cashDepositModal"', $cashIndex);
+        self::assertStringContainsString('cash-deposit-modal-form', $cashIndex);
+        self::assertStringContainsString('Enregistrer un apport de fonds', $cashIndex);
     }
 
     public function testGlobalNavigationIsConsistentAndMobileFriendly(): void

@@ -2,6 +2,8 @@
 namespace App\Entity;
 
 use App\Repository\CashClosureRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -43,10 +45,16 @@ class CashClosure
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $lateReason = null;
 
+    /** @var Collection<int, CashClosureReopening> */
+    #[ORM\OneToMany(mappedBy: 'closure', targetEntity: CashClosureReopening::class, cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['reopenedAt' => 'DESC'])]
+    private Collection $reopenings;
+
     public function __construct()
     {
         $this->closedAt = new \DateTimeImmutable();
         $this->closureDate = new \DateTimeImmutable('today');
+        $this->reopenings = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -89,6 +97,32 @@ class CashClosure
 
     public function getLateReason(): ?string { return $this->lateReason; }
     public function setLateReason(?string $reason): self { $this->lateReason = $reason; return $this; }
+
+    /** @return Collection<int, CashClosureReopening> */
+    public function getReopenings(): Collection { return $this->reopenings; }
+
+    public function addReopening(CashClosureReopening $reopening): self
+    {
+        if (!$this->reopenings->contains($reopening)) {
+            $this->reopenings->add($reopening);
+            $reopening->setClosure($this);
+        }
+
+        return $this;
+    }
+
+    public function getActiveReopening(): ?CashClosureReopening
+    {
+        foreach ($this->reopenings as $reopening) {
+            if (!$reopening->isReclosed()) {
+                return $reopening;
+            }
+        }
+
+        return null;
+    }
+
+    public function isReopened(): bool { return $this->getActiveReopening() !== null; }
 
     public function isLate(): bool
     {

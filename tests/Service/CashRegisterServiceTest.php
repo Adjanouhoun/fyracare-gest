@@ -4,6 +4,7 @@ namespace App\Tests\Service;
 
 use App\Entity\CashClosure;
 use App\Entity\CashMovement;
+use App\Entity\CashClosureReopening;
 use App\Entity\User;
 use App\Service\CashPeriodGuard;
 use App\Service\CashRegisterService;
@@ -75,6 +76,68 @@ final class CashRegisterServiceTest extends KernelTestCase
 
         $this->expectException(\DomainException::class);
         $this->guard->assertOpen(new \DateTimeImmutable('today'));
+    }
+
+    public function testManagerCanReopenLatestClosureWithAuditSnapshotAndCloseItAgain(): void
+    {
+        $closure = $this->register->close(
+            new \DateTimeImmutable('today'),
+            680,
+            $this->manager,
+            'Écart de comptage vérifié',
+        );
+
+        $reopening = $this->register->reopen(
+            $closure,
+            $this->manager,
+            'Clôture effectuée avant une correction urgente',
+        );
+
+        self::assertTrue($closure->isReopened());
+        self::assertSame(700, $reopening->getPreviousBalance());
+        self::assertSame(680, $reopening->getPreviousCountedBalance());
+        self::assertSame(-20, $reopening->getPreviousVariance());
+        self::assertSame(1, $this->em->getRepository(CashClosureReopening::class)->count([]));
+        $this->guard->assertOpen(new \DateTimeImmutable('today'));
+
+        $newMovement = (new CashMovement())
+            ->setType(CashMovement::IN)
+            ->setAmount(50)
+            ->setSource(CashMovement::SRC_MANUAL)
+            ->setCreatedBy($this->manager);
+        $this->em->persist($newMovement);
+        $this->em->flush();
+
+        $reclosed = $this->register->close(
+            new \DateTimeImmutable('today'),
+            750,
+            $this->manager,
+        );
+
+        self::assertSame($closure->getId(), $reclosed->getId());
+        self::assertFalse($reclosed->isReopened());
+        self::assertTrue($reopening->isReclosed());
+        self::assertSame(750, $reclosed->getBalance());
+        self::assertSame(1, $this->em->getRepository(CashClosure::class)->count([]));
+    }
+
+    public function testReopeningRequiresDetailedReason(): void
+    {
+        $closure = $this->register->close(new \DateTimeImmutable('today'), 700, $this->manager);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('10 caractères');
+        $this->register->reopen($closure, $this->manager, 'Erreur');
+    }
+
+    public function testClosureCannotBeReopenedTwiceWithoutReclosing(): void
+    {
+        $closure = $this->register->close(new \DateTimeImmutable('today'), 700, $this->manager);
+        $this->register->reopen($closure, $this->manager, 'Clôture accidentelle à corriger');
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('déjà rouverte');
+        $this->register->reopen($closure, $this->manager, 'Nouvelle demande de réouverture');
     }
 
     public function testForgottenDayBlocksTodayUntilLateClosureIsRecorded(): void

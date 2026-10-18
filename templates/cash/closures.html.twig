@@ -16,6 +16,7 @@
               <th class="text-end">Entrées physiques</th>
               <th class="text-end">Sorties physiques</th>
               <th class="text-end">Solde théorique</th>
+              <th>État</th>
               <th></th>
             </tr>
           </thead>
@@ -26,6 +27,11 @@
               <td class="text-end">{{ c.totalIn|number_format(0,',',' ') }}</td>
               <td class="text-end">{{ c.totalOut|number_format(0,',',' ') }}</td>
               <td class="text-end">{{ c.balance|number_format(0,',',' ') }}</td>
+              <td>
+                <span class="badge {{ c.reopened ? 'bg-warning text-dark' : 'bg-success' }}">
+                  {{ c.reopened ? 'Rouverte' : 'Clôturée' }}
+                </span>
+              </td>
               <td class="text-end">
                 <a class="btn btn-sm btn-soft-secondary" href="{{ path('cash_closure_show', {id: c.id}) }}">
                   Voir
@@ -33,7 +39,7 @@
               </td>
             </tr>
           {% else %}
-            <tr><td colspan="5" class="text-center text-muted">Aucune clôture.</td></tr>
+            <tr><td colspan="6" class="text-center text-muted">Aucune clôture.</td></tr>
           {% endfor %}
           </tbody>
         </table>

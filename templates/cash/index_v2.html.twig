@@ -82,9 +82,13 @@
             <button class="btn btn-soft-primary"><i class="ri-search-line"></i></button>
           </form>
           {% if not todayClosure and isToday and not pendingCashClosure %}
-            <a class="btn btn-outline-danger" href="{{ path('cash_expense_new') }}"><i class="ri-subtract-line me-1"></i>Dépense</a>
+            <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#cashExpenseModal">
+              <i class="ri-subtract-line me-1"></i>Dépense
+            </button>
             {% if is_granted('ROLE_MANAGER') %}
-              <a class="btn btn-outline-primary" href="{{ path('cash_deposit') }}"><i class="ri-add-line me-1"></i>Apport</a>
+              <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#cashDepositModal">
+                <i class="ri-add-line me-1"></i>Apport
+              </button>
             {% endif %}
             <a class="btn btn-danger" href="{{ path('cash_close') }}"><i class="ri-lock-line me-1"></i>Clôturer</a>
           {% endif %}
@@ -223,5 +227,162 @@
       <a class="btn btn-soft-primary" href="{{ path('cash_reports', {period: 'month', month: month, year: year}) }}">Rapport mensuel</a>
       <a class="btn btn-soft-primary" href="{{ path('cash_reports', {period: 'year', year: year}) }}">Rapport annuel</a>
     </div>
+  {% endif %}
+
+  {% if not todayClosure and isToday and not pendingCashClosure %}
+    <div class="modal fade" id="cashExpenseModal" tabindex="-1" aria-labelledby="cashExpenseModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title" id="cashExpenseModalLabel">
+                <i class="ri-subtract-line text-danger me-1"></i>Enregistrer une sortie d’argent
+              </h5>
+              <p class="text-muted mb-0 mt-1">
+                Solde physique disponible : <strong>{{ availableToday|number_format(0, ',', ' ') }} MRU</strong>
+              </p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
+
+          {{ form_start(expenseForm, {attr: {id: 'cash-expense-modal-form'}}) }}
+            <div class="modal-body">
+              <div class="alert alert-warning d-flex gap-2" role="alert">
+                <i class="ri-information-line fs-5"></i>
+                <div>
+                  Une dépense validée ne peut pas être modifiée. En cas d’erreur, un Manager pourra l’annuler tout en conservant sa traçabilité.
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-5">
+                  <label class="form-label" for="{{ expenseForm.amount.vars.id }}">Montant de la dépense (MRU)</label>
+                  {{ form_widget(expenseForm.amount, {attr: {
+                    class: 'form-control form-control-lg',
+                    min: 1,
+                    max: availableToday,
+                    inputmode: 'numeric',
+                    placeholder: 'Ex. 1 500'
+                  }}) }}
+                  {{ form_errors(expenseForm.amount) }}
+                  <div class="form-text">Le montant ne peut pas dépasser le solde disponible.</div>
+                </div>
+
+                <div class="col-md-7">
+                  <label class="form-label" for="{{ expenseForm.category.vars.id }}">Catégorie de dépense</label>
+                  {{ form_widget(expenseForm.category, {attr: {class: 'form-select form-select-lg'}}) }}
+                  {{ form_errors(expenseForm.category) }}
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label" for="{{ expenseForm.notes.vars.id }}">Motif détaillé</label>
+                  {{ form_widget(expenseForm.notes, {attr: {
+                    class: 'form-control',
+                    rows: 4,
+                    placeholder: 'Ex. Achat de produits d’entretien pour le cabinet'
+                  }}) }}
+                  {{ form_errors(expenseForm.notes) }}
+                  <div class="form-text">Indiquez clairement pourquoi l’argent est sorti afin de faciliter les contrôles et les rapports.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="submit" class="btn btn-danger">
+                <i class="ri-check-line me-1"></i>Enregistrer la dépense
+              </button>
+            </div>
+          {{ form_end(expenseForm) }}
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('cash-expense-modal-form')?.addEventListener('submit', function (event) {
+        const amount = document.getElementById('{{ expenseForm.amount.vars.id }}')?.value || '0';
+        if (!window.confirm('Confirmer la sortie de ' + amount + ' MRU de la caisse physique ?')) {
+          event.preventDefault();
+        }
+      });
+    </script>
+
+    {% if is_granted('ROLE_MANAGER') %}
+      <div class="modal fade" id="cashDepositModal" tabindex="-1" aria-labelledby="cashDepositModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div>
+                <h5 class="modal-title" id="cashDepositModalLabel">
+                  <i class="ri-add-line text-primary me-1"></i>Enregistrer un apport de fonds
+                </h5>
+                <p class="text-muted mb-0 mt-1">Ajouter uniquement des espèces réellement déposées dans la caisse physique.</p>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+
+            {{ form_start(depositForm, {attr: {id: 'cash-deposit-modal-form', novalidate: 'novalidate'}}) }}
+              <div class="modal-body">
+                <div class="alert alert-info d-flex gap-2" role="alert">
+                  <i class="ri-information-line fs-5"></i>
+                  <div>
+                    Cet apport augmente le solde théorique de la caisse. Les paiements mobiles ou bancaires ne doivent pas être enregistrés ici.
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-5">
+                    <label class="form-label" for="{{ depositForm.amount.vars.id }}">Montant apporté (MRU)</label>
+                    {{ form_widget(depositForm.amount, {attr: {
+                      class: 'form-control form-control-lg',
+                      min: 1,
+                      inputmode: 'numeric',
+                      placeholder: 'Ex. 10 000',
+                      required: true
+                    }}) }}
+                    {{ form_errors(depositForm.amount) }}
+                    <div class="form-text">Le montant doit correspondre aux espèces physiquement déposées.</div>
+                  </div>
+
+                  <div class="col-md-7">
+                    <label class="form-label" for="{{ depositForm.source.vars.id }}">Nature de l’apport</label>
+                    {{ form_widget(depositForm.source, {attr: {class: 'form-select form-select-lg', required: true}}) }}
+                    {{ form_errors(depositForm.source) }}
+                  </div>
+
+                  <div class="col-12">
+                    <label class="form-label" for="{{ depositForm.notes.vars.id }}">Justification de l’apport</label>
+                    {{ form_widget(depositForm.notes, {attr: {
+                      class: 'form-control',
+                      rows: 4,
+                      placeholder: 'Ex. Fonds de caisse déposés par la direction',
+                      required: true
+                    }}) }}
+                    {{ form_errors(depositForm.notes) }}
+                    <div class="form-text">Précisez l’origine des espèces pour faciliter la traçabilité et le contrôle de caisse.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="ri-check-line me-1"></i>Enregistrer l’apport
+                </button>
+              </div>
+            {{ form_end(depositForm) }}
+          </div>
+        </div>
+      </div>
+
+      <script>
+        document.getElementById('cash-deposit-modal-form')?.addEventListener('submit', function (event) {
+          const amount = document.getElementById('{{ depositForm.amount.vars.id }}')?.value || '0';
+          if (!window.confirm('Confirmer l’ajout de ' + amount + ' MRU dans la caisse physique ?')) {
+            event.preventDefault();
+          }
+        });
+      </script>
+    {% endif %}
   {% endif %}
 {% endblock %}

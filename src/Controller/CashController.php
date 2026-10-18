@@ -8,6 +8,7 @@ use App\Entity\Payment;
 use App\Entity\User;
 use App\Form\CashClosureType;
 use App\Form\CashExpenseType;
+use App\Form\DepositType;
 use App\Repository\CashMovementRepository;
 use App\Repository\CashClosureRepository;
 use App\Repository\PaymentRepository;
@@ -219,6 +220,18 @@ class CashController extends AbstractController
         $month = (int) $day->format('n');
         $year  = (int) $day->format('Y');
 
+        $expense = (new CashMovement())
+            ->setType(CashMovement::OUT)
+            ->setSource(CashMovement::SRC_EXPENSE);
+        $expenseForm = $this->createForm(CashExpenseType::class, $expense, [
+            'action' => $this->generateUrl('cash_expense_new'),
+            'method' => 'POST',
+        ]);
+        $depositForm = $this->createForm(DepositType::class, null, [
+            'action' => $this->generateUrl('cash_deposit'),
+            'method' => 'POST',
+        ]);
+
         return $this->render('cash/index_v2.html.twig', [
             'day'             => $day,
             'month'           => $month,
@@ -234,7 +247,10 @@ class CashController extends AbstractController
             'mobilePayments'  => $mobilePayments,
             'cashValidPayments' => $cashValidPayments,
             'commercialReceipts' => $commercialReceipts,
-            'todayClosure'    => $closureRepo->findForDate($day),
+            'expenseForm'      => $expenseForm,
+            'depositForm'      => $depositForm,
+            'availableToday'   => $movRepo->currentCash(),
+            'todayClosure'    => $closureRepo->isDateClosed($day) ? $closureRepo->findForDate($day) : null,
             'isToday'         => $day->format('Y-m-d') === $today->format('Y-m-d'),
             'pendingCashClosure' => $cashPeriodGuard->findOldestPendingDate($today),
         ]);
@@ -329,7 +345,7 @@ class CashController extends AbstractController
         );
 
         $existingClosure = $closureRepo->findForDate($from);
-        if ($existingClosure) {
+        if ($existingClosure && !$existingClosure->isReopened()) {
             $this->addFlash('info', 'La caisse de cette journée est déjà clôturée.');
             return $this->redirectToRoute('cash_closure_show', ['id' => $existingClosure->getId()]);
         }
@@ -386,9 +402,51 @@ class CashController extends AbstractController
 
     #[Route('/closure/{id}', name: 'closure_show', methods: ['GET'])]
     #[IsGranted('ROLE_MANAGER')]
-    public function closureShow(CashClosure $closure): Response
+    public function closureShow(CashClosure $closure, CashClosureRepository $closureRepo): Response
     {
-        return $this->render('cash/closure_show.html.twig', ['closure' => $closure]);
+        $latest = $closureRepo->findLatest();
+        $today = new \DateTimeImmutable('today', $closure->getClosureDate()->getTimezone());
+
+        return $this->render('cash/closure_show.html.twig', [
+            'closure' => $closure,
+            'canReopen' => !$closure->isReopened()
+                && $latest?->getId() === $closure->getId()
+                && $closure->getClosureDate()->format('Y-m-d') === $today->format('Y-m-d'),
+        ]);
+    }
+
+    #[Route('/closure/{id}/reopen', name: 'closure_reopen', methods: ['POST'])]
+    #[IsGranted('ROLE_MANAGER')]
+    public function reopenClosure(
+        Request $request,
+        CashClosure $closure,
+        CashRegisterService $cashRegister,
+    ): Response {
+        if (!$this->isCsrfTokenValid('reopen_cash_closure_'.$closure->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $cashRegister->reopen($closure, $user, $request->request->getString('reason'));
+            $this->addFlash(
+                'success',
+                sprintf(
+                    'La caisse du %s est rouverte. Elle devra être clôturée de nouveau après les corrections.',
+                    $closure->getClosureDate()->format('d/m/Y'),
+                ),
+            );
+
+            return $this->redirectToRoute('cash_index', ['d' => $closure->getClosureDate()->format('Y-m-d')]);
+        } catch (\DomainException $exception) {
+            $this->addFlash('danger', $exception->getMessage());
+        }
+
+        return $this->redirectToRoute('cash_closure_show', ['id' => $closure->getId()]);
     }
 
     #[Route('/expenses/month', name: 'expenses_month', methods: ['GET'])]
