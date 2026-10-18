@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\AppointmentStatusHistory;
 use App\Entity\CashClosure;
+use App\Entity\CashClosureReopening;
 use App\Entity\CashMovement;
 use App\Entity\Payment;
 use App\Entity\User;
@@ -79,6 +80,23 @@ final class ActivityLogReader
                 $closure->getClosedBy(),
                 'cash_closure_show',
                 ['id' => (int) $closure->getId()],
+            );
+        }
+
+        foreach ($this->em->getRepository(CashClosureReopening::class)->findBy([], ['reopenedAt' => 'DESC'], $limitPerSource) as $reopening) {
+            $closure = $reopening->getClosure();
+            $events[] = $this->event(
+                $reopening->getReopenedAt(),
+                'CLOSURE_REOPENING',
+                'Réouverture de caisse',
+                sprintf(
+                    'Journée du %s — %s',
+                    $closure?->getClosureDate()->format('d/m/Y') ?? 'date indisponible',
+                    $reopening->getReason(),
+                ),
+                $reopening->getReopenedBy(),
+                $closure ? 'cash_closure_show' : null,
+                $closure ? ['id' => (int) $closure->getId()] : [],
             );
         }
 

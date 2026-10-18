@@ -53,6 +53,7 @@ final class RoleAccessTest extends KernelTestCase
         yield 'payment' => ['/payment/', 'ROLE_RECEPTION_CAISSE'];
         yield 'cash deposit' => ['/cash/deposit', 'ROLE_MANAGER'];
         yield 'cash closure' => ['/cash/close', 'ROLE_RECEPTION_CAISSE'];
+        yield 'cash closure reopening' => ['/cash/closure/12/reopen', 'ROLE_MANAGER'];
         yield 'statistics' => ['/stats', 'ROLE_MANAGER'];
         yield 'settings' => ['/admin/settings/', 'ROLE_ADMIN'];
         yield 'activity log' => ['/admin/activity-log', 'ROLE_ADMIN'];

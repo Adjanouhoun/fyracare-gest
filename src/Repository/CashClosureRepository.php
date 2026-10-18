@@ -19,6 +19,13 @@ class CashClosureRepository extends ServiceEntityRepository
 
     public function isDateClosed(\DateTimeImmutable $date): bool
     {
-        return $this->findForDate($date) !== null;
+        $closure = $this->findForDate($date);
+
+        return $closure !== null && !$closure->isReopened();
+    }
+
+    public function findLatest(): ?CashClosure
+    {
+        return $this->findOneBy([], ['closureDate' => 'DESC', 'closedAt' => 'DESC']);
     }
 }

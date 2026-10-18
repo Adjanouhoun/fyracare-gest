@@ -3,12 +3,15 @@
 namespace App\Service;
 
 use App\Entity\CashClosure;
+use App\Entity\CashClosureReopening;
 use App\Entity\CashMovement;
 use App\Entity\User;
 use App\Repository\CashClosureRepository;
 use App\Repository\CashMovementRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\LockMode;
 
 final class CashRegisterService
 {
@@ -66,9 +69,19 @@ final class CashRegisterService
                 );
             }
 
-            $closure = (new CashClosure())
-                ->setClosureDate($date)
-                ->setClosedAt(new \DateTimeImmutable('now', $date->getTimezone()))
+            $closure = $this->closures->findForDate($date) ?? (new CashClosure())->setClosureDate($date);
+            if ($closure->getId() !== null && !$this->em->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+                $this->em->lock($closure, LockMode::PESSIMISTIC_WRITE);
+                $this->em->refresh($closure);
+            }
+            $activeReopening = $closure->getActiveReopening();
+            if ($closure->getId() !== null && !$activeReopening) {
+                throw new \DomainException('La caisse de cette journée est déjà clôturée.');
+            }
+
+            $closedAt = new \DateTimeImmutable('now', $date->getTimezone());
+            $closure
+                ->setClosedAt($closedAt)
                 ->setTotalIn($totalIn)
                 ->setTotalOut($totalOut)
                 ->setBalance($expectedBalance)
@@ -78,6 +91,10 @@ final class CashRegisterService
                 ->setLateReason($lateReason ?: null)
                 ->setNotes($notes ?: null);
 
+            if ($activeReopening) {
+                $activeReopening->markReclosed($author, $closedAt);
+            }
+
             $this->em->persist($closure);
             try {
                 $this->em->flush();
@@ -86,6 +103,48 @@ final class CashRegisterService
             }
 
             return $closure;
+        });
+    }
+
+    public function reopen(CashClosure $closure, User $author, string $reason): CashClosureReopening
+    {
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 10) {
+            throw new \DomainException('Un motif précis d’au moins 10 caractères est obligatoire pour rouvrir la caisse.');
+        }
+        if ($closure->isReopened()) {
+            throw new \DomainException('Cette journée de caisse est déjà rouverte.');
+        }
+
+        $today = new \DateTimeImmutable('today', $closure->getClosureDate()->getTimezone());
+        if ($closure->getClosureDate()->format('Y-m-d') !== $today->format('Y-m-d')) {
+            throw new \DomainException(
+                'Seule la caisse du jour peut être rouverte. Une journée historique reste figée pour préserver la comptabilité.',
+            );
+        }
+
+        $latest = $this->closures->findLatest();
+        if (!$latest || $latest->getId() !== $closure->getId()) {
+            throw new \DomainException(
+                'Seule la clôture la plus récente peut être rouverte afin de préserver la chronologie de caisse.',
+            );
+        }
+
+        return $this->em->wrapInTransaction(function () use ($closure, $author, $reason): CashClosureReopening {
+            if (!$this->em->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+                $this->em->lock($closure, LockMode::PESSIMISTIC_WRITE);
+            }
+            $this->em->refresh($closure);
+            if ($closure->isReopened()) {
+                throw new \DomainException('Cette journée de caisse est déjà rouverte.');
+            }
+
+            $event = CashClosureReopening::fromClosure($closure, $author, $reason);
+            $closure->addReopening($event);
+            $this->em->persist($event);
+            $this->em->flush();
+
+            return $event;
         });
     }
 }

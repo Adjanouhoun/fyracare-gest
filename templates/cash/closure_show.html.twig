@@ -2,11 +2,27 @@
 {% block title %}Détail clôture{% endblock %}
 
 {% block page_header %}
-  <h4 class="fs-16 mb-1">Clôture du {{ closure.closedAt|date('d/m/Y H:i') }}</h4>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      <h4 class="fs-16 mb-1">Clôture du {{ closure.closureDate|date('d/m/Y') }}</h4>
+      <p class="text-muted mb-0">Clôturée le {{ closure.closedAt|date('d/m/Y à H:i') }}</p>
+    </div>
+    <span class="badge {{ closure.reopened ? 'bg-warning text-dark' : 'bg-success' }} fs-13">
+      {{ closure.reopened ? 'Journée rouverte' : 'Journée clôturée' }}
+    </span>
+  </div>
 {% endblock %}
 
 {% block body %}
   <div class="row g-3">
+    {% if closure.reopened %}
+      <div class="col-12">
+        <div class="alert alert-warning mb-0">
+          <strong><i class="ri-lock-unlock-line me-1"></i>Cette journée est actuellement rouverte.</strong>
+          Les nouvelles opérations sont autorisées, mais la journée doit être clôturée de nouveau.
+        </div>
+      </div>
+    {% endif %}
     <div class="col-xl-4">
       <div class="card card-animate"><div class="card-body">
         <div class="text-muted">Entrées physiques</div>
@@ -41,6 +57,55 @@
         <hr>
         <div class="text-muted">Clôturée le {{ closure.closedAt|date('d/m/Y H:i') }}{% if closure.closedBy %} par {{ closure.closedBy.fullname }}{% endif %}</div>
       </div></div>
+
+      {% if closure.reopenings|length > 0 %}
+        <div class="card"><div class="card-body">
+          <h5 class="card-title mb-3"><i class="ri-history-line me-1"></i>Historique des réouvertures</h5>
+          {% for event in closure.reopenings %}
+            <div class="border rounded p-3 {{ not event.reclosed ? 'border-warning bg-warning-subtle' : '' }} mb-2">
+              <div class="d-flex flex-wrap justify-content-between gap-2">
+                <strong>Réouverte le {{ event.reopenedAt|date('d/m/Y à H:i') }}</strong>
+                <span class="badge {{ event.reclosed ? 'bg-success' : 'bg-warning text-dark' }}">
+                  {{ event.reclosed ? 'Reclôturée' : 'Réouverture active' }}
+                </span>
+              </div>
+              <div class="text-muted small mt-1">
+                Par {{ event.reopenedBy ? event.reopenedBy.fullname : 'utilisateur historique indisponible' }}
+              </div>
+              <div class="mt-2"><strong>Motif :</strong> {{ event.reason }}</div>
+              <div class="small text-muted mt-2">
+                Clôture conservée : solde théorique {{ event.previousBalance|number_format(0,',',' ') }} MRU,
+                solde compté {{ event.previousCountedBalance|number_format(0,',',' ') }} MRU,
+                écart {{ event.previousVariance|number_format(0,',',' ') }} MRU.
+              </div>
+              {% if event.reclosed %}
+                <div class="small text-success mt-1">
+                  Reclôturée le {{ event.reclosedAt|date('d/m/Y à H:i') }}{% if event.reclosedBy %} par {{ event.reclosedBy.fullname }}{% endif %}.
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div></div>
+      {% endif %}
+
+      {% if is_granted('ROLE_MANAGER') and canReopen %}
+        <div class="card border-warning"><div class="card-body">
+          <h5 class="card-title text-warning"><i class="ri-lock-unlock-line me-1"></i>Rouvrir cette journée</h5>
+          <p class="text-muted">
+            Utilisez cette action uniquement en cas de clôture accidentelle ou de correction urgente.
+            La clôture actuelle sera conservée dans l’historique.
+          </p>
+          <form method="post" action="{{ path('cash_closure_reopen', {id: closure.id}) }}" id="cash-reopen-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('reopen_cash_closure_' ~ closure.id) }}">
+            <label class="form-label" for="reopen-reason">Motif précis de la réouverture <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="reopen-reason" name="reason" rows="3" minlength="10" maxlength="500" required placeholder="Ex. clôture effectuée par erreur avant l’enregistrement d’une dépense urgente"></textarea>
+            <div class="form-text">Minimum 10 caractères. Cette justification sera visible dans le journal d’activité.</div>
+            <button type="submit" class="btn btn-warning mt-3" onclick="return confirm('Confirmer la réouverture de cette journée de caisse ?');">
+              <i class="ri-lock-unlock-line me-1"></i>Confirmer la réouverture
+            </button>
+          </form>
+        </div></div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
