@@ -48,6 +48,7 @@ security:
     - { path: ^/cash/close$, roles: ROLE_RECEPTION_CAISSE }
     - { path: ^/cash/(deposit|closures|closure|expenses|entries|injections), roles: ROLE_MANAGER }
     - { path: ^/stats, roles: ROLE_MANAGER }
+    - { path: ^/client/ranking$, roles: ROLE_MANAGER }
     - { path: ^/(dashboard|agenda|client|rdv|payment|cash), roles: ROLE_RECEPTION_CAISSE }
     - { path: ^/api, roles: ROLE_RECEPTION_CAISSE }
     - { path: ^/account, roles: ROLE_USER }

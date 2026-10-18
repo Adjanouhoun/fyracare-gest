@@ -47,6 +47,11 @@
         <li class="nav-item">
           <a class="nav-link menu-link" href="{{ path('app_client_index') }}"><i class="ri-team-line"></i> <span>Clients</span></a>
         </li>
+        {% if is_granted('ROLE_MANAGER') %}
+          <li class="nav-item">
+            <a class="nav-link menu-link" href="{{ path('app_client_ranking') }}"><i class="ri-trophy-line"></i> <span>Classement clients</span></a>
+          </li>
+        {% endif %}
         {% if is_granted('ROLE_ADMIN') %}
           <li class="nav-item">
             <a class="nav-link menu-link" href="{{ path('app_prestation_index') }}"><i class="ri-stethoscope-line"></i> <span>Prestations</span></a>

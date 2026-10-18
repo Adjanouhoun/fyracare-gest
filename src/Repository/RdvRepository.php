@@ -54,6 +54,33 @@ class RdvRepository extends ServiceEntityRepository
             ->getQuery()->getSingleScalarResult();
     }
 
+    /**
+     * @return array<int, array{clientId: int, visits: int, lastVisit: string}>
+     */
+    public function honoredVisitsByClient(
+        ?\DateTimeImmutable $from = null,
+        ?\DateTimeImmutable $to = null,
+    ): array {
+        $qb = $this->createQueryBuilder('r')
+            ->select('IDENTITY(r.client) AS clientId, COUNT(r.id) AS visits, MAX(r.startAt) AS lastVisit')
+            ->andWhere('r.status = :status')
+            ->setParameter('status', Rdv::S_HONORE)
+            ->groupBy('r.client');
+
+        if ($from) {
+            $qb->andWhere('r.startAt >= :visitsFrom')->setParameter('visitsFrom', $from);
+        }
+        if ($to) {
+            $qb->andWhere('r.startAt <= :visitsTo')->setParameter('visitsTo', $to);
+        }
+
+        return array_map(static fn (array $row): array => [
+            'clientId' => (int) $row['clientId'],
+            'visits' => (int) $row['visits'],
+            'lastVisit' => (string) $row['lastVisit'],
+        ], $qb->getQuery()->getArrayResult());
+    }
+
     /** Top prestations par volume sur une période */
     public function topPrestationsByCount(\DateTimeImmutable $from, \DateTimeImmutable $to, int $limit=5): array
     {

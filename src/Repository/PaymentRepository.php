@@ -114,6 +114,30 @@ class PaymentRepository extends ServiceEntityRepository
             ->getQuery()->getSingleScalarResult() ?? 0);
     }
 
+    /** @return array<int, array{clientId: int, totalSpent: int}> */
+    public function spendingByClient(
+        ?\DateTimeImmutable $from = null,
+        ?\DateTimeImmutable $to = null,
+    ): array {
+        $qb = $this->createQueryBuilder('p')
+            ->select('IDENTITY(r.client) AS clientId, SUM(p.amount) AS totalSpent')
+            ->join('p.rdv', 'r')
+            ->andWhere('p.cancelledAt IS NULL')
+            ->groupBy('r.client');
+
+        if ($from) {
+            $qb->andWhere('p.paidAt >= :paymentsFrom')->setParameter('paymentsFrom', $from);
+        }
+        if ($to) {
+            $qb->andWhere('p.paidAt <= :paymentsTo')->setParameter('paymentsTo', $to);
+        }
+
+        return array_map(static fn (array $row): array => [
+            'clientId' => (int) $row['clientId'],
+            'totalSpent' => (int) $row['totalSpent'],
+        ], $qb->getQuery()->getArrayResult());
+    }
+
     /** @return array<string, int> */
     public function sumByMethodBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
